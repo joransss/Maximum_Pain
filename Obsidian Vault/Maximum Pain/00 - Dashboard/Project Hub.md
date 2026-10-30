@@ -11,6 +11,9 @@
 - [[Reference Images]]
 - [[Reference Index]]
 - [[Acceptance Test Plan]]
+- [[Weapon System]]
+- [[Weapon and Ammunition Pickup Mechanic]]
+- [[Drop Weapons on Death]]
 
 ## Working principles
 1. Document the full intended game now; implement it in small, dependency-ordered milestones.

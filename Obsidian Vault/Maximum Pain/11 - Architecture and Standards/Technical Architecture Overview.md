@@ -31,3 +31,7 @@
 
 ## Change discipline
 Before implementation, inspect the current Explorer and scripts. Extend existing systems where appropriate. Avoid replacing unrelated code. Test with Studio's multi-client tools and review Output errors.
+
+
+## Detailed combat design
+- [[Combat Architecture and Implementation Plan]] — end-to-end R6 combat architecture, server/client boundaries, shoot-dodge, hybrid Bullet Time, arsenal configuration, networking contract and acceptance tests.

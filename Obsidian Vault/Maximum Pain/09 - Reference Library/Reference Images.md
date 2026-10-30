@@ -91,3 +91,10 @@ Source: [Blackhawk Rescue Mission 5 official Roblox page](https://www.roblox.com
 
 Study grouping, vehicle scale and how multiple character silhouettes remain distinct in a shared scene.
 
+
+
+### Max Payne 3 HUD and combat UI
+![Max Payne 3 multiplayer HUD reference](https://m.media-amazon.com/images/M/MV5BNmEyMjkyZmEtMDM4ZC00MDgxLTg4N2MtZWJlM2JiM2I3YjZhXkFqcGdeQXRyYW5zY29kZS13b3JrZmxvdw%40%40._V1_FMjpg_UX1000_.jpg)
+
+**Study:** match score and timer hierarchy, weapon/ammunition visibility, player labels, and the placement of combat information around the game view. For a labelled breakdown of health, Bullet Time, weapon wheel, ammo count, reticle and prompts, see [[Max Payne 3 HUD and Combat UI Reference]].
+Source: [IMDb Max Payne 3 multiplayer video/screenshot](https://www.imdb.com/video/embed/vi4014849305/) and [Max Payne 3 game manual — HUD section](https://www.gamesdatabase.org/Media/SYSTEM/Microsoft_Xbox_360/Manual/formated/Max_Payne_3_-_2012_-_Rockstar_Games.pdf).

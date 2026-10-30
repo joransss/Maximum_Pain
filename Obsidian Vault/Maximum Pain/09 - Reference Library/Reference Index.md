@@ -31,6 +31,7 @@ Use references to make specific design or implementation decisions. Link the rel
 - [[Sound and VFX References]]
 - [[Reference Videos]] — selected Roblox gameplay videos and observation checklist.
 - [[Reference Images]]
+- [[Max Payne 3 HUD and Combat UI Reference]] — multiplayer HUD screenshot, annotated manual reference, and design checklist for an original Maximum Pain HUD.
 
 ## Game design case studies
 - [[Reference Games]]

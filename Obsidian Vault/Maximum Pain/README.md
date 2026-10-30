@@ -10,6 +10,7 @@ An Obsidian planning vault for an original Roblox multiplayer third-person shoot
 - Player systems: movement, camera, tactical abilities, skill scoring and cosmetic progression
 - Cosmetic currency and cases with Roblox paid-random-item policy notes
 - Roblox client/server architecture, RemoteEvents, persistence and script templates
+- [[Combat Architecture and Implementation Plan]] — R6 combat architecture, shoot-dodge, hybrid Bullet Time, weapon framework, networking and implementation milestones
 - Testing, bug tracking, balance logs and asset research
 
 ## Suggested build order
@@ -27,3 +28,10 @@ An Obsidian planning vault for an original Roblox multiplayer third-person shoot
 - Treat new mechanics as backlog until the core loop is reliable.
 - Create original names, maps, characters, UI, audio, animations and assets; use other games as broad design references rather than copying protected content.
 - Robux-funded random cosmetic cases must follow Roblox's current paid random items policy, including odds disclosure and player eligibility restrictions.
+
+
+## Core combat rules
+- [[Loadouts and Progression]] — heavy weapon + pistol or dual pistols (a high-recoil, low-ammo heavy pistol plus a low-recoil, higher-capacity 9mm), one starting magazine per weapon, same-type ammo scavenging, separate defeated-player weapon drops and PvP-only scope.
+- [[Weapon and Ammunition Pickup Mechanic]] — weapon pickups and exact-type ammo scavenging.
+- [[Drop Weapons on Death]] — separate weapon drops, retained ammunition and anti-duplication rules.
+- [[Max Payne 3 HUD and Combat UI Reference]] — HUD screenshot, annotated source manual, and original-interface design checklist.

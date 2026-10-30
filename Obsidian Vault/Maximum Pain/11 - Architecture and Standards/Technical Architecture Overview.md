@@ -35,3 +35,6 @@ Before implementation, inspect the current Explorer and scripts. Extend existing
 
 ## Detailed combat design
 - [[Combat Architecture and Implementation Plan]] — end-to-end R6 combat architecture, server/client boundaries, shoot-dodge, hybrid Bullet Time, arsenal configuration, networking contract and acceptance tests.
+
+## Implemented state machine (2026-10-30)
+`ReplicatedStorage.Shared.CharacterStates` is the shared rule set for stances and actions, used by server validation, client prediction and poses. See [[Combat State Machine]].

@@ -23,3 +23,6 @@ Server-side validation and application of weapon damage.
 ```lua
 -- Add implementation after weapon protocol is defined.
 ```
+
+## Implementation (2026-10-30)
+Code lives in Roblox Studio; see [[Script Registry]] for locations and [[Implementation Log]] for rules, tests and known issues.

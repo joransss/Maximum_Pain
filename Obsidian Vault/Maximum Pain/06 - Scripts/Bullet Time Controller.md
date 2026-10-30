@@ -26,3 +26,6 @@ Coordinate ability input, local visual/audio presentation and server-approved ab
 - [[Bullet Time]]
 - [[RemoteEvents]]
 - [[Server Client Architecture]]
+
+## Implementation (2026-10-30)
+Code lives in Roblox Studio; see [[Script Registry]] for locations and [[Implementation Log]] for rules, tests and known issues.

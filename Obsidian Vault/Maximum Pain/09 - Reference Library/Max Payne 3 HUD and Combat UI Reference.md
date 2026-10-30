@@ -13,7 +13,7 @@ Source: [Max Payne 3 multiplayer screenshot hosted on IMDb](https://www.imdb.com
 
 The [Max Payne 3 Xbox 360 manual, Heads Up Display section](https://www.gamesdatabase.org/Media/SYSTEM/Microsoft_Xbox_360/Manual/formated/Max_Payne_3_-_2012_-_Rockstar_Games.pdf) labels the main single-player HUD elements:
 
-- **Health meter:** represented by a character silhouette that fills red as damage is sustained; painkiller stock is shown within the silhouette.
+- **Health meter:** represented by a character silhouette that fills red as damage is sustained; painkiller stock is shown within the silhouette. (Maximum Pain calls these **medicine**.)
 - **Bullet-time meter:** communicates the remaining slow-motion resource.
 - **Weapon wheel:** communicates weapon selection and loadout changes, including the trade-off when switching to dual wielding.
 - **Ammo count:** clearly shows ammunition for the equipped weapon.
@@ -47,3 +47,11 @@ The manual also describes multiplayer HUD elements including score, round timer,
 ## Use and rights
 
 The screenshot and manual belong to their respective rights holders and are linked for internal visual analysis only. Do not import the screenshot into the shipped game, trace the interface pixel-for-pixel, or treat it as a licensed production asset. Create original UI artwork and layout for Maximum Pain.
+
+## Implemented HUD (2026-10-30)
+Original layout in `StarterGui.CombatHUD`:
+- **Bottom right:** weapon panel (live 3D weapon view, name, magazine / reserve, reload state), vertical bullet-time meter, health silhouette that fills red from the feet, medicine bottles.
+- **Centre:** precision dot reticle (2026-10-30), hit marker (amber on headshot), red kill X, score pop-ups to the right (KILL / HEADSHOT / SHOOT-DODGE / BULLET TIME / LAST STAND).
+- **Top right:** score and kills.
+- **Other:** Last Stand banner with countdown, context messages, screen grading for bullet time and low health.
+Not yet: damage-direction indicator, round timer.

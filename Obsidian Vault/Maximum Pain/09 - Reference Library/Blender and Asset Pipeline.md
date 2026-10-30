@@ -17,14 +17,14 @@
 8. **Track rights:** record creator, source URL, licence/permission and modifications for every third-party asset.
 
 ## Asset checklist
-- [ ] Scale and orientation are correct
+- [x] Scale and orientation are correct (9mm pistol)
 - [ ] Pivot/origin is appropriate for placement or animation
 - [ ] Materials and textures import correctly
 - [ ] Rig and animation behave correctly, if applicable
 - [ ] Collision is appropriate and does not obstruct gameplay
 - [ ] Performance is acceptable in a multiplayer test
-- [ ] Source files are retained
-- [ ] Licence and attribution requirements are recorded
+- [x] Source files are retained (9mm pistol)
+- [x] Licence and attribution requirements are recorded (9mm pistol, sounds)
 
 ## Maximum Pain priorities
 Prioritise weapon silhouettes, first-/third-person weapon handling, character locomotion and readable environment props. Prototype with greybox assets before spending time on polished art. Visual detail must not compromise aiming clarity, hit readability or performance.
@@ -32,4 +32,6 @@ Prioritise weapon silhouettes, first-/third-person weapon handling, character lo
 ## Asset register
 | Asset | Creator/source | Licence/permission | Source file | Roblox asset ID | Tested |
 |---|---|---|---|---|---|
-| | | | | | |
+| 9mm Pistol (M9-style) | Claude Code in Blender for this project | Original, project-owned | `Assets/Blender/MP_Pistol.blend` (export `MP_Pistol_export.fbx`) | Imported MeshParts in `9mm Pistol` tool | Scale, R6 grip, colours (2026-10-29) |
+| Gunshot "Gun Live Ammunition 601 (SFX)", 9mm Beretta | Pro Sound Effects via Roblox Creator Store | Roblox-licensed SFX library | — | 9114714021 | Plays; single shot (2026-10-30) |
+| Reload "Machine Gun 16 (SFX)" | Pro Sound Effects via Roblox Creator Store | Roblox-licensed SFX library | — | 9116345318 | Placeholder handling sound |

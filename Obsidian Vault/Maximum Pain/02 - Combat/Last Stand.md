@@ -20,3 +20,11 @@ When a player receives lethal damage, they may enter a brief Last Stand state if
 - [ ] Decide whether a successful counter restores health or only prevents death
 - [ ] Prevent duplicate eliminations and score awards
 - [ ] Test latency, simultaneous lethal damage and round-end interactions
+
+## Implemented rules (2026-10-30)
+- **Trigger:** lethal damage while carrying ≥ 1 medicine; once per life.
+- 4 s window at 1 HP, knocked prone; the player can aim and fire. Banner and countdown shown to the downed player; the attacker sees "DOWNED".
+- **Success:** killing the player who downed you consumes 1 medicine, restores 30 HP and awards +100 LAST STAND.
+- **Failure:** timeout eliminates, with credit to the original attacker. **Any** damage while downed eliminates, with credit to whoever dealt it.
+- Server owns the timer (session token), charge use and outcome. Toggle with `GameConfig.LastStand.Enabled`.
+- Verified: entry and timeout. Not verified: comeback kill with two players, simultaneous lethal damage.

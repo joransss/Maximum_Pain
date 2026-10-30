@@ -383,3 +383,19 @@ Keep payloads small, validate types and ranges, and rate-limit requests. Never a
 ## Design decision summary
 
 **Locked direction:** R6; cinematic Max Payne-inspired combat; directional shoot-dodge; hybrid personal bullet-time presentation with limited shared gameplay effects; full arsenal. Prototype one pistol and one arena before expanding. Tune the sample values through multiplayer playtests rather than treating them as final requirements.
+
+## Design updates — 2026-10-30 (supersede conflicting text above)
+
+Decided by the project owner and implemented in Studio (see [[Implementation Log]]):
+
+1. **Bullet time is asymmetric, and the activator is slowed too.** Time slows only if an enemy is in view of the activator or the activator is in view of an enemy. If nobody is in view, it does not trigger. The activator keeps free aim, but their movement, fire rate and bullet speed slow (×0.6). Everyone caught in view gets a total slowdown: movement, aim, fire rate and bullet speed (×0.3). Whoever activates first keeps activator status. This replaces "keep the activator's movement and firing at normal speed" and "the activator is not slowed". Per-character modifiers only; the global clock and physics still never slow.
+2. **Dive landing: stay prone until input.** After the dive window the player stays prone (and can aim and fire) until a movement key is pressed, which triggers the get-up recovery. This replaces "at the end of the dive window, transition to DiveRecovery and restore normal movement control".
+3. **Studio-only test dummy.** A non-attacking test dummy exists for sandbox testing of damage, HUD and bullet-time line of sight. It is a Studio-only exception to the PvP-only rule: live servers delete it, and it is never a combatant in shipped gameplay.
+4. **Medicine** replaces "painkillers". Players drop all carried medicine and weapons on death.
+5. **Shoot-dodge in bullet time runs in slow motion** (same distance, slower; velocities ×s, gravity ×s², durations ÷s).
+6. **Aiming (ADS)** is a server-owned state that tightens spread and slows movement; recoil adds server-side bloom.
+7. **Medicine is collected automatically** by walking over it.
+8. **Sprint, crouch and cover are server-owned stances** with one shared rule set (`CharacterStates`). Crouch and low cover lower the real body (`HipHeight`) so server hitboxes match. Cover faces the wall, slides along it, rounds corners and peeks by stepping out at edges.
+9. **Movement guard:** the server pulls back characters whose sustained speed exceeds their state's allowance.
+10. **Cover is back-to-wall** (Max Payne 3 style) with peek-and-shoot at edges / over low cover and blind fire (spread ×8) otherwise; corner wrapping was removed.
+11. **Impact effects** (bullet holes, blood) are drawn at the server's real hit points so they show the true spread.

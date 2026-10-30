@@ -4,6 +4,7 @@
 > The Roblox project is currently a blank Baseplate unless the implementation log says otherwise. All mechanics in this vault are **design intent**, not proof of implemented or tested functionality.
 
 ## Start here
+- [[Implementation Log]] — what is actually built and tested
 - [[Game Design Document]]
 - [[Development Roadmap]]
 - [[Feature Specification Template]]

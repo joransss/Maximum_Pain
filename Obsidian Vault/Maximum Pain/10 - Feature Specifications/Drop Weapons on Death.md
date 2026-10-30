@@ -54,3 +54,9 @@ When a player is eliminated in PvP, each weapon they carry becomes its own world
 - [[Weapon System]]
 - [[Dual Wielding]]
 - [[Server Authority Rules]]
+
+## Medicine drop and implementation notes (2026-10-30)
+- On death the player also drops **all carried medicine** as one pickup (it holds the count; claims are capped by carry max, and the remainder stays).
+- Implemented in `PickupService`: one drop per death (`Dropped` guard); the tool is destroyed as the pickup is created; 40 s lifetime; drops spaced 2.5 studs apart.
+- Shortcut: a 2-weapon cap stands in for the package rules until a second weapon type exists.
+- Dropped medicine is picked up **automatically** by walking over it (2026-10-30); weapons still use the E prompt.

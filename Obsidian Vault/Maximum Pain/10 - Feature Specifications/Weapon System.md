@@ -73,3 +73,12 @@ Prototype magazine targets: heavy pistol 7–8 rounds; light 9mm 15–17 rounds.
 - Dual-pistol starting ammunition is independent: Desert-Eagle-style heavy pistol starts with 8 rounds; light 9mm starts with one full magazine at its own configured capacity (initial target 15–17 rounds). No shared ammo pool.
 - A player can collect ammunition from a weapon on the ground only when they carry the exact same weapon type. The server transfers only ammo actually remaining on the ground weapon and cannot duplicate it.
 - See [[Weapon and Ammunition Pickup Mechanic]] and [[Drop Weapons on Death]] for full rules and acceptance tests.
+
+## Implemented: 9mm pistol (2026-10-30)
+- Tool `9mm Pistol` (tooltip "9mm Pistol", WeaponId `Pistol9mm`), the light 9mm sidearm, modelled after the M9. Template in `ReplicatedStorage.Assets.Weapons`; the `StarterPack` copy is kept for now as the spawn loadout.
+- Config (`WeaponConfig`): 20 damage, ×2 head, 400 rpm semi-auto cap, 15-round magazine, 0 starting reserve, 60 max reserve, 1.6 s reload, 300 stud range, 900 studs/s bullet speed, 0.6° spread, recoil kick 2.4° (fully recovers).
+- Server-simulated bullets with travel time; muzzle flash (particle + light); Pro Sound Effects 9mm Beretta shot.
+
+## Aiming and bloom (2026-10-30)
+- Hold right mouse / left trigger to aim. The server owns the state (`SetAiming`): spread ×0.3, walk ×0.6. Client side: zoom ×0.72, camera recoil ×0.6, sensitivity ×0.7.
+- 9mm hip spread is now 1.2° plus server-side bloom (+0.5°/shot, max +2.5°, −4°/s). See [[Weapons and Recoil]].

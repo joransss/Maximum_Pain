@@ -28,3 +28,6 @@ See [[Gunplay]] and [[Server Client Architecture]].
 ```lua
 -- Add implementation after the architecture is decided.
 ```
+
+## Implementation (2026-10-30)
+Code lives in Roblox Studio; see [[Script Registry]] for locations and [[Implementation Log]] for rules, tests and known issues.

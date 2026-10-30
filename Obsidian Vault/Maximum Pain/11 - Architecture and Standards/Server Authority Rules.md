@@ -26,3 +26,6 @@
 7. Replicate the accepted result, not the raw client claim.
 
 See [[Networking and Security — Reference Notes]].
+
+## Implemented checks (2026-10-30)
+Stance requests (sprint/crouch/cover) are validated by `CharacterStates` rules, server raycasts (cover), and server Blockcast (stand-up clearance). Posture and speed are server-set. A movement guard pulls back sustained over-speed. Shots require a muzzle reachable from the head. See [[RemoteEvents]] and [[Implementation Log]].

@@ -98,3 +98,9 @@ Study grouping, vehicle scale and how multiple character silhouettes remain dist
 
 **Study:** match score and timer hierarchy, weapon/ammunition visibility, player labels, and the placement of combat information around the game view. For a labelled breakdown of health, Bullet Time, weapon wheel, ammo count, reticle and prompts, see [[Max Payne 3 HUD and Combat UI Reference]].
 Source: [IMDb Max Payne 3 multiplayer video/screenshot](https://www.imdb.com/video/embed/vi4014849305/) and [Max Payne 3 game manual — HUD section](https://www.gamesdatabase.org/Media/SYSTEM/Microsoft_Xbox_360/Manual/formated/Max_Payne_3_-_2012_-_Rockstar_Games.pdf).
+
+Max Payne 3 Kill UI
+
+![[Pasted image 20261030022940.png]]
+
+Study: How the ui looks and pops up when killing a player

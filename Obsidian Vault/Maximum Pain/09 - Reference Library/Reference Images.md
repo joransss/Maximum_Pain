@@ -49,3 +49,45 @@ Source: [Roblox Developer Forum — Advanced Third Person Camera Module](https:/
 - For production assets, use original work or assets whose licence explicitly permits the intended use.
 - Recheck links and permissions before using references in a public portfolio or commercial release.
 - If an image stops loading, use its source link; don't replace it with generated art.
+
+
+## Roblox shooter visual references
+
+The images below are remotely hosted web references, not files copied into the vault. They may require an internet connection. They are for internal visual analysis only; do not use them as in-game textures, thumbnails or shipped assets without permission.
+
+### FRONTLINES — industrial lighting and weapon framing
+![FRONTLINES warehouse gameplay reference](https://tr.rbxcdn.com/180DAY-8dbce6d7eaeb915c5eb707d2cbfec07f/768/432/Image/Webp/noFilter)
+Source: [FRONTLINES official Roblox page](https://www.roblox.com/games/5938036553/FRONTLINES)
+
+Study the balance between dark industrial lighting, weapon silhouette, navigable space and enemy visibility.
+
+### RIVALS — compact arena readability
+![RIVALS gameplay reference](https://media.dotesports.com/wp-content/uploads/2025/03/Roblox-Rivals-2v2-1.jpg?w=640)
+Source: [Dot Esports screenshot and game context](https://dotesports.com/roblox/news/roblox-the-hunt-rivals-mega-token-guide)
+
+Study contrast, crosshair and hit feedback, and how the arena's simple geometry keeps targets readable.
+
+### Blackhawk Rescue Mission 5 — team silhouettes and outdoor scale
+![Blackhawk Rescue Mission 5 gameplay reference](https://tr.rbxcdn.com/180DAY-1abf71eaba86609d3e3289bce0933c02/768/432/Image/Webp/noFilter)
+Source: [Blackhawk Rescue Mission 5 official Roblox page](https://www.roblox.com/games/2916899287/Blackhawk-Rescue-Mission-5)
+
+Study team silhouettes, foliage obstruction, sightline distances and contrast between foreground cover and distant objectives.
+
+### Phantom Forces — weapon and cover framing
+![Phantom Forces gameplay reference](https://cdn.cheat.gg/images/5fdd5066741c7.webp)
+Source: [Third-party hosted Phantom Forces screenshot](https://cdn.cheat.gg/images/5fdd5066741c7.webp)
+
+Study sightline design, the weapon's screen-space footprint and cover-to-target distances.
+
+### Bad Business — bright maps and weapon colour
+![Bad Business gameplay reference](https://prod.assets.earlygamecdn.com/images/Bad-Business_active-codes.jpg?transform=Article+Webp)
+Source: [EarlyGame — Bad Business screenshot](https://mobilematters.gg/guides/redeem-codes/bad-business-codes)
+
+Study how weapon skins and saturated colours read against brighter environments. Treat this as an older third-party screenshot, not proof of the current build.
+
+### Blackhawk Rescue Mission 5 — vehicle and operator staging
+![Blackhawk Rescue Mission 5 vehicle reference](https://tr.rbxcdn.com/180DAY-f0a71d548ebec6798734075edaaa051b/768/432/Image/Webp/noFilter)
+Source: [Blackhawk Rescue Mission 5 official Roblox page](https://www.roblox.com/games/2916899287/Blackhawk-Rescue-Mission-5)
+
+Study grouping, vehicle scale and how multiple character silhouettes remain distinct in a shared scene.
+

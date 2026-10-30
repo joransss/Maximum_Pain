@@ -1,39 +1,36 @@
 # Max Payne 3 Animation Reference
 
-Benchmark for how Maximum Pain's animations should **feel**. Study reference only: build original animations, don't copy Max Payne 3's characters, content or assets. Clip list and pipeline: [[Animation System]]. Screenshots of a single-player rifle fight: [[Reference Images]] (Max Payne 3 Combat).
+How Max Payne 3 animates, from Rockstar's official trailers on the [Steam page](https://store.steampowered.com/app/204100/Max_Payne_3/) (frames studied at 5 fps; none stored in the repo) and the sources below. Compiled 2026-10-30. Use it as the benchmark for **feel**; build original animations.
+Related: [[Max Payne 3 Mechanics Reference]] · [[Max Payne 3 Gunplay - Accuracy and Recoil]]
 
-Compiled 2026-10-30 from Rockstar's official trailers on the [Steam store page](https://store.steampowered.com/app/204100/Max_Payne_3/) (frames viewed at 5 fps; none stored in the repo) and the written sources below. Timestamps let you find each moment.
-
-## Sources
-| Source | What it shows |
-|---|---|
-| Steam trailer "Max Payne 3 Multiplayer" | Real multiplayer footage: hit reactions on the move (0:14–0:16, 0:44–0:48), running and firing on the move (2:24–2:31) |
-| Steam trailer "Design and Tech Video 2" (Targeting and Weapons, then Tactical Movement from ~2:25) | Sideways shoot-dodge and shooting from the ground (2:30–2:36), low cover and staggering enemies (2:55–3:02) |
-| Steam trailer "Design and Tech Video 3" (Visual Effects and Cinematics) | Close-up hit reactions (2:14–2:16) |
-| [MCV: art director Rob Nelson on Euphoria](https://mcvuk.com/development-news/max-payne-3-dev-explains-euphoria-engine-tweaks/) | Shoot-dodge is "physics and an animation pose library running together"; hit reactions made "more connected"; individual shots react and people fall realistically |
-| [WhatCulture: Euphoria for the masses](https://whatculture.com/gaming/max-payne-3-euphoria-for-the-masses) | Max "collides with walls, slides along floors, and even moves 360 degrees while lying on the floor" |
-| [Reviewed: review](https://reviewed.com/content/max-payne-3-review) | Prone until a direction is pressed; turn and roll a full 360° while aiming on the ground; getting up is a plain stand-up (exposed); hitting a wall ends the dive |
-| [Engadget: learning to shootdodge](https://www.engadget.com/2012-03-01-learning-how-to-shootdodge-with-max-payne-3.html) | Max "remains an open target on the ground" after a dive |
+## How it works (Euphoria)
+- Max Payne 3 runs on Rockstar's RAGE engine with NaturalMotion's **Euphoria**: physics, simulated muscles and authored animation blended together. ✅
+- Shoot-dodge is "physics and an animation pose library running together"; the body behaves "realistically depending on his environment". ✅ (Rob Nelson, art director, [MCV](https://mcvuk.com/development-news/max-payne-3-dev-explains-euphoria-engine-tweaks/))
+- Hit reactions were made to feel "more connected"; each shot reacts and bodies "fall realistically". ✅ (same)
+- The animation comes from hundreds of hours of motion capture, with Max played by James McCaffrey. It won "Best Animation" in 2012.
+- **Lesson:** the weight comes from physical reactions laid **on top of** movement, not from keyframes alone.
 
 ## Animation by animation
-| Animation | Max Payne 3 (reference) | Maximum Pain now | Change |
-|---|---|---|---|
-| **Getting hit** | Each shot jolts the torso away from the hit and flings the arms. The body **keeps its momentum** (a target kept running along a beam through several hits), the knees buckle and it sinks into a crouch. Seen from the victim: one hand to the wound, hunched, stumbling sideways. | Nothing (blood puff only). | **Top priority.** Per-hit flinch layered on top of whatever clip is playing, a short stagger, and a crouch when health is low. |
-| **Death** | Progressive collapse after the last hits, with physics: the body falls with its momentum. | Roblox default (body falls apart). | Ragdoll that keeps the body's momentum and the last hit's direction. |
-| **Dive, in the air (sideways)** | Body fully horizontal, **legs straight and together**, trailing slightly up; gun arm reaching out at the target, head down the arm. In the single-player clip it's slow motion, ~2.5 s airborne. | `DiveAir_L/R`: legs scissored with bent knees, two-handed aim; real time, 0.65 s. | Straighten and close the legs; extend the gun arm further. |
-| **Dive hits a wall** | The body collides physically and the dive ends there. | Slides along the wall with the pose unchanged. | Impact reaction (crumple) when the dive is stopped by a wall. |
-| **On the ground** | On his back, head lifted, one arm up at the target; **turns and rolls 360°** to keep aiming; stays down until a direction is pressed. | Arms aim from the ground, but the body stays on the side it landed on. | Let the lying body roll and turn toward the aim. |
-| **Getting up** | A plain stand-up that leaves you exposed. | 0.5 s push-up or roll. | Fine as is; could be shorter. |
-| **Running with a pistol** | Upright, slight lean, gun held **low** in one hand, the other arm pumping. | `Run` + `Hip`: gun held forward at the waist the whole time. | Carry the gun low while running; raise it only when firing. |
-| **Firing on the move** | The gun arm extends one-handed at the target **without breaking stride**. | `RecoilHip` from the waist pose. | Extend the arm to fire while running. |
-| **Run → aim** | About 0.4 s from a sprint to a shouldered aim. | ~0.12 s blend plus the chest turn. | Matches. |
-| **Recoil while aiming** | The body barely moves; the muzzle flash carries the shot. | `RecoilAim` kicks the gun 14°. | Reduce the kick (about 5–6°). |
-| **Low cover** | Kneels behind cover, pops up to fire over it, **ducks with the head well below the edge**, gun tucked to the chest. | Back to the wall, crouched; pops up when aiming. | Duck lower and tuck the gun when not firing. |
-| **Leaning out at a pillar** | Leans out sideways to fire. | Leans 1.6 studs out at cover edges. | Matches. |
-| **Reload, melee** | Not covered by these clips. | `Reload` clip; no melee. | Still need reference. |
+Official images: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/<file>`. The **Steam #** column gives the file name.
 
-## Takeaways
-1. Max Payne 3's weight comes mostly from **physics reactions** (hits, deaths, collisions), not the keyframes.
-2. Reactions **add on top of movement** rather than stopping it.
-3. Players stay dangerous on the ground: they aim and roll in any direction.
-4. When not firing, the pistol is carried low and one-handed.
+| Animation | What Max Payne 3 does | Footage | Steam # |
+|---|---|---|---|
+| **Getting hit** | Each shot jolts the torso away from the hit and flings the arms. The body **keeps its momentum**: a target kept running along a beam through several hits, then his knees buckled into a crouch and he fell. A wide-legged, hunched stagger sideways. From the victim's view: a hand to the wound, hunched. | MP trailer 0:14–0:16, 0:44–0:48; D&T Video 2 2:57–3:00; D&T Video 3 2:14–2:16 | 8 (`ss_351fd2a6…`) |
+| **Death** | A gradual collapse driven by physics; the body falls with its momentum. In the bullet cam, Max can keep firing into the falling body. | MP trailer 0:47–0:48 | 15 (`ss_8e2bb13d…`) |
+| **Shoot-dodge (in the air)** | Body flat with legs straight and together, trailing up; the gun arm reaches out at the target, head down the arm. ~2.5 s in the SP slow motion. | D&T Video 2 2:30–2:34 | 1 (`ss_84fc2ba2…`), 9 (`ss_4729803d…`) |
+| **Dive hits a wall** | The body collides and the dive ends there. | (from sources) | — |
+| **On the ground** | On his back with the head up, one arm raised at the target; turns and rolls 360° to keep aiming; stays down until moving. | D&T Video 2 2:34–2:36 | — |
+| **Getting up** | A plain stand-up that leaves you exposed. | (Reviewed) | — |
+| **Running with a pistol** | Upright, slight lean, pistol low in one hand, other arm pumping; heavy feel. | MP trailer 2:24–2:31 | 2 (`ss_b442d79f…`) |
+| **Firing on the move** | The gun arm extends one-handed at the target without breaking stride. | MP trailer 2:29–2:31 | 4 (`ss_6e329c5e…`) |
+| **Two-handed weapon carry** | Rifle held low in two hands while moving; under the arm while firing a pistol. | — | 10 (`ss_a0106421…`) |
+| **Dual wield** | Both arms extended, each gun aimed at the target; fires on the move. | D&T Video 2 1:02–1:04 | 11 (`ss_f528ddad…`), 5 (`ss_649a56ef…`) |
+| **Aim** | Rifle shouldered, head down on the gun, camera tight over the shoulder; about 0.4 s from a sprint to aiming. | Your screenshots; MP trailer 0:40–0:42 | 14 (`ss_e35354a1…`) |
+| **Recoil** | Big muzzle flash; the aiming body barely moves; one-handed pistols kick at the wrist and elbow. | D&T Video 2 1:02–1:04 | 4 |
+| **Cover** | Shoulder or back to the wall with the gun low. In low cover: kneel, pop up to fire, duck with the head well below the edge. At a pillar: lean out. | D&T Video 2 2:55–3:02 | 3 (`ss_4ae054ce…`), 6 (`ss_4fc1bd43…`) |
+| **Melee** | Close-quarters strikes and kicks. | — | 13 (`ss_23bf1fb7…`) |
+
+Other screenshots: 7 (`ss_6a624879…`) close SMG handling · 12 (`ss_0bcd7e1f…`) multiplayer character and crew · 16 (`ss_482c837e…`) character.
+
+## Sources
+[MCV interview](https://mcvuk.com/development-news/max-payne-3-dev-explains-euphoria-engine-tweaks/) · [WhatCulture: Euphoria](https://whatculture.com/gaming/max-payne-3-euphoria-for-the-masses) · [Reviewed review](https://reviewed.com/content/max-payne-3-review) · [Engadget: shootdodge](https://www.engadget.com/2012-03-01-learning-how-to-shootdodge-with-max-payne-3.html) · [Wikipedia](https://en.wikipedia.org/wiki/Max_Payne_3) · Steam trailers: "Max Payne 3 Multiplayer", "Design and Tech Video 2" (Targeting and Weapons, then Tactical Movement from ~2:25), "Design and Tech Video 3" (Visual Effects and Cinematics).

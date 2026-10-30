@@ -122,3 +122,32 @@ Same as above
 ![[Pasted image 20261030184955.png]]
 
 ![[Pasted image 20261030185011.png]]
+## Max Payne 3 — official Steam screenshots (linked, by mechanic)
+Hosted by Steam; nothing stored in the repo. Breakdown per animation: [[Max Payne 3 Animation Reference]].
+
+### Shoot-dodge
+![Sideways shoot-dodge, pistol extended](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_84fc2ba217ce04ec4b782f9f5ccc09d20980f220.1920x1080.jpg)
+![Firing mid-dive](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_4729803db6c0e2b02fc79f9af60e757c80bc989e.1920x1080.jpg)
+**Study:** flat body with legs together, gun arm reaching at the target, camera framing the dive.
+
+### Hit reaction
+![Enemy flung back by a hit](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_351fd2a6f0d8766772c37d8a0edd6b33719dd17d.1920x1080.jpg)
+![Close-range kill](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_8e2bb13d1078aa87d3121847049ccfcc093f578b.1920x1080.jpg)
+**Study:** the whole body reacts to the impact direction; blood spray behind the hit.
+
+### Cover
+![Back to the wall beside a window](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_4ae054ce0dd3563aea20d8f76630ea4caff878d2.1920x1080.jpg)
+![Firing from behind cover](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_4fc1bd43a6a2d09617706b8dd85900edf293a711.1920x1080.jpg)
+
+### Weapon handling and firing
+![Pistol carried low on stairs](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_b442d79fbc45be2cb773d3de6f7b40fa5f126588.1920x1080.jpg)
+![One-handed fire with muzzle flash](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_6e329c5ed6d471c55ef7e04c9aac309005bfa734.1920x1080.jpg)
+![Dual SMGs firing](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_f528ddad282ad3dee6d7819842dd9b0c0d948be8.1920x1080.jpg)
+![Rifle carried low](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_a0106421eb18e18c598a93cd7192a3da9b1c6031.1920x1080.jpg)
+![Aiming a 1911](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_e35354a1d273eb08e000a59f05c6b31d80988006.1920x1080.jpg)
+
+### Melee and multiplayer
+![Melee on stairs](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_23bf1fb7b3e2b5ef053bd14d7535b81de9cc53d9.1920x1080.jpg)
+![Multiplayer character and crew emblem](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_0bcd7e1f6ceb873800f014e54890e13c3abc4467.1920x1080.jpg)
+
+Source: [Max Payne 3 on Steam](https://store.steampowered.com/app/204100/Max_Payne_3/). The pasted screenshots above (Kill UI, Combat) stay on your PC only; the repo is public.

@@ -95,3 +95,23 @@ These are comparative references, not templates to copy. Test the actual current
 6. **Bad Business:** mobility and loadout progression.
 
 For the project's defining mechanics, continue using **Max Payne 3** as the primary reference for third-person gunplay, bullet time and shoot-dodge. Roblox FPS references are supporting case studies, not substitutes for the game's third-person identity.
+
+## More games to study (added 2026-10-30)
+| Game | Study | Link |
+|---|---|---|
+| Max Payne / Max Payne 2 | Where shoot-dodge and bullet time started; Max Payne 2 added physics to bodies. | [Max Payne](https://store.steampowered.com/app/12140/Max_Payne/) · [Max Payne 2](https://store.steampowered.com/app/12150/Max_Payne_2_The_Fall_of_Max_Payne/) |
+| Red Dead Redemption 2 / GTA V | Rockstar's later Euphoria hit reactions, deaths and stumbles. | [RDR2](https://store.steampowered.com/app/1174180/Red_Dead_Redemption_2/) · [GTA V](https://store.steampowered.com/app/271590/Grand_Theft_Auto_V_Legacy/) |
+| Vanquish | Knee-slide plus a slow-motion aim mode: movement that buys time. | [Steam](https://store.steampowered.com/app/460810/Vanquish/) |
+| F.E.A.R. | Slow-motion firefights with heavy hit reactions and particle impacts. | [Steam](https://store.steampowered.com/app/21090/FEAR/) |
+| Counter-Strike 2 | The reference for first-shot accuracy, recoil patterns and spread (see [[Max Payne 3 Gunplay - Accuracy and Recoil]]). | [Steam](https://store.steampowered.com/app/730/CounterStrike_2/) |
+| Star Wars Jedi: Fallen Order | Physical animation: bodies driven by physics toward poses, blended with animation. | [Respawn talk write-up](https://gamedeveloper.com/programming/leveraging-physical-animation-to-sell-force-powers-in-i-jedi-fallen-order-i-) |
+
+## More Roblox games and tech (added 2026-10-30)
+| Game / resource | Study | Link |
+|---|---|---|
+| TIMESCALE | A third-person gun game with slow motion: closest Roblox match to Max Payne 3's feel. | [Roblox](https://www.roblox.com/games/15601059999/TIMESCALE) |
+| Active Ragdoll Engine | Physics-driven characters on Roblox. | [Roblox](https://www.roblox.com/games/123757749722528/Active-Ragdoll-Engine) |
+| Avatar Joint Upgrade (Roblox) | R15 joints that can switch from animation to physics: the basis for Euphoria-style hits and ragdolls. | [DevForum announcement](https://devforum.roblox.com/t/avatar-joint-upgrade-for-physically-simulated-character-movement-is-now-live/4298561) · [AnimationConstraint docs](https://create.roblox.com/docs/reference/engine/classes/AnimationConstraint) |
+| FastCast | Projectile bullets with travel time and lag-safe hit detection. | [DevForum](https://devforum.roblox.com/t/making-a-combat-game-with-ranged-weapons-fastcast-may-be-the-module-for-you/133474) |
+| Slow motion on Roblox | Roblox has no global time scale; games fake it per character (speed, gravity, animation speed). | [DevForum thread](https://devforum.roblox.com/t/slow-down-or-speed-up-part-physics-for-slow-motion-and-time-control-effects/30727) · [SuperHot-style effect](https://devforum.roblox.com/t/superhot-inspired-slow-motion-effect-first-version/2440178) |
+| Spring recoil | Recoil as a spring kicked on each shot. | [DevForum](https://devforum.roblox.com/t/help-with-gun-recoil-system/2166799) |

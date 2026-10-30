@@ -44,3 +44,24 @@ For each clip, record:
 ## Embedded video thumbnails
 
 Click the links above to watch the footage. YouTube search links are intentionally used where a specific, reliable video was not selected. This keeps the vault from hard-coding an arbitrary or potentially outdated upload.
+
+## Max Payne 3 — official videos (added 2026-10-30)
+All on the [Steam page](https://store.steampowered.com/app/204100/Max_Payne_3/) (scroll the media strip). Each timestamp was checked frame by frame.
+
+| Video | Timestamp | What to watch |
+|---|---|---|
+| Max Payne 3 Multiplayer | 0:14–0:16 | Kill seen from the victim: hunched, hand to the wound. |
+| Max Payne 3 Multiplayer | 0:40–0:42 | Sprint into a shouldered rifle aim in about 0.4 s. |
+| Max Payne 3 Multiplayer | 0:44–0:48 | A slow-motion target on a beam takes hit after hit while still running, then collapses. |
+| Max Payne 3 Multiplayer | 2:24–2:31 | Running with a pistol low; firing one-handed without breaking stride; crashing through glass. |
+| Design and Tech Video 2 (Targeting and Weapons) | 0:20–0:30 | Over-the-shoulder aim, reticle, bullet holes spreading on a wall. |
+| Design and Tech Video 2 | 1:02–1:04 | Dual SMGs fired on the move: circle spread reticles, muzzle flash, arm kick. |
+| Design and Tech Video 2 (Tactical Movement) | 2:30–2:36 | Sideways shoot-dodge in slow motion, landing, firing on your back. |
+| Design and Tech Video 2 | 2:55–3:02 | Low cover: pop up, fire, duck; an enemy staggering sideways after hits. |
+| Design and Tech Video 3 (Visual Effects and Cinematics) | 2:14–2:16 | Close-up hit reactions: arm flung out, torso twisted from the impact. |
+
+Your own screenshots come from an XboxViewTV gameplay video at about 1:18–1:19 (rapid AK fire); add its link here.
+Breakdowns: [[Max Payne 3 Animation Reference]] · [[Max Payne 3 Gunplay - Accuracy and Recoil]].
+
+## Other games (videos on their store pages)
+[Vanquish](https://store.steampowered.com/app/460810/Vanquish/) (slide plus slow-motion aim) · [F.E.A.R.](https://store.steampowered.com/app/21090/FEAR/) (slow-motion hit reactions) · [Red Dead Redemption 2](https://store.steampowered.com/app/1174180/Red_Dead_Redemption_2/) (Euphoria) · [TIMESCALE on Roblox](https://www.roblox.com/games/15601059999/TIMESCALE) (slow-motion third-person gunplay).

@@ -32,7 +32,9 @@ Use references to make specific design or implementation decisions. Link the rel
 - [[Reference Videos]] — selected Roblox gameplay videos and observation checklist.
 - [[Reference Images]]
 - [[Max Payne 3 HUD and Combat UI Reference]] — multiplayer HUD screenshot, annotated manual reference, and design checklist for an original Maximum Pain HUD.
-- [[Max Payne 3 Animation Reference]] — per-animation comparison against official Max Payne 3 footage (hit reactions, dives, ground aiming, running, cover), with source timestamps.
+- [[Max Payne 3 Animation Reference]] — each animation from official footage (hits, deaths, dives, ground aiming, running, cover), with timestamps and official screenshots.
+- [[Max Payne 3 Mechanics Reference]] — every mechanic found, single player and multiplayer (bursts, bullet time chain, loadouts, looting, vendettas).
+- [[Max Payne 3 Gunplay - Accuracy and Recoil]] — first-shot accuracy, spread while firing fast, recoil and recovery.
 
 ## Game design case studies
 - [[Reference Games]]

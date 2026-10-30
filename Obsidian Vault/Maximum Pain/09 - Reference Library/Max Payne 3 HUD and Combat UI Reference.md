@@ -47,11 +47,3 @@ The manual also describes multiplayer HUD elements including score, round timer,
 ## Use and rights
 
 The screenshot and manual belong to their respective rights holders and are linked for internal visual analysis only. Do not import the screenshot into the shipped game, trace the interface pixel-for-pixel, or treat it as a licensed production asset. Create original UI artwork and layout for Maximum Pain.
-
-## Implemented HUD (2026-10-30)
-Original layout in `StarterGui.CombatHUD`:
-- **Bottom right:** weapon panel (live 3D weapon view, name, magazine / reserve, reload state), vertical bullet-time meter, health silhouette that fills red from the feet, medicine bottles.
-- **Centre:** precision dot reticle (2026-10-30), hit marker (amber on headshot), red kill X, score pop-ups to the right (KILL / HEADSHOT / SHOOT-DODGE / BULLET TIME / LAST STAND).
-- **Top right:** score and kills.
-- **Other:** Last Stand banner with countdown, context messages, screen grading for bullet time and low health.
-Not yet: damage-direction indicator, round timer.

@@ -9,6 +9,8 @@
 - [[Development Roadmap]]
 - [[Feature Specification Template]]
 - [[Technical Architecture Overview]]
+- [[Animation System]] — R15 clips, Blender pipeline, `Animate` state machine
+- [[Max Payne 3 Animation Reference]] — each animation compared against Max Payne 3 footage
 - [[Reference Images]]
 - [[Reference Index]]
 - [[Acceptance Test Plan]]

@@ -24,7 +24,7 @@ Allow players to use walls, crates, vehicles and other level geometry to break s
 
 ## Implemented (2026-10-30)
 Contextual snap-to-cover was built on request (see [[Implementation Log]]).
-- **Enter:** V within 3.5 studs of a wall in the camera direction. The server raycasts and classifies by height above the floor: **high** ≥4.8 studs (standing), **low** ≥2.4 (crouched; posture via `HipHeight`, so hitboxes match). Shorter walls are not cover.
+- **Enter:** V within 3.5 studs of a wall in the camera direction. The server raycasts and classifies by height above the floor: **high** ≥5.6 studs (standing; R15 head top 5.4), **low** ≥2.4 (crouched; posture via `HipHeight`, so hitboxes match). Shorter walls are not cover.
 - **In cover:** face the wall at 1.1 studs; A/D slide along it (client-driven, server speed-guarded); endpoints stop you. Holding the direction 0.35 s rounds **inner and outer corners**, and the server re-validates the new wall.
 - **Peek / fire:** aiming at a high-cover edge steps out 1.6 studs; aiming in low cover pops up. Blind fire is allowed (spread ×2). Peeking uses aimed accuracy. The muzzle must be reachable from the head (direct, or raised over low cover); shots from inside a wall are refused.
 - **Reload** works in cover. **Leave:** V, pull back (S), dive, or the wall is no longer behind you (server check, 0.5 s grace).

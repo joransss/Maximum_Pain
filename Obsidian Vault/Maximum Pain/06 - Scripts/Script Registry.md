@@ -19,9 +19,11 @@ Track the scripts that actually exist in Roblox Studio. Details and test status:
 | CombatController | StarterPlayerScripts | LocalScript | Shoulder camera, aiming (ADS), fire/reload/medicine/bullet-time input, recoil, muzzle flash, audio, tracers, aim-direction sync | In progress |
 | DiveController | StarterPlayerScripts | LocalScript | Run-up, slow-motion-aware omnidirectional dive, prone landing, get-up | In progress |
 | HUDController | StarterPlayerScripts | LocalScript | HUD, hit/kill feedback, score pop-ups, screen grading, aim zoom | In progress |
-| PoseController | StarterPlayerScripts | LocalScript | Procedural poses for all characters: hip, aim, dive, reload, run-up, get-up, sprint, crouch, cover (R6 + R15) | In progress |
+| PoseController | StarterPlayerScripts | LocalScript | Live aim layer on top of the clips for all characters: chest onto the aim point, straight-arm aim while down, blind fire, head (R15; Motor6D or AnimationConstraint joints) | In progress |
 | StanceController | StarterPlayerScripts | LocalScript | Sprint/crouch/cover input; cover snapping, sliding, corners, peeking | In progress |
 | Health | StarterCharacterScripts | Script (empty) | Disables Roblox's default health regeneration | In progress |
+| Animate | StarterCharacterScripts | LocalScript | R15 animation state machine (replaces the default): locomotion blends, weapon holds, reload, recoil, dive / land / prone / recover | In progress |
+| AnimationIds | ReplicatedStorage/Shared | ModuleScript | Published animation IDs per clip (empty = Studio-only playback) | In progress |
 | AbilityService | — | — | Replaced by DodgeService + BulletTimeService | Deprecated |
 | RoundService | ServerScriptService/Services | ModuleScript | Match phases and scoring | Planned |
 

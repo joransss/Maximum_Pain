@@ -4,7 +4,7 @@
 Prevent incompatible actions from running at the same time and give movement, shooting, reloading, shoot-dodge, bullet time, cover and Last Stand one predictable base.
 
 ## Implemented model (2026-10-30)
-Rules live in one shared module, `ReplicatedStorage.Shared.CharacterStates`. The **server** validates every request with it (stance, dive, get-up, aim, fire); **clients** use the same rules to predict input; **PoseController** derives poses from the same state with a fixed priority, so animations never compete.
+Rules live in one shared module, `ReplicatedStorage.Shared.CharacterStates`. The **server** validates every request with it (stance, dive, get-up, aim, fire); **clients** use the same rules to predict input; **Animate** (R15 clips) and **PoseController** (live aim layer) derive animation from the same state, so animations never compete.
 
 | Layer | Attribute | Values (exclusive within a layer) | Owner |
 |---|---|---|---|
@@ -31,10 +31,10 @@ Rules live in one shared module, `ReplicatedStorage.Shared.CharacterStates`. The
 - Lethal damage with medicine: any → `LastStand` (stance cleared). Recover → `Prone`; fail → dead.
 - Aiming in `CoverLow` pops the body up (server posture); releasing crouches again.
 
-### Pose priority (PoseController)
-- **Arms:** down + aim > down > get-up > reload > cover (blind fire / back-to-wall ready) > aim (incl. peeking) > sprint carry > hip.
-- **Legs:** down (together) > crouched / low cover (kneel, stride while moving).
-- **Torso:** dive run-up lean > sprint lean > crouch lean.
+### Animation layers (R15, 2026-10-30; details in [[Animation System]])
+- **Base (`Animate`):** windup > dive air > land > prone > recover > locomotion (crouch / sprint / walk / run 4-way blends) > turn in place > idle.
+- **Upper body (`Animate`, weapon out, not diving / downed / sprinting):** cover hold (not peeking) > aim (incl. peeking) > hip. Overlays: reload (server-timed), recoil per shot.
+- **Live aim (`PoseController`, all characters):** straight arms on the aim while down and aiming > blind-fire arm in cover > chest turned onto the aim point (hip / aim) > head follows the aim.
 
 ## Rules
 - Death overrides all active combat states.

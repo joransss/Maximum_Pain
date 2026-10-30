@@ -33,5 +33,6 @@ Prioritise weapon silhouettes, first-/third-person weapon handling, character lo
 | Asset | Creator/source | Licence/permission | Source file | Roblox asset ID | Tested |
 |---|---|---|---|---|---|
 | 9mm Pistol (M9-style) | Claude Code in Blender for this project | Original, project-owned | `Assets/Blender/MP_Pistol.blend` (export `MP_Pistol_export.fbx`) | Imported MeshParts in `9mm Pistol` tool | Scale, R6 grip, colours (2026-10-29) |
+| R15 animation suite (40 clips) | Claude Code in Blender for this project | Original, project-owned | `Assets/Blender/MP_R15_Animations.blend`, scripts + FBX in `Assets/Blender/Animation/` | Not published (KeyframeSequences in `ReplicatedStorage.Assets.Animations`) | Studio solo, R15 (2026-10-30) |
 | Gunshot "Gun Live Ammunition 601 (SFX)", 9mm Beretta | Pro Sound Effects via Roblox Creator Store | Roblox-licensed SFX library | — | 9114714021 | Plays; single shot (2026-10-30) |
 | Reload "Machine Gun 16 (SFX)" | Pro Sound Effects via Roblox Creator Store | Roblox-licensed SFX library | — | 9116345318 | Placeholder handling sound |

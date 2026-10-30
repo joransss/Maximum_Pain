@@ -74,3 +74,17 @@
 - [x] Blind fire from cover scatters (avg 3.8 studs, max 11.9 studs off)
 - [x] Bullet holes on surfaces; blood on the dummy
 - [ ] Other players see peeks, blind fire and impacts
+
+## R15 migration and animation suite (2026-10-30, Studio solo, R15, screenshots)
+- [x] Imported clip poses a Studio R15 rig identically to Blender (within 0.001 stud)
+- [x] Standard body applied after avatar load (scale 1, HipHeight 2.192, default head); no avatar animation tracks
+- [x] Barrel on the aim point: aimed 0.0°, hip 0.5°, aiming while prone 1.1°
+- [x] Shoot-dodge sequence plays in order: DiveWindup → DiveAir → Land → Prone → Recover → Idle
+- [x] Run plays at ~1.0× for 16 studs/s; walk → run blend while accelerating
+- [x] Crouch: planted foot on the ground; crouched head top 3.96 (under the 4.0 low walls)
+- [x] Reload clip at 1.0× for the 1.6 s server reload; a shot plays RecoilHip
+- [x] No warnings or errors in Output
+- [ ] Two clients see each other's clips (needs published clip IDs)
+- [ ] Cover, sprint, strafes and turn-in-place checked on screen
+- [ ] Bullet-time slow-motion playback
+- [ ] FBX files import into Studio's Animation Editor

@@ -162,3 +162,43 @@ Shift stays the dive key; all keys live in `GameConfig.Controls`.
 ### Notes
 - One misclassification of the low wall as high cover happened right after a scripted teleport (the server still had the old position); a retry from the same spot classified correctly.
 - Torso shots on R6 register on the invisible `HumanoidRootPart` (same box as the torso), so blood appears at the torso as expected.
+
+## 2026-10-30 (late) — R15 migration: Blender animation suite, Animate state machine, R15 tuning
+
+**Status:** implemented and tested solo in Studio on R15, with screenshots. Not tested with two clients. Animations are **not published** (Studio-only playback).
+
+### Changes
+- **Rig decision:** R6 → **R15** (user decision; supersedes "R6-first" in [[Combat Architecture and Implementation Plan]]). Everyone gets the **standard R15 body** (default parts and scale; avatar animation packs cleared) via `CombatService` after the avatar loads; clothes, accessories, face and colours stay. Same hitboxes for all, and clips line up.
+- **40 Blender-authored clips** (repo `Assets/Blender/Animation/`, `.blend` in `Assets/Blender/`): locomotion with 4-way strafes, sprint, turn-in-place, crouch, hip/aim/cover holds, reload, recoil, 4-direction dive windup and air, land/prone/recover per side. Pipeline and clip list: [[Animation System]]. Clips live in `ReplicatedStorage.Assets.Animations`.
+- **New `StarterCharacterScripts.Animate`** (replaces Roblox's default) and **`Shared.AnimationIds`** (paste published IDs).
+- **`PoseController` rewritten:** only live aim adjustments now (chest turn onto the aim point, straight-arm aim while down, blind fire, head). Handles Roblox's new `AnimationConstraint` joints as well as `Motor6D` (the avatar uses AnimationConstraints).
+- **`DiveController`:** no longer stops every animation track while diving/prone; landing probe 2.6 → 1.6 studs (lying R15 root rests ~0.6 up).
+- **Tuning (`GameConfig.Movement`):** `CrouchDrop` 1.6 → 1.3; `HighCoverMin` 4.8 → 5.6 (standing R15 head top 5.4).
+- **Test arena:** `LowWall` and `Crate` 3.5 → 4.0 tall; `Overhang` raised to 4.4 clearance. **TestDummy** rebuilt as a standard R15 rig.
+- Backup of every changed script, the old R6 dummy and the old arena: `ServerStorage.PreR15Backup`.
+
+### Verified (Studio, one client, R15)
+- Studio rig posed from an imported clip matches Blender to 0.001 stud.
+- Standard body applied (scale 1, HipHeight 2.192, default head); no avatar animation tracks; no warnings or errors.
+- Barrel vs aim point: aimed 0.0°, hip 0.5°, aiming while prone 1.1°.
+- Full shoot-dodge in game: Windup → `DiveWindup_F` → `DiveAir_F` (0.6 s) → `Land_Front` → `Prone_Front` → `Recover_Front` → Idle. Prone on the back after a side dive looks right on screen.
+- Run plays `Run_F` at ~1.0× for 16 studs/s; walk→run blend on acceleration. Crouch: planted foot exactly on the ground; crouched head top 3.96.
+- Reload clip plays at 1.0× for the 1.6 s server reload; a shot plays `RecoilHip` (Action3).
+- In Blender: every IK target reached (except the reload support hand, 0.12 short); planted feet move < 0.7 studs/s median at authored speeds.
+
+### Not verified
+- Two clients / other players seeing clips (needs publishing). Cover poses, sprint, strafes and turn-in-place on screen. Bullet time playback. FBX import into Studio's Animation Editor (files exported, not import-tested).
+
+### Known issues
+- In game, run foot slip median ~1.7 studs/s (spikes at touchdown).
+- Aiming from the ground: support hand doesn't reach the grip.
+- No jump/fall, hit-reaction, death, climb or swim clips.
+- "Avatar Type" in Game Settings must be R15 (not Player Choice); an R6 player would get no clips and no aim layer.
+
+## 2026-10-30 (night) — Max Payne 3 animation reference (research; no game changes)
+
+**Status:** documentation only.
+
+- New note [[Max Payne 3 Animation Reference]]: every Maximum Pain animation compared against Max Payne 3, from Rockstar's official trailers on Steam ("Multiplayer", "Design and Tech Video 2 and 3", frames viewed at 5 fps; none stored in the repo) and interviews and reviews about the animation system.
+- Main findings: Max Payne 3's weight comes from physics reactions (hits, deaths, collisions) layered on top of movement; players roll 360° to aim on the ground; the pistol is carried low when not firing.
+- Gaps added to [[Development Roadmap]] (Milestone 2 and 4) and [[Current Sprint]]. Known minor issues logged in [[Bug Tracker]]. Combat Architecture plan updated for R15 (pillar 5, milestones 1, 3 and 6). [[Combat State Machine]] now describes the Animate / PoseController layers.

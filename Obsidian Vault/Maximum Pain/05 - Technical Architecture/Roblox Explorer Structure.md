@@ -4,21 +4,25 @@ Actual tree as of 2026-10-30 (see [[Implementation Log]]). Items marked *planned
 
 ## ReplicatedStorage
 - `Remotes`: `FireWeapon`, `ReloadWeapon`, `RequestDodge`, `RequestGetUp`, `RequestBulletTime`, `UseMedicine`, `RequestStance`, `SetAiming`, `AimDirection` (unreliable), `ShotEffects`, `ImpactEffects` (unreliable), `CombatFeedback` (*planned:* `MatchStateChanged`)
-- `Shared`: `GameConfig`, `WeaponConfig`, `CharacterStates` (state machine), `MoveInput`
+- `Shared`: `GameConfig`, `WeaponConfig`, `CharacterStates` (state machine), `MoveInput`, `AnimationIds`
 - `Assets`
   - `Weapons`: `9mm Pistol` (Tool, WeaponId `Pistol9mm`; Handle has `Muzzle` attachment with `Flash` + `FlashLight`, `Fire` and `Reload` sounds)
-  - `Animations`, `Effects` (empty)
+  - `Animations`: 40 KeyframeSequences from Blender (see [[Animation System]])
+  - `Effects` (empty)
 
 ## ServerScriptService
 - `CombatMain` (Script)
 - `Services`: `CombatService`, `WeaponService`, `DodgeService`, `BulletTimeService`, `PickupService`, `StanceService`, `TestDummyService` (*planned:* `RoundService`, `SpawnService`, `DataService`)
+
+## ServerStorage
+- `PreR15Backup`: copies of the scripts, test dummy and arena from before the R15 migration (disabled, untagged)
 
 ## StarterPack
 - `9mm Pistol` (temporary spawn loadout)
 
 ## StarterPlayer
 - `StarterPlayerScripts`: `CombatController`, `DiveController`, `HUDController`, `PoseController`, `StanceController`
-- `StarterCharacterScripts`: `Health` (empty; disables regeneration)
+- `StarterCharacterScripts`: `Health` (empty; disables regeneration), `Animate` (replaces the default)
 
 ## StarterGui
 - `CombatHUD`: `Crosshair` (dot), `HitMarker`, `KillMarker`, `Popups`, `Message`, `LastStand`, `Score`, `Status` (`Weapon`, `BulletTime`, `Health`, `Medicine`) (*planned:* `MainMenu`, `ResultsScreen`)
@@ -26,7 +30,7 @@ Actual tree as of 2026-10-30 (see [[Implementation Log]]). Items marked *planned
 ## Workspace
 - `Map`: `TestCover`, `TestArena` (HighWall, CornerWall, LowWall, Crate, Pillar, Overhang), `MedicineSpawns` (3 × `Medicine`, tag `MedicineSpawn`)
 - `SpawnPoints` (empty)
-- `TestDummy` (tag `TestDummy`; Studio-only)
+- `TestDummy` (standard R15 rig, tag `TestDummy`; Studio-only)
 - `Pickups` (created at runtime for drops)
 - `Impacts` (client-side bullet holes; each client creates its own)
 

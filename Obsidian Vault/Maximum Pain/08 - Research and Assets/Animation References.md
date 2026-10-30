@@ -1,5 +1,7 @@
 # Animation References
 
+Comparison against Max Payne 3 footage: [[Max Payne 3 Animation Reference]].
+
 ## Needed Animation Categories
 - Locomotion
 - Sprint

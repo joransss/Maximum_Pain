@@ -33,12 +33,12 @@ A short, committed evasive leap that creates a readable risk/reward moment. Insp
 - **Landing:** stays prone until a movement key is pressed, then gets up (0.35 s recovery, no dive during recovery).
 - Firing allowed while diving and prone; a reload in progress continues.
 - Server states: `Diving` → `Prone` → `Recovering` → none (character attribute `CombatState`).
-- Pose is procedural (lying head-first, chest turned toward the aim). Authored R6 animations are still needed.
+- Body orientation is physics (lying head-first, chest toward the aim); the R15 clips pose the body in that frame: `DiveWindup_*`, `DiveAir_*`, `Land_*`, `Prone_*`, `Recover_*` ([[Animation System]]).
 
 ## Slow-motion dive and R6 landing (2026-10-30)
 - In bullet time the dive plays in slow motion (user decision): speed and lift ×s, gravity ×s², duration and recovery ÷s, so the distance stays the same. The motion is rescaled if bullet time starts or ends mid-dive; server timers stretch too.
 - Dive poses: arms stretched ahead when not aiming; arms on the aim when aiming (see [[Animation System]]).
-- Landing check reaches 2.6 studs below the root (an R6 body on its side rests ~2.1 up).
+- Landing check reaches 1.6 studs below the root (R15 since 2026-10-30; a lying R15 body rests ~0.6 up).
 - Known: the slow-motion arc peaks higher than the normal arc (see [[Implementation Log]]).
 
 ## Run-up, arc fix and get-up (2026-10-30)

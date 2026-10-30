@@ -1,7 +1,9 @@
 # Combat Architecture and Implementation Plan
 
 > [!summary] Locked direction
-> Maximum Pain is an R6 multiplayer third-person shooter focused on Max Payne-inspired cinematic combat. Use directional shoot-dodge, hybrid bullet time (personal presentation with limited shared gameplay effects), and a full weapon arsenal. Treat these as current design decisions unless playtesting reveals a strong reason to revise them.
+> **Rig changed to R15 on 2026-10-30** (user decision; standard body for all players, Blender-authored clips — see [[Animation System]]). R6 references below are historical.
+>
+> Maximum Pain is an R15 multiplayer third-person shooter focused on Max Payne-inspired cinematic combat. Use directional shoot-dodge, hybrid bullet time (personal presentation with limited shared gameplay effects), and a full weapon arsenal. Treat these as current design decisions unless playtesting reveals a strong reason to revise them.
 
 ## Design pillars
 
@@ -9,7 +11,7 @@
 2. **Signature movement** — a directional shoot-dodge that permits airborne firing and has a defined recovery window.
 3. **Cinematic bullet time** — dramatic local presentation and a bounded, server-controlled gameplay benefit without globally slowing the simulation.
 4. **Multiplayer fairness** — the server validates damage, ammunition, fire rate, ability use and competitive state transitions.
-5. **R6-first production** — design poses, weapon attachments, hit reactions and movement around the six-part rig rather than treating R6 as R15 with fewer joints.
+5. **One standard R15 body** — everyone shares the default R15 body and scale (own clothes and accessories), so authored poses, weapon attachments, hit reactions, movement and hitboxes are consistent. (Was "R6-first" until 2026-10-30.) Feel benchmark: [[Max Payne 3 Animation Reference]].
 
 ## Combat architecture
 
@@ -304,9 +306,9 @@ Keep payloads small, validate types and ranges, and rate-limit requests. Never a
 
 ## Implementation roadmap
 
-### Milestone 1 — R6 foundation
+### Milestone 1 — R15 foundation (was R6)
 
-- [ ] Confirm R6 character, scale and collision assumptions.
+- [x] Confirm the character, scale and collision assumptions — *R15 standard body, 2026-10-30: HipHeight 2.19, standing head top 5.4, crouch drop 1.3 (head top ~3.8–4.0), lying root ~0.6 up*
 - [ ] Implement third-person camera and reliable aim direction.
 - [ ] Create central combat-state controller and cleanup rules.
 
@@ -321,7 +323,7 @@ Keep payloads small, validate types and ranges, and rate-limit requests. Never a
 
 - [ ] Implement full 360-degree horizontal direction from camera-relative input, with sensible neutral-input fallback.
 - [ ] Keep dive state/timer running through wall and prop collisions; slide along surfaces without clipping through geometry.
-- [ ] Add R6 dive animation and independent airborne aiming/firing.
+- [ ] Add dive animation and independent airborne aiming/firing — *R15 clips (windup / air / land / prone / recover, 4 directions) and aim layer implemented 2026-10-30, solo-tested; two clients pending*
 - [ ] Test corners, doorframes, stairs, ledges, cooldowns, replication and interruption cleanup.
 
 ### Milestone 4 — Bullet time
@@ -340,7 +342,7 @@ Keep payloads small, validate types and ranges, and rate-limit requests. Never a
 
 ### Milestone 6 — Production polish
 
-- [ ] Add hit reactions, death presentation and optional ragdolls.
+- [ ] Add hit reactions, death presentation and optional ragdolls — *biggest gap against Max Payne 3 footage: reactions layer on top of movement, deaths keep momentum ([[Max Payne 3 Animation Reference]])*
 - [ ] Profile effect and remote-event costs.
 - [ ] Test latency, exploit resistance, balance and state cleanup.
 
@@ -382,7 +384,7 @@ Keep payloads small, validate types and ranges, and rate-limit requests. Never a
 
 ## Design decision summary
 
-**Locked direction:** R6; cinematic Max Payne-inspired combat; directional shoot-dodge; hybrid personal bullet-time presentation with limited shared gameplay effects; full arsenal. Prototype one pistol and one arena before expanding. Tune the sample values through multiplayer playtests rather than treating them as final requirements.
+**Locked direction:** R15 (was R6 until 2026-10-30); cinematic Max Payne-inspired combat; directional shoot-dodge; hybrid personal bullet-time presentation with limited shared gameplay effects; full arsenal. Prototype one pistol and one arena before expanding. Tune the sample values through multiplayer playtests rather than treating them as final requirements.
 
 ## Design updates — 2026-10-30 (supersede conflicting text above)
 

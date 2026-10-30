@@ -104,3 +104,21 @@ Max Payne 3 Kill UI
 ![[Pasted image 20261030022940.png]]
 
 Study: How the ui looks and pops up when killing a player
+
+
+Max Payne 3 Combat
+
+![[Pasted image 20261030184721.png]]
+Image above shows shooting
+
+![[Pasted image 20261030184835.png]]
+Image above shows on hit
+![[Pasted image 20261030184857.png]]
+Same as above
+![[Pasted image 20261030184919.png]]
+
+![[Pasted image 20261030184940.png]]
+
+![[Pasted image 20261030184955.png]]
+
+![[Pasted image 20261030185011.png]]

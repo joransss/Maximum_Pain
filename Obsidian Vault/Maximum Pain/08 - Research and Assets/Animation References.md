@@ -1,6 +1,7 @@
 # Animation References
 
 Comparison against Max Payne 3 footage: [[Max Payne 3 Animation Reference]].
+The game already has an empty slot for every animation it needs, and rules for making them fit the timers: [[Animation Hooks]].
 
 ## Needed Animation Categories
 - Locomotion

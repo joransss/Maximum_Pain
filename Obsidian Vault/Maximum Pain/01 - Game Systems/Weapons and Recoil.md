@@ -1,23 +1,26 @@
 # Weapons and Recoil
 
-How the guns work in the current build, where to tune them, and how the CS2-style recoil is put together. Built 2026-10-31.
-Related: [[Limb Health]] · [[HUD Layout]] · [[Changelog]] · [[Max Payne 3 Gunplay - Accuracy and Recoil]] · [[Weapons and Raycasting]]
+How the guns work in the current build, where to tune them, how shots leave the gun, the accuracy modifiers, and how the CS2-style recoil is put together. Built 2026-10-31, extended the same day with loadouts and stances.
+Related: [[Loadout and Dual Wielding]] · [[Movement State Machine]] · [[Cover System]] · [[Limb Health]] · [[HUD Layout]] · [[Changelog]] · [[Max Payne 3 Gunplay - Accuracy and Recoil]] · [[Weapons and Raycasting]]
 
 ## Where the code lives
 | Piece | Place in Studio | Job |
 |---|---|---|
 | `WeaponConfig` | ReplicatedStorage.Modules | Every gun's numbers. **The only file to edit when tuning.** It checks itself when it loads (for example, `MaxSpread` below `BaseSpread` stops the game with a clear error). |
 | `WeaponMath` | ReplicatedStorage.Modules | Spread, bloom and spray-pattern maths. Shared by server and client so both always agree. |
-| `WeaponServer` | ServerScriptService | Decides every shot: fire rate, ammo, reloads, spread, hits and limb damage. Hands out the Studio test loadout. |
-| `WeaponController` | StarterPlayerScripts.Controllers | Trigger, aim, reload and weapon-switch keys; recoil; muzzle flash, tracers and impacts. |
+| `ShotRules` | ReplicatedStorage.Modules | Where shots leave from (the gun's path from the body, over or round cover), and the stance, movement and dual-wield accuracy modifiers. |
+| `WeaponServer` | ServerScriptService | Decides every shot: fire rate, ammo, the gun's path, spread, hits and limb damage. Takes hold, drop, aim and reload requests. |
+| `LoadoutService` | ServerScriptService | What each player carries and holds, reloads, dropping and picking up. See [[Loadout and Dual Wielding]]. |
+| `WeaponController` | StarterPlayerScripts.Controllers | Trigger, aim, reload, hold and drop keys; pickup prompts; recoil; the reticle. |
+| `WeaponEffects` | StarterPlayerScripts.Controllers | Muzzle flash, gun kick, tracers and impacts. |
 | `CameraController` | StarterPlayerScripts.Controllers | Over-the-shoulder camera, aim zoom, sniper scope and recoil kick. |
-| Remotes | ReplicatedStorage.Remotes | `FireWeapon` (aim point + whether aiming), `ReloadWeapon`, `WeaponFired` (server to everyone: where each pellet landed and whether it hit a body). |
+| Remotes | ReplicatedStorage.Remotes | `FireWeapon` (aim point + which hand), `ReloadWeapon`, `WeaponAction` (hold, drop, aim), `WeaponFired` (server to everyone: the gun, where the shot left, where each pellet landed and whether it hit a body). |
 
 ## Ground rules
-- **The server decides.** The client only sends where it is aiming and whether it is aiming down the sights. Damage, ammo, fire rate, spread and hits are all worked out on the server.
+- **The server decides.** The client only sends where it is aiming and which hand fires. Damage, ammo, fire rate, spread, aiming and hits are all worked out on the server.
 - **Hitscan.** Each shot is an instant ray from the muzzle toward the crosshair's target. The tracer is only the picture of that shot.
-- **Ammo: one spare magazine.** Every gun spawns with a full magazine plus one spare. When both are spent the gun is empty. There are no ammo pickups yet.
-- **Test loadout.** In Studio every player gets all 13 guns. Published servers give nothing until real loadouts exist.
+- **Ammo: one spare magazine.** Every gun spawns with a full magazine plus one spare. When both are spent the gun is empty. Dropped guns keep their ammo, so picking one up is the only way to get more.
+- **Loadout:** two one-handed guns and one two-handed gun, with dual wielding. Everyone spawns with the M9, Uzi and AK-47; the [[Test Arena]]'s gun table has all 13. See [[Loadout and Dual Wielding]].
 
 ## Weapon balancing
 All numbers are first-pass placeholders, tuned by feel. Damage is per bullet (per pellet for shotguns). Headshots do ×2.
@@ -30,7 +33,7 @@ All numbers are first-pass placeholders, tuned by feel. Damage is per bullet (pe
 | Desert Eagle | Semi | One | 200 | 50 | 7 | 2.0 s | 400 | 1300 |
 | S&W 500 | Semi | One | 120 | 65 | 5 | 3.0 s | 350 | 1400 |
 | MP5 | Auto | Two | 800 | 16 | 30 | 2.2 s | 300 | 1300 |
-| Uzi | Auto | Two | 950 | 14 | 32 | 2.0 s | 220 | 1200 |
+| Uzi | Auto | One | 950 | 14 | 32 | 2.0 s | 220 | 1200 |
 | Mossberg 500 | Semi | Two | 70 | 8 × 12 | 6 | 3.0 s | 120 | 1000 |
 | SPAS-15 | Semi | Two | 240 | 8 × 10 | 6 | 2.6 s | 120 | 1000 |
 | Sawn-off | Semi | One | 300 | 10 × 13 | 2 | 2.4 s | 60 | 900 |
@@ -39,7 +42,7 @@ All numbers are first-pass placeholders, tuned by feel. Damage is per bullet (pe
 | M4 | Auto | Two | 750 | 22 | 30 | 2.3 s | 500 | 2300 |
 | Barrett M107 | Semi | Two | 90 | 95 | 10 | 3.5 s | 1500 | 2600 |
 
-Range and bullet speed are in studs and studs per second. "Hands" matters for [[Limb Health]]: with one arm in the red, only one-handed guns can be used.
+Range and bullet speed are in studs and studs per second. "Hands" decides the slot ([[Loadout and Dual Wielding]]): one-handed guns go in slots 1 and 2 and can be dual wielded. It also matters for [[Limb Health]]: with one arm in the red, only one-handed guns can be used. The Uzi became one-handed on 2026-10-31 (a one-arm SMG).
 
 ### Spread and recoil (degrees)
 | Gun | Hip spread | + per shot | Max | Recovery /s | Aim × | Climb /shot | Sway |
@@ -64,7 +67,9 @@ The M107 also has `ScopeFov = 10`, which is what makes it zoom into a scope.
 | Field | Meaning |
 |---|---|
 | `FireMode` | `Semi` fires once per click; `Auto` fires while the trigger is held. |
-| `OneHanded` | Pistols and the sawn-off. Still usable with one arm in the red. |
+| `OneHanded` | Pistols, the S&W 500, the Uzi and the sawn-off. Go in slots 1 and 2, can be dual wielded, and still work with one arm in the red. |
+| `DrawTime` | Seconds to bring the gun up before it can fire (one-handed 0.3, two-handed 0.55, M107 0.7). |
+| `AnimSet` | Which hold, aim and fire animations it will use ([[Animation Hooks]]). |
 | `RPM` | Fastest fire rate. The server enforces it. |
 | `Damage`, `Pellets` | Damage per bullet, and bullets per shot (shotguns). |
 | `Range` | How far a shot reaches, in studs. |
@@ -79,6 +84,34 @@ The M107 also has `ScopeFov = 10`, which is what makes it zoom into a scope.
 | `RecoilClimb` | How far the camera climbs per shot of a spray. |
 | `RecoilSway` | How far a long spray drifts side to side. |
 | `ScopeFov` | Scoped guns only: field of view when fully zoomed in. |
+
+Also in `WeaponConfig`: `HEADSHOT_MULTIPLIER` (2), `DUAL_RELOAD_SCALE` (1.5) and `DisplayNames` (the short names prompts and the HUD use).
+
+## Where shots come from
+The server works out the muzzle itself, from the character's real position and stance; it never takes the client's word for it. The muzzle is a point at arm's length (1.7 studs) from the shoulder of the firing hand, toward the target. It doesn't depend on animations, so it stays right when they arrive.
+
+Before every shot the server follows the gun's path (chest, then shoulder, then muzzle) and checks it against the world. **If anything solid is in the way, the shot hits that instead**, so a gun can't fire out of a wall or round a corner the body can't see past. Someone standing inside the gun's reach is shot from the chest (point blank). Blind fire from cover adds a lift over low cover or a reach round the edge of high cover ([[Cover System]]).
+
+The reticle shows a red cross when the client's copy of the same check finds the path blocked.
+
+## Accuracy modifiers
+The stance and movement multiply each gun's spread (and aiming multiplies it again by `AimSpreadScale`). Numbers live in `StanceRules` and `ShotRules`; the full list is in [[Movement State Machine]].
+| Situation | Spread × | Recoil × |
+|---|---|---|
+| Standing still | 1 | 1 |
+| Walking (standing or crouched) | up to 1.35 at full speed | 1 |
+| Sprinting (firing is blocked; this is the 0.2 s after) | 2 | 1 |
+| Crouching | 0.8 | 0.85 |
+| Jumping or falling | 2 | 1 |
+| Shoot-dodge: run-up and air | 1.3 | 1.2 in the air |
+| Shoot-dodge: on the floor | 0.9 | 1 |
+| Blind fire from cover | 2.5 | 1.3 |
+| Peeking (first 0.25 s out of cover) | 1.5 | 1 |
+| Aiming from cover (braced) | 0.85 | 0.8 |
+| Last Stand | 1 | 1 |
+| Dual wielding (on top of the rest) | 1.35 | 1.25 |
+
+The server measures speed and whether the character is in the air from its own copy of the character.
 
 ## CS2-style recoil: how it works
 Like Counter-Strike 2, recoil and inaccuracy are two separate systems.
@@ -104,19 +137,21 @@ Like Counter-Strike 2, recoil and inaccuracy are two separate systems.
 - MP5, 0.6 s burst: the camera climbed 3.7° and was back to 0° 1.5 s after release.
 
 ## Aiming and the sniper scope
-- **Aim:** right mouse button (gamepad L2), held. The camera moves in close to the shoulder and the field of view narrows from 70 to 52. Spread is multiplied by `AimSpreadScale`. Sprinting stops while aiming.
+- **Aim:** right mouse button (gamepad L2), held. The camera moves in close to the shoulder and the field of view narrows from 70 to 52. Spread is multiplied by `AimSpreadScale`. Sprinting stops while aiming, and walking slows to 70%.
+- **The server tracks aiming.** The client tells the server when aiming starts and stops (`WeaponAction` "Aim"), not with each shot. The tighter aimed spread only applies after 0.15 s of aiming, only in stances that allow aiming, and never while hidden behind cover (that is blind fire).
+- In cover, aiming pops out ([[Cover System]]).
 - **Sniper scope (M107):** after the normal aim zoom, a second, slower and heavier push takes the view to 10. At 85% of that push the scope overlay appears with a quick fade from black. From the hip the overlay appears about 0.45 s after pressing aim. Letting go zooms out quickly. Turning speed scales with zoom, so scoped aiming stays steady.
 - Switching guns while aiming blends smoothly in both directions; it never snaps.
 
 ## Tracers, muzzle flash and impacts
-- **Tracers:** each bullet is a 7-stud glowing streak made of two beams: a wide warm glow around a thin hot core. It travels from the barrel at the gun's `BulletSpeed` (measured: 2,000 studs/s for the AK). Every client draws every shot. Because damage is hitscan, the hit lands slightly before the tracer arrives (under 0.1 s at normal ranges).
+- **Tracers:** each bullet is a 7-stud glowing streak made of two beams: a wide warm glow around a thin hot core. It travels from the barrel at the gun's `BulletSpeed` (measured: 2,000 studs/s for the AK), slowed for shooters in bullet time. Every client draws every shot. Tracers start at the gun's own Muzzle when it is within 4 studs of where the server says the shot left, otherwise at that point. Because damage is hitscan, the hit lands slightly before the tracer arrives (under 0.1 s at normal ranges).
 - **Muzzle flash:** a real `PointLight` (brightness 6, range 14, shadows on) switched on for 0.05 s per shot, so each shot briefly lights the room. Flame, spark and smoke particles burst at the muzzle. All textures are Roblox built-ins, so nothing had to be uploaded.
 - **Gun kick:** the slide, bolt or pump snaps back on every shot.
 - **Impacts:** sparks and dust on surfaces, a dark red burst on bodies (the server tells clients which pellets hit a body).
 
 ## Known limits and next steps
-- No ammo pickups yet. Dropped guns lie on the floor for 30 s, then despawn.
+- No separate ammo pickups. Dropped guns keep their ammo and lie on the floor for 45 s.
 - Recoil runs on the player's own camera, so a cheat could remove it. Spread can't be removed, because the server applies it.
-- "Aiming" is a flag the client sends with each shot, so a cheat could always claim it for tighter spread. Later, aiming should cost something the server can check.
+- Aiming is now tracked by the server with a 0.15 s settle time and walking slowed to 70%, but a cheat could still claim to aim the whole time. The settle time and slower walking are the cost.
 - No sounds yet. Two Roblox library sounds to try are listed in [[Blender and Asset Pipeline]].
-- No animations, by design for this milestone.
+- No animations, by design for this milestone. Guns hang from the hands; see [[Animation Hooks]].

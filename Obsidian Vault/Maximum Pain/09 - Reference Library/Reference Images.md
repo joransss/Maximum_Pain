@@ -151,3 +151,9 @@ Hosted by Steam; nothing stored in the repo. Breakdown per animation: [[Max Payn
 ![Multiplayer character and crew emblem](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/ss_0bcd7e1f6ceb873800f014e54890e13c3abc4467.1920x1080.jpg)
 
 Source: [Max Payne 3 on Steam](https://store.steampowered.com/app/204100/Max_Payne_3/). The pasted screenshots above (Kill UI, Combat) stay on your PC only; the repo is public.
+
+MAX PAYNE 3 Health, Painkillers and Ammo
+
+![[Pasted image 20261031045659.png]]
+
+Source: https://www.google.com/url?sa=t&source=web&rct=j&url=https%3A%2F%2Fwww.reddit.com%2Fr%2Fmaxpayne%2Fcomments%2F1ktw2q3%2Fi_made_a_beta_hud_mod_for_max_payne_3%2F&ved=0CBoQjhxqFwoTCJDtltW745cDFQAAAAAdAAAAABA4&opi=89978449

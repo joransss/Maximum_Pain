@@ -41,4 +41,7 @@ This note is a research checklist, not a claim that a particular networking mode
 ## Decisions log
 | Date | Question | Evidence/test | Decision | Follow-up |
 |---|---|---|---|---|
-| | | | | |
+| 2026-10-31 | Hitscan or projectile? | [[Weapons and Raycasting]] recommends server-validated hitscan first. Walls, spam and bad data were tested. | Hitscan. Tracers only show the bullet travelling at each gun's speed. | Revisit (for example FastCast) if bullet travel time ever needs to matter in play. |
+| 2026-10-31 | Where does recoil live? | CS2 splits recoil (learnable pattern) from inaccuracy (random spread). | Spray pattern and per-shot jerk on the client camera; random spread on the server. | A no-recoil cheat is possible; a no-spread cheat isn't. |
+| 2026-10-31 | Who decides "aiming"? | The server needs it to tighten spread. | The client sends an aiming flag with each shot. | Cheatable (always claiming aim). Later, tie aiming to something the server can check. |
+| 2026-10-31 | Who applies limb movement penalties? | Character movement is owned by each player's own machine on Roblox. | The server owns limb health and status; the client sets walk speed from it. | A speed cheat would ignore limping; the same is true of all Roblox movement. |

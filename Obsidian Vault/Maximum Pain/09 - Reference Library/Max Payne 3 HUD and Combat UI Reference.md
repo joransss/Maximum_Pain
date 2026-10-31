@@ -23,10 +23,24 @@ The [Max Payne 3 Xbox 360 manual, Heads Up Display section](https://www.gamesdat
 
 The manual also describes multiplayer HUD elements including score, round timer, minimap, match updates, and an adrenaline meter. These are useful reference categories, not requirements to copy wholesale.
 
+## Visual style: black and white boxes (multiplayer)
+
+Seen in your Kill UI screenshot (`Pasted image 20261030022940.png`, kept on your PC; shown in [[Reference Images]]).
+
+- **Flat boxes:** solid rectangles with square corners. No gradients, rounded corners, borders or glow. Each value gets its own box, and boxes sit in a row with thin gaps, like tiles.
+- **Type:** heavy, bold sans-serif in white. Labels are uppercase ("KILL"); the event text in the score bar is slanted ("KILL +1"). Numbers are as big as the labels.
+- **Colour:** almost only black, white and one grey. **Red is the only accent and always means the enemy:** the enemy team's score and the victim's name.
+- **Score bar (top centre):** `KILL +1` (white on black) · `33` your team's score (white on black) · `4:44` round timer (black on light grey, the one inverted box) · `32` enemy score (red on black). The event tile appears at the left end when you score.
+- **Kill pop-up (in the world, over the body):** a short vertical stack: `KILL` in white with no box, the points (`50`) in white in a black box, then the victim's name in red with a dark outline, and a thin black underline. It floats over the victim instead of sitting in a fixed screen spot.
+- **Kill feed (left edge):** no boxes, just text with a dark shadow. The killer's line is white (two names joined by a grey "+", likely killer and assist ❓); the victim is red underneath.
+- **Single-player HUD (your AK screenshots):** same restraint but no boxes. A white body outline (fills red with damage, painkiller count on the chest), a thin white bullet-time bar, and the ammo count (magazine large and bold white, reserve smaller and grey), all grouped in the bottom-right corner.
+
+**Take for Maximum Pain:** high contrast, flat square shapes, very few colours, one accent colour reserved for "enemy", and short uppercase labels. Build our own version (own font, proportions and layout); don't trace this one.
+
 ## Design observations for Maximum Pain
 
 1. Keep combat-critical information readable without covering the central target area.
-2. Distinguish current magazine ammunition from reserve ammunition. **Maximum Pain starts each weapon with one magazine and no reserve ammo**; compatible ammo scavenged from a ground weapon should update the reserve or magazine according to the game's final ammo model.
+2. Distinguish current magazine ammunition from reserve ammunition. **Maximum Pain starts each weapon with a full magazine plus one spare magazine** (decided 2026-10-31; see [[Weapons and Recoil]]). Compatible ammo scavenged from a ground weapon should update the reserve or magazine according to the game's final ammo model.
 3. Make health, bullet-time resource, weapon identity, magazine count, and interaction prompts legible during shoot-dodges and fast camera motion.
 4. Use subtle, contextual damage-direction feedback that does not obscure the reticle.
 5. In multiplayer, show only match information that players need to make immediate decisions; avoid clutter around the reticle.
@@ -34,6 +48,7 @@ The manual also describes multiplayer HUD elements including score, round timer,
 
 ## Suggested Maximum Pain HUD checklist
 
+- [ ] Original black-and-white boxed style: flat square boxes, bold white type, red only for enemies
 - [ ] Health state and damage feedback
 - [ ] Bullet-time resource and active-state indicator
 - [ ] Current weapon identity and fire mode where relevant

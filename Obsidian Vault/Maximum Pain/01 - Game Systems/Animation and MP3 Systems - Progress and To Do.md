@@ -1,92 +1,166 @@
 # Animation and MP3 Systems: Progress and To Do
 
-Work log for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations). Picks up where the [[Changelog]] entry of 2026-11-01 leaves off. **Nothing is committed yet, and the Roblox place must be saved in Studio (File > Save) to keep the script changes.**
+Work log for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations). Picks up where the [[Changelog]] entries of 2026-11-01 leave off.
+
+> [!warning] Save first
+> All script changes and the 93 imported clips live **only in the open Studio place**. Save it (File > Save) before closing Studio. The Blender scripts in `Assets/Blender/Animation` are changed but **not committed**.
 
 Related: [[Architecture]] · [[Animation Hooks]] · [[Movement State Machine]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Test Arena]]
 
 ---
 
-## Where things stand
+## Session 2 (2026-11-01, second half): what was done
 
-### Done and tested in Studio
-| Area | What exists | Tested |
-|---|---|---|
-| Bullet time | `BulletTimeRules`, `BulletTimeService` rewrite: 5 s meter, 3 levels, line-of-sight victims (frustum + raycasts through glass), aim penalty for lower levels, counter-activation, Last Stand needs ≥ level 1 | All 6 scenarios |
-| Aim reporting | `CameraController` sends yaw/pitch on `AimUpdate` (≤15/s, resent every 1 s); `CharacterServer` validates (NaN, rate ≤30/s, pitch clamp) and sets the `Aim` attribute | Attribute replicates |
-| Vaulting | `VaultRules`, `VaultController`, `Vaulting` stance, free aim and fire during the vault | Earlier session |
-| Hit reactions | `HitReactions` (spring flinches per joint, purely visual, never touch movement); springs now run in the character's own time, so flinches slow down in bullet time | Earlier session |
-| Ragdoll | `RagdollRules`, `RagdollService`, `RagdollController` | Dummy deaths |
-| Kill cam | `KillCamController` (bullet ride, impact, comic panel; local only) | Visually |
-| Procedural layer | `ProceduralLayer` (stacks bends after the animations each frame, on `PreSimulation`) | Yes |
-| **Aim layer (new)** | `Controllers.AimLayer`: chest turns to the aim (rifle blade −30°, pistol −10°, half the pitch, upright bodies only), exact one-step barrel solve at the shoulder, head look, recoil springs (sized in peak degrees), momentum lean (~6° on starts/stops), run arm pump in step with the legs, left-hand IK onto every two-handed gun's `Support` attachment, and a height ease for stance changes | Barrel error ≤0.03° for pistol, rifle, dual wield and the gunman NPC, at every angle incl. steep near shots; support hand gap 0.000 studs |
-| Animation controller | `AnimationController.state()` (aim, action, gait phase, moving), also for other players via their replicated tracks; cover holds while hidden; height-specific corner clips | Yes |
-| Cover corners | `CoverController` eases the body's facing over the 0.35 s swing instead of snapping 90° | Round both pillar corners |
-| **Clips** | 86 clips made in Blender and imported into `ReplicatedStorage.Assets.Animations`; every `AnimationConfig` slot has one, none unused | See below |
+### 1. One-off clips no longer flash their first frame (AnimationController) ✅ tested
+- **Cause (confirmed in Studio):** a non-looped track that reaches its end stops dead, and `Play()` always restarts from frame 0. `apply()` saw the stopped track while its weight was still fading and played it again.
+- **Fix in `apply()`:**
+  - A one-off track freezes on its last frame (speed 0, `TimePosition = Length - 0.001`) once it is within 0.03 s (real time) of its end, and holds there while it fades out.
+  - The margin was first `2·dt`, which skipped half a clip after an 81 ms frame; it is now a fixed 30 ms.
+  - If a long frame lets a track reach its end anyway, the next frame replays it **frozen at its end** (not from the start).
+  - New `rig.wanted` (last frame's targets): a one-off clip wanted again while fading (a second corner swing) restarts from 0.
+  - `shoot()` clears the stale weight of a track that stopped by itself.
+- **Stance-bound body clips:** `Shot.stance`. GettingUp, LastStandWakeup and DodgePrep hold full weight until their stance ends, then fade at the same rate as the height ease. Before, they handed back to the standing Idle while the hips were still lowered, which sank the legs 0.55 into the floor.
+- **Tested:** dive run-up and landing (hold at end, no restart), corner swings ×2, reload, two draws.
 
-### Clips (Blender toolkit in `Assets/Blender/Animation`)
-- `mp_lib.py` toolkit (rig, IK, keys, export). New: `lowest()`, `ground()` (rest a lying pose on the floor), `floor_guard()` (lift any hand or foot that dips through the floor), and an **IK fix**: R15's shoulder pivot sits at the upper arm's inner corner, so a straight arm reaches 1.66 studs, not 1.73; reaching further bent elbows backward by up to 33°. Now capped (also in the game's support-hand IK). No clip has a backward elbow.
-- `mp_locomotion.py`: idle, run/jog/crouch-walk ×4, sprint, limps, hobble, jump, fall, land.
-- `mp_arms.py`: holds and aims. Pistol, revolver, dual, SMG and sawn-off holds moved beside the thigh/hip (they crossed the belly); the carried rifle hangs from a nearly straight arm, 40° down so even the sniper clears the floor.
-- `mp_stances.py` (new): DodgePrep/Air/Land ×4, DodgeGround, GettingUp, LastStandFall, LastStand, LastStandWakeup, Vault, CoverHigh/Low ×2, CoverHigh/LowMove ×2, CoverCornerHigh/Low ×2, CoverAim, LandRoll (rebuilt so it rolls along the floor; it used to sink 0.59).
-- `mp_hands.py` (new): CoverHoldOne/Two/Dual, BlindFireLow/HighLeft/HighRight, DrawOneHanded/TwoHanded/Dual, Pickup, Painkiller, DropGun, ReloadPistol/Revolver/Rifle/Sniper/Pump/SawnOff/Dual (with MagOut/MagGrab/MagIn/BoltBack/BoltForward/ShellIn/Pump/CylinderOut/CylinderIn/BreakOpen/BreakClose markers).
-- Pipeline: in Blender run the toolkit, `mp_lib.export()` writes `Exports/keyframes.json`; `mp_serve.start()` serves it; in Studio **Edit mode** run `require(game.ServerStorage.Tools.AnimationImporter:Clone())()`.
+### 2. Stance height changes without free-fall (CharacterController, AimLayer, CameraController) ✅ tested
+- **Problem:** lowering the hip height (crouch, low cover, run-up, Last Stand) made the root **free-fall** for about 0.12 s. The aim layer's height hold faded before the root arrived, and the body sank up to **0.98** into the floor. The drop also briefly played the Fall clip, and the camera popped up then down.
+- **Fix:**
+  - `CharacterController.applyHeight`: on the ground the root now moves with the hip height in the same frame (`root.CFrame += rise`). Not for `AIRBORNE` stances: DodgeAir, DodgeGround, Vaulting, Dead.
+  - `CameraController.absorbRise(rise)`: the view holds and eases to the new height (`heightHold`, rate 10).
+  - `AimLayer` height hold: measured from **last frame's** root (`lastY`), carrying over any unfinished hold (`hold`). `FALLS` now includes Vaulting.
+- **Result:** crouch-down dip 0.98 → ≤0.11; Humanoid stays in Running (no Fall clip); camera smooth. Standing back up still dips about 0.3 for ~0.1 s. That's joint-angle blending between a deep crouch and straight legs, not fixed (see To do 4).
 
-### Checked in play (2026-11-01)
-- Low cover: head top 2.87 studs (under the 3.6 wall). Shuffle and aim-up over the wall look right.
-- High cover: close to the wall, head turned along it, pistol held up by the chin. Shuffle at 9.6 studs/s plays at speed 1.0. Blind fire round the edge: gun level, muzzle 0.8 studs past the wall's end.
-- Dive: flight, landing, lying with the root 1.0 above the floor. Exposed the restart bug below.
+### 3. Corner clips start and end on the cover idle (to-do item 4) ✅
+- `mp_stances.cover_corner`: keys at 0 / 0.175 / 0.35 s. The first and last keys are exactly `cover_high`/`cover_low` at rest (checked: within 0.08°). The middle key squares up (high: root yaw −10°, crossover step; low: yaw −8°, trailing foot closes up). High corner now floor-guarded.
+- In game: the corner clip holds its end frame and blends into the idle with no jump.
+
+### 4. Carried two-handed gun fixed in every pose (new; found in testing) ✅ tested
+- **Problem:** with a one-handed gun out, the carried rifle (left hand) went through the floor in almost every pose except standing:
+  - crouch −0.92 (seen on screen: barrel straight down)
+  - crouch walk −1.0 to −1.16
+  - low cover −0.9, getting up −0.74, dive landing −2.8
+  - sprint −0.25; strafes cut into the legs; high cover poked into the wall
+- **Fix:**
+  - `CarryTwoHanded` retuned: grip −1.55, −0.9, −0.05; muzzle 28° down (was 40°).
+  - New `CarryTwoHandedLow` (made on the crouch body: held at the left side, barrel level, pointing out left-forward) for Crouching, CoverLow and GettingUp.
+  - New `CarryTwoHandedCover` (nearly vertical beside the left leg) for CoverHigh.
+  - `AnimationController.carryFor(stance)` picks the clip.
+  - Safety net `AimLayer.liftCarried`: swings the left arm up at the shoulder just enough to keep the gun's box 0.12 above the floor under the character (binary search, max 120°). It asks for extra room by the root's fall speed × dt, because it runs before physics.
+- **Measured in game:** crouch AK +0.85; low cover +0.56 and 0.26 from the wall; high cover 0.48 from the wall; whole dive ≥ +0.09; lying +0.36.
+
+### 5. Low cover holds and blind fire (to-do items 2 and 3) ✅ tested
+- "Gun up beside the face" is impossible: the hunched R15 chest lies on the thighs and the 2-stud torso fills the space beside the head. MP3 holds the gun low in cover, so the low holds are a crouched low ready:
+  - `CoverHoldLowOne`: pistol beside the right knee, muzzle 60° down.
+  - `CoverHoldLowDual`: mirrored.
+  - `CoverHoldLowTwoRight/Left`: rifle low across the front by the feet, muzzle along the wall; per side, because the body turns ±24° per side.
+  - Upright ones renamed `CoverHoldHighOne/Two/Dual`.
+- `BlindFireLowRight/Left` (per side) key the **right arm + Waist** (waist −28°, yaw +s·18° to square to the wall). An R15 arm from the crouch reaches only the top edge of a 3.6 wall, so the slide clears the top by 0.26–0.30 with the hand at the edge. The head stays at 3.42 (under 3.6). On taller low cover the shots go into the wall.
+- `BlindFireHigh*`: right arm only (the left hand used to lift the carried AK onto the wall).
+- **Measured:**
+  - pistol hold +0.47 above the floor, 1.03 from the wall
+  - rifle hold +0.16, 0.58 from the wall, support hand 0.00 off
+  - dual: M9 +0.47, Uzi −0.02
+
+### 6. Low cover drift fixed (new; found in testing) ✅ tested
+- **Problem:** the cover mover always pushed the root toward `GAP` 1.15, but the hunched low pose reaches 2.2 studs (this avatar) to 2.8 (default R15). The head pressed into the wall (0.36 in), physics deflected the push sideways, and the character **slid along the wall at about 0.4 studs/s**, past the wall's end.
+- **Fix (`CoverController`):** the target gap is `max(GAP, reach + 0.05)`.
+  - `reach` is how far Head, UpperTorso and LowerTorso reach toward the wall (`bodyReach`), held at its maximum since the stance began (`reachHeld`, reset on stance change), so blind fire straightening the back doesn't pull the body in.
+  - Deadband 0.08.
+- **Result:** 0.00 studs drift in 16.8 s; root 2.24 from the wall; head front within ±0.03 of the wall face.
+
+### 7. Lying poses float less (to-do item 5) ✅
+- `mp_stances.LYING = −0.06` clearance for `dive_impact`, `on_floor` (DodgeGround, LastStand, wake-up start) and the Last Stand sitting key. The clips' floor guards use `floor + LYING` too.
+- DodgeGround lowest point in game: 0.18 → **0.10**. Not checked on a default blocky avatar (boxes sink 0.06 by design).
+
+### 8. Vault rebuilt so the legs clear the obstacle (to-do item 6, vault) ✅ tested on the gun table
+- **Problem:** with the root only 1.5 above the top, even the pelvis barely cleared. The legs went about 1 stud through the gun table, and the clip ran on the clock while the obstacle's place in the vault varies.
+- **Fix:**
+  - `VaultRules`: `APEX_ABOVE_TOP = 2.1`, `MIN_RISE = 1`. `Vault` gains `near`/`far` (ground distance to each face). `position()` rises (cubic ease-out) to the apex height by the near face, stays level across, and drops (cubic ease-in) after the far face. The self-check was updated. The server only uses `find`, so this is client-side.
+  - `VaultController.progress()` returns travelled, near, far and total (studs).
+  - `AnimationController.vaultShare()` maps progress to the clip: legs tucked (25 %) when the leading knee reaches the near face (1.3 ahead of the root), still up (72 %) until the trailing foot passes the far face (0.9 behind). The clip chases that point with its playback speed (≤6), which also replicates.
+  - New Vault clip: speed vault. Pelvis tips up to 65° toward the left hand, legs swing out right (hip roll 65–80), tucked 0.15–0.43 s, reach forward under the body at 0.52.
+- **Simulated** (wall 3.6×2, table 2.6×3, crate 3.8×4, low 1.5×1, max 4.3×1): clearance +0.14 to +0.24.
+- **Game, gun table:** +0.03 to +0.65 over the crossing; −0.06/−0.12 for 2 frames at take-off when starting 1.3 studs from the table (accepted).
+- Arc is visibly higher than before: hips about 1.35 above the top.
+
+### 9. Pipeline check
+- Blender rebuild reproduced all 86 committed clips exactly before changes. Now **93 clips**: +11 added, 4 removed (CoverHoldOne/Two/Dual, BlindFireLow), 16 changed.
+- Exported to `Exports/keyframes.json` and imported. Every slot has a clip, none unused.
 
 ---
 
 ## To do (in order)
 
-### 1. Fix the one-off clip restart bug (AnimationController) - important
-When a non-looped track (landing, getting up, corner, reload, draw...) reaches its end while still fading out, `apply()` sees `not track.IsPlaying` and calls `Play()` again, so its **first frame flashes back**. Seen in the dive log: the landing clip restarted and put the body 2 studs into the floor for ~0.2 s.
-- In `apply()`: for non-looped tracks, when `TimePosition >= Length - max(0.04, 2*dt*speed)`, `AdjustSpeed(0)` to hold the last frame while it fades; don't override that speed afterwards.
-- `shoot()` already resets `TimePosition = 0` when re-shooting a playing track, which un-freezes it. Check a re-shot reload/draw still plays from the start.
-- Re-test: dive landing (log the lowest body point: must never go below the floor), corner swing (the 20° chest jump at the end should become a smooth blend), a reload, a draw.
+### 1. Save, review, commit
+- [ ] **Save the place in Studio.**
+- [ ] Commit the Blender scripts and `Exports/keyframes.json` when the user asks (repo is public; no screenshots).
+- [ ] Remove the `__pycache__/*.pyc` files from git and add `__pycache__/` to `.gitignore` (they change on every import).
 
-### 2. Low cover hold clips
-`CoverHold*` were authored on an upright chest; the low-cover body leans ~78° forward, so the gun ends up pointing into the wall near the knees.
-- In `mp_hands.py` add `CoverHoldLowOne/Two/Dual`, authored with `arms(..., body=S.cover_low("Right")(0))` with a side-neutral root yaw (as `blind_fire("Low")` does): gun up beside the face, muzzle up in the world. Rename the upright ones to `CoverHoldHighOne/Two/Dual`.
-- `AnimationConfig`: slots `CoverHold{High,Low}{One,Two,Dual}` (Action, looped).
-- `AnimationController.arms()`: `"CoverHold" .. (stance == "CoverLow" and "Low" or "High") .. hold`.
+### 2. Finish the play tests (not yet done this session)
+- [ ] **Vault over the LowWall** (−10, 86) and a crate (−45, 100), from standing and **straight out of low cover** (Space in CoverLow). Check: no Fall clip, no body lag at the start (Vaulting is now in FALLS/AIRBORNE), legs clear, landing.
+- [ ] **Last Stand:** set the server attribute `Adrenaline = 5` on the character and the Gunman's `Hostile = true` (the TestArena loop polls it), stand in its sight. Lethal on the 6th hit (18 torso damage, every 0.8 s). Fire at it during the 4 s window to survive. Check: LastStandFall → LastStand → LastStandWakeup (bound to GettingUp, 3 s); root teleport down 2.2 then up; lying height; carried gun guard.
+- [ ] Dives Back/Left/Right (V+S/A/D), DodgeGround spin, GettingUp.
+- [ ] Reloads for every gun with marker effects; pickup (F), painkiller (H), drop (G).
+- [ ] Low cover: slide along the wall (A/D) with the new gap; stop at the ends; low corner swings (crates); pop up (aim) and back (the root moves 1.1 closer while popped up? CoverAim speed is 0, so it shouldn't move; check).
+- [ ] High cover: blind fire round the edge with right arm only; pop out with the AK carried.
+- [ ] Bullet time on a vault and a crouch (time scales).
+- [ ] **Two clients** (Studio Test > 2 players): root teleport on stance changes and the vault clip's speed chase replicating. Temporary animation ids don't replicate in Studio, so this mostly checks positions.
+- [ ] Output log clean after a full run. The only warning seen was the speed check undoing my own test teleport.
 
-### 3. Blind fire fixes
-- Key **only the right arm** (`joints=R`) in all three BlindFire clips: with both arms, the left hand lifted the carried AK onto the wall. Two-handed guns still get the left hand from the aim layer's support IK.
-- `BlindFireLow` only reaches the wall's top edge from the hunched pose. Add a `Waist` key (straighten from −46° to about −28°) and aim the grip at about (0.3, 2.7, −1.7) in root space (0.5 above a 3.6 wall, 0.55 past its near face). Check reach with `L.solve`, then confirm in game from a camera above the wall.
+### 3. Low cover pose (decision for the user)
+The hunched R15 head reaches 2.2–2.8 studs ahead of the root, so it now sits that far from the wall (feet ~2.2 back), leaning in with the head touching the wall. Options:
+- **Keep** (current; no clipping, no drift).
+- **Side-on crouch** (MP3-like, tried in Blender: `LOW_TURN` 70°, `LOW_BACK` 0.3 cuts head reach to 1.09). But the head then sits about 2 studs along the wall toward the edge, and the root stops 0.9 from an end, so the **head would stick out past wall ends**. That needs the body shifted back along the wall (~1.5) or a bigger low-cover `EDGE_MARGIN`. Reverted for now.
 
-### 4. Corner clip end pose
-`cover_corner` ends at root yaw 0 but the cover idle is turned 34° (high) / 18° (low), which causes the blend jump at the end of a swing. Use `-s*(34 - 24*sin(pi*u))` (high) and `-s*(18 - 10*sin(pi*u))` (low).
+### 4. Remaining polish
+- [ ] Standing up from a crouch dips about 0.3 for ~0.1 s (joint-angle blend between bent and straight legs). Options: a leg IK floor guard in AimLayer (raycast under each foot, lift with 2-bone IK; would also help slopes, stairs and other avatars), or easing the hold a little slower than the blend.
+- [ ] `CarryTwoHandedLow` points the rifle out to the left (needed so it clears low walls). Forward-down might look more MP3 when crouching in the open (a separate crouch clip, low cover keeps the sideways one).
+- [ ] Carried gun vs **walls** isn't guarded (only the floor), apart from the cover clip.
+- [ ] Sniper and shotgun carries rely on the floor guard (too long for any fixed pose).
+- [ ] Vault: take-off from very close (<1.3 studs) brushes the near edge for ~0.05 s. The left hand no longer touches the top at the higher arc. Vault from a run starts on a running stride (a standing vault could start from idle).
+- [ ] Blind fire over low cover taller than about 3.7 can't reach the top (R15 arm length); maybe stand up partly for tall low cover.
+- [ ] Wake-up: the carry clip overrides the left hand that the clip plants on the floor.
+- [ ] From the earlier list: the wake-up forearm box dips into the floor lying on the side; the gun-arm pump lags the opposite leg by ~0.1 cycle (fine).
 
-### 5. Lying poses float 0.18 studs on this avatar
-The default boxes are thicker than this avatar's parts. Lower `on_floor` / `LastStand` / landing impacts slightly (`ground(..., clearance=-0.06)`), then check in game that a default blocky avatar doesn't sink visibly.
+### 5. Export and document (from the old list)
+- [ ] `mp_lib.export(fbx=True)` for FBX copies; save a `.blend` into `Assets/Blender/Animation`.
+- [ ] **Publishing:** live servers need each KeyframeSequence published and its `rbxassetid://` in its `AnimationConfig` slot `Id` (93 clips).
+- [ ] Remove the cover-to-cover wording: [[Changelog]] ("cover-to-cover moves") and [[Cover System]] ("No cover-to-cover moves"; also its "No animations" and "no vaulting" lines are out of date).
+- [ ] Update these notes:
+  - [[Architecture]]: AimLayer, `AimUpdate`, attributes, `absorbRise`, `bodyReach`, `VaultController.progress`.
+  - [[Animation Hooks]]: slots incl. the new ones, layers, carry selection, vault pacing, markers, pipeline.
+  - [[Cover System]]: low cover gap, holds, blind fire per side.
+  - [[Shoot-Dodge]], [[Last Stand and Bullet Time]], [[Movement State Machine]] (root moves with the hip height), [[Test Arena]] (test log below).
+  - New notes for Euphoria-style reactions and ragdoll research, and the MP3 kill cam research.
 
-### 6. Still to test in play
-- **Vault** over the LowWall at (−10, 86): stand at (−6, 3.4, 80.5) facing +Z, hold W, press Space. Log root path and feet height; screenshot mid-vault (left hand on the top, legs swinging right) and landing.
-- **Dives** Back/Left/Right (V + S/A/D) and the floor spin into `DodgeGround`; then **GettingUp** (any movement key).
-- **Last Stand**: fall, lying, wakeup (3 s). Needs a lethal hit with a painkiller, loaded gun and ≥1 bullet-time level (gunman: press T near it, or a server-side damage call).
-- **Reloads** for every gun (R), with marker effects (mag drops, slide, cylinder, pump, break-open); **draws** (1/2/3/4); **pickup** (F), **painkiller** (H), **drop** (G).
-- **Crouch height ease**: press C and log the lowest foot each frame. The dive run-up showed the feet 0.16 below the floor on its first frame, so check the ease starts on the right frame (it needs the root to have moved; maybe use the HipHeight change itself for the first frame).
-- **Two clients** (Studio Test > 2 players): remote aim, remote recoil, `AimUpdate` rate. Note: Studio's temporary animation ids don't replicate, so remote players only animate on live servers with published ids.
-- Console clean after a full run.
+---
 
-### 7. Polish noticed but not done
-- The carried rifle's muzzle pokes ~0.4 into the wall in high cover (it points 40° forward-down). Option: a more vertical carry while hidden.
-- Low-cover knee box sits ~0.18 below the floor in the Blender box model (deep squat); looked fine in game, recheck with other avatars.
-- Gun arm pump lags the opposite leg by ~0.1 cycle (reads as follow-through; fine).
-- Wake-up: the lower forearm box dips 0.25 into the floor while lying on the side (box geometry).
+## How to resume (tools and tricks)
+- **Blender:** `sys.path.insert(0, r"…\Assets\Blender\Animation")`, `import mp_lib as L, mp_locomotion as M, mp_arms as A, mp_stances as S, mp_hands as H`, `L.build_rig()`, `L.CLIPS.clear()`, then `M.register(); A.register(); S.register(); H.register()` (93 clips). `L.export()` (or `L.export(["Name"])`), `import mp_serve; mp_serve.start()`. In Studio **Edit mode**: `require(game.ServerStorage.Tools.AnimationImporter:Clone())()`.
+- **Checks used:** `L.validate(clip, speed, dir)`; `L.render_sheet(clip, path, frames, views)` / `L.render_grid`.
+- **Arm clips are chest-relative.** Author with IK on the body they'll play on, then check by FK on every body that plays them (rifle box vs floor, wall, body).
+- **Studio testing:**
+  - `execute_luau` runs in a separate VM (keep helpers in `_G` within one play session; re-install after restarting play).
+  - Log on `RunService.PostSimulation` (that's what gets rendered next frame).
+  - `script_grep` takes Lua patterns: no `|`.
+  - Teleports trip the server speed check (2 strikes, then it moves you back). Walk instead, or vault the gun table (z 68.5–71.5, x −28…28). Spawn is around (0, 4, 0).
+  - `player:SetAttribute("DebugLook", Vector2.new(yaw, pitch))` only applies when the value changes (nudge it by 0.001); yaw π faces +Z.
+  - Debug camera: BindToRenderStep at Camera+50 with `_G.debugCamEye/_G.debugCamAt` in root space, restored on PreAnimation (re-install each play session).
+  - The server's BulletTimeService resets `TimeScale`, so it can't be used to slow-mo a vault for screenshots.
+  - The Studio MCP id can change after a reconnect (`list_roblox_studios`).
+- Luau gotcha: `local a, b, c = if x then f() else nil, y, z` keeps only `f()`'s first value.
 
-### 8. Export, save, document
-- `mp_lib.export(fbx=True)` for FBX copies; save the `.blend` into `Assets/Blender/Animation`.
-- **Publishing:** live servers need each KeyframeSequence published (Animation Editor > Save to Roblox, or Open Cloud) and its `rbxassetid://` pasted into the slot's `Id` in `AnimationConfig`. About 86 clips. Studio plays them unpublished.
-- Remove cover-to-cover wording from the docs but keep the cover system: [[Changelog]] ("cover-to-cover moves") and [[Cover System]] ("No cover-to-cover moves").
-- Update [[Architecture]] (AimLayer, PostureLayer-in-AimLayer height ease, `AimUpdate`, `Aim`/`AimPenalty`/`BulletTimeLevel`/`BulletTimeEnds`/`LastShot`/`LastHit*`/`Ragdolled` attributes), [[Animation Hooks]] (slots, layers, markers, pipeline), [[Last Stand and Bullet Time]] (LoS rules, levels, penalty, counter-activation), [[Shoot-Dodge]], [[Cover System]], [[Movement State Machine]], [[Test Arena]], and add notes for Euphoria-style reactions + ragdoll research and the MP3 kill cam research.
-- Commit and push only when asked (repo is public; link screenshots, don't commit them).
-
-### Testing tricks (Studio)
-- `execute_luau` runs in a separate VM: never `require` game modules with side effects there; use attributes.
-- Point the camera: `player:SetAttribute("DebugLook", Vector2.new(yaw, pitch))`.
-- A render-only debug camera (BindToRenderStep at Camera+50, restore the gameplay CFrame on `PreAnimation`) lets screenshots be taken from outside without changing what the aim layer aims at. `_G.debugCamEye/_G.debugCamAt` in root space; `_G.debugCamWorld = true` for world axes.
-- Teleport with `HumanoidRootPart.CFrame = ...` (`PivotTo` did not stick while leaving cover).
-- Luau gotcha that cost an hour: `local a, b, c = if x then f() else nil, y, z` keeps only `f()`'s first value.
+## Test log (this session)
+| Test | Result |
+|---|---|
+| Dive landing, run-up | Clips hold their end frame; landing body on the floor (+0.11…+0.18) |
+| Get up after a dive | Dip 0.55 → within ±0.07 |
+| Crouch down / up | Dip 0.98 → 0.11 / ~0.3 for 0.1 s; no Fall clip; camera smooth |
+| Corner swings ×2 | No restart, smooth blend into idle |
+| Reload, draws | Play once, hold end, fade |
+| Carried AK | Crouch +0.85, low cover +0.56, high cover 0.48 off the wall, dive ≥ +0.09 |
+| Low cover holds | Pistol, rifle, dual all clear of floor and wall |
+| Blind fire low | Slide 0.26–0.30 above a 3.6 top; head under the top |
+| Low cover drift | 0.4 studs/s → 0 |
+| Lying height | 0.18 → 0.10 |
+| Vault (gun table) | Legs +0.03…+0.65 over the top (was about −1) |

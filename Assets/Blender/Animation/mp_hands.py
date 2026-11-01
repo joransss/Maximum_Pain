@@ -58,8 +58,9 @@ def keyed(entries, loop_length=None):
     return keys.at
 
 
-# --- Hidden in cover: the gun up close to the chest, muzzle up (clear of the wall) --------------------
-def cover_hold(kind):
+# --- Hidden in cover --------------------------------------------------------------------------------
+def cover_hold_high(kind):
+    """Behind high cover: the gun up close to the chest, muzzle up (clear of the wall)."""
     def pose(t):
         rise, tilt = A.breathing(t, 3.0, 0.6)
         right = gun((0.62, 0.55 + rise, -0.72), 12.0, 62.0 + tilt, 0.0)
@@ -73,28 +74,60 @@ def cover_hold(kind):
     return pose
 
 
+def low_cover_body(side=None):
+    """The low cover idle at rest; side-neutral (squared to the wall) without a side."""
+    body = S.cover_low(side or "Right")(0.0)
+    if side is None:
+        body.set("Root", -32.0, 0, 0, move=(0, 0.7, 0.15))
+        body.set("Waist", -46.0, 0, 0)
+    return body
+
+
+def cover_hold_low(kind, side=None):
+    """Behind low cover the body is hunched right up to the wall, its chest folded onto its thighs, so
+    the gun is held low (as in Max Payne 3): a pistol beside the right knee, muzzle down at the floor
+    ahead; two pistols beside both knees; a rifle low across the front by the feet, muzzle along the
+    wall. The rifle is long enough to reach the wall when the body turns toward the side worked, so
+    it has a clip per side, made on that side's body."""
+    def pose(t):
+        rise, tilt = A.breathing(t, 3.0, 0.6)
+        if kind == "Two":
+            x, y, z, yaw = (0.8, -0.7, -1.0, 75.0) if side == "Right" else (0.4, -0.7, -0.8, 90.0)
+            rifle = gun((x, y + rise, z), yaw, tilt, 0.0)
+            return arms(right=rifle, left=A.support_frame(rifle, "Rifle"), right_elbow=V(0.6, 0.3, 0.6), left_elbow=V(-0.6, 0.3, 0.6), body=low_cover_body(side))
+        right = gun((1.45, -0.45 + rise, -0.8), 15.0, -60.0 + tilt, 0.0)
+        if kind == "One":
+            return arms(right=right, right_elbow=V(0.3, -0.4, 0.5), body=low_cover_body())
+        left = gun((-1.45, -0.45 + rise, -0.8), -15.0, -60.0 + tilt, 0.0)
+        return arms(right=right, left=left, right_elbow=V(0.3, -0.4, 0.5), left_elbow=V(-0.3, -0.4, 0.5), body=low_cover_body())
+    return pose
+
+
 # --- Blind fire: the gun over or round the cover, the body kept behind it ----------------------------
 def blind_fire(kind):
-    """BlindFireLow: the gun arm up over the top of low cover, the gun level ahead (the top is at least
-    3 studs off the floor, 1.6 above the crouched root part); the left hand on the top. High: the gun
-    arm out round the edge being worked, the gun pointing past the wall; the left hand on the wall."""
-    if kind == "Low":
-        body = S.cover_low("Right")(0.0)
-        body.set("Root", -32.0, 0, 0, move=(0, 0.7, 0.15))  # side-neutral, so either side points ahead
+    """BlindFireLow{Right,Left}: the chest straightens and squares up to the wall (keyed at the waist)
+    as far as keeps the head under a 3.6-stud top, and the gun arm reaches up to the top edge, the gun
+    level over it. That is as high as an R15 arm reaches from the crouch, so on taller low cover the
+    shots go into the wall. One clip per side: the crouched body turns toward the side worked.
+    BlindFireHigh{Right,Left}: the gun arm out round the edge being worked, the gun pointing past the
+    wall. Only the gun arm (and for low cover the waist) is keyed: the other hand stays with the body or
+    a carried gun, and a two-handed gun gets its support hand from the game's aim layer."""
+    s = 1.0 if kind.endswith("Right") else -1.0
+    if kind.startswith("Low"):
+        body = S.cover_low("Right" if s > 0 else "Left")(0.0)
+        body.set("Waist", -28.0, s * 18.0, 0)
+        x, y = (1.0, 2.25) if s > 0 else (0.4, 2.45)
 
         def pose(t):
             jolt = 0.04 * A.breathing(t, 0.5, 1.0)[0] / 0.018
-            right = gun((0.35, 2.25 + jolt, -1.35), 0.0, -4.0, 0.0)
-            return arms(right=right, left_hand=hand_at((-0.45, 1.75, -1.15), 0.0), right_elbow=V(1, 0, 0.5), left_elbow=V(-1, -0.2, 0.4), body=body)
+            return arms(right=gun((x, y + jolt, -1.8), 0.0, -2.0, 0.0), right_elbow=V(1, 0, 0.5), body=body)
         return pose
-    s = 1.0 if kind == "HighRight" else -1.0
     body = S.cover_high("Right" if s > 0 else "Left")(0.0)
 
     def pose(t):
         jolt = 0.04 * A.breathing(t, 0.5, 1.0)[0] / 0.018
         right = gun((s * 1.85 if s > 0 else -1.75, 0.55 + jolt, -0.75), -s * 8.0, 0.0, 0.0)
-        wall = hand_at((s * -0.35 if s > 0 else 0.55, 0.55, -0.62), 70.0)  # palm flat on the wall
-        return arms(right=right, left_hand=wall, right_elbow=V(s * 0.3, -1, 0.5), left_elbow=V(-1, -0.6, 0.4), body=body)
+        return arms(right=right, right_elbow=V(s * 0.3, -1, 0.5), body=body)
     return pose
 
 
@@ -326,12 +359,15 @@ def reload_dual():
 def register():
     R, Lt, B = L.RIGHT_ARM, L.LEFT_ARM, L.ARMS
     # the free left hand stays with the body clip, or with a carried two-handed gun (CarryTwoHanded)
-    Clip("CoverHoldOne", 3.0, cover_hold("One"), loop=True, priority="Action", joints=R, gun=("Pistol", None))
-    Clip("CoverHoldTwo", 3.0, cover_hold("Two"), loop=True, priority="Action", joints=B, gun=("Rifle", None))
-    Clip("CoverHoldDual", 3.0, cover_hold("Dual"), loop=True, priority="Action", joints=B, gun=("Pistol", "Pistol"))
-    Clip("BlindFireLow", 0.5, blind_fire("Low"), loop=True, priority="Action2", joints=B, drop=1.8, gun=("Pistol", None))
-    Clip("BlindFireHighRight", 0.5, blind_fire("HighRight"), loop=True, priority="Action2", joints=B, gun=("Pistol", None))
-    Clip("BlindFireHighLeft", 0.5, blind_fire("HighLeft"), loop=True, priority="Action2", joints=B, gun=("Pistol", None))
+    Clip("CoverHoldHighOne", 3.0, cover_hold_high("One"), loop=True, priority="Action", joints=R, gun=("Pistol", None))
+    Clip("CoverHoldHighTwo", 3.0, cover_hold_high("Two"), loop=True, priority="Action", joints=B, gun=("Rifle", None))
+    Clip("CoverHoldHighDual", 3.0, cover_hold_high("Dual"), loop=True, priority="Action", joints=B, gun=("Pistol", "Pistol"))
+    Clip("CoverHoldLowOne", 3.0, cover_hold_low("One"), loop=True, priority="Action", joints=R, drop=1.8, gun=("Pistol", None))
+    Clip("CoverHoldLowDual", 3.0, cover_hold_low("Dual"), loop=True, priority="Action", joints=B, drop=1.8, gun=("Pistol", "Pistol"))
+    for side in ("Right", "Left"):
+        Clip("CoverHoldLowTwo" + side, 3.0, cover_hold_low("Two", side), loop=True, priority="Action", joints=B, drop=1.8, gun=("Rifle", None))
+        Clip("BlindFireLow" + side, 0.5, blind_fire("Low" + side), loop=True, priority="Action2", joints=R | {"Waist"}, drop=1.8, gun=("Pistol", None))
+        Clip("BlindFireHigh" + side, 0.5, blind_fire("High" + side), loop=True, priority="Action2", joints=R, gun=("Pistol", None))
     Clip("DrawOneHanded", 0.3, draw_one, priority="Action3", joints=R, gun=("Pistol", None))
     Clip("DrawDual", 0.3, draw_dual, priority="Action3", joints=B, gun=("Pistol", "Pistol"))
     Clip("DrawTwoHanded", 0.55, draw_two, priority="Action3", joints=B, gun=("Rifle", None))

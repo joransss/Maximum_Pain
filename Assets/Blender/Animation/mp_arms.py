@@ -14,6 +14,7 @@ import math
 from mathutils import Matrix
 
 import mp_lib as L
+import mp_locomotion as M
 from mp_lib import Clip, Pose, V, rot
 
 TAU = 2 * math.pi
@@ -78,11 +79,32 @@ def dual_hold(t):
 
 def carry_two_handed(t):
     """The two-handed gun riding in the left hand while a one-handed gun is out: held by its grip with
-    the arm hanging nearly straight beside the thigh, muzzle forward and down (40 degrees, so even the
-    longest gun, the sniper rifle, clears the floor), swinging lightly."""
+    the arm hanging beside the thigh, a little out from it so strafing legs don't cross it, muzzle
+    forward and down 28 degrees (clear of the floor running and sprinting), swinging lightly. For
+    upright bodies; crouched and hidden behind high cover have their own carries, and the game's aim
+    layer lifts the gun clear of the floor in any other pose (dives, rolls, lying down)."""
     swing = math.sin(TAU * t / 2.6)
-    gun = gun_frame((-1.3, -1.0 + 0.01 * swing, -0.15 + 0.02 * swing), 4.0, -40.0 + 2.0 * swing, -6.0)
+    gun = gun_frame((-1.55, -0.9 + 0.01 * swing, -0.05 + 0.02 * swing), 4.0, -28.0 + 2.0 * swing, -6.0)
     return arms_pose(0.0, left=gun, left_elbow=V(-0.4, 0.0, 1.0))
+
+
+def carry_two_handed_low(t):
+    """The carried gun while crouched (crouching, low cover, getting up). Made on the crouched body:
+    the hunched chest would point the standing carry straight into the floor. Held at the left side,
+    muzzle out to the left and a little forward, level, so it clears the floor and a low wall ahead."""
+    swing = math.sin(TAU * t / 2.6)
+    body = M.crouch_idle_pose(0.0)
+    gun = gun_frame((-1.55, 0.05 + 0.01 * swing, 0.15), 70.0, -10.0 + 1.5 * swing, -30.0)
+    L.place_hand(body, "Left", L.hand_for_grip(gun), V(-0.6, 0.0, 0.8))
+    return body
+
+
+def carry_two_handed_cover(t):
+    """The carried gun hidden behind high cover: nearly straight down beside the left leg and turned
+    out a little, clear of the wall the character faces (the standing carry pointed into it)."""
+    swing = math.sin(TAU * t / 2.6)
+    gun = gun_frame((-1.3, -0.6 + 0.01 * swing, 0.4), 60.0, -80.0 + 1.5 * swing, -6.0)
+    return arms_pose(0.0, left=gun, left_elbow=V(-0.5, 0.0, 1.0))
 
 
 def injured_arm(side):
@@ -139,6 +161,8 @@ def register():
     Clip("HoldSniper", 3.6, two_handed_hold("Sniper", (0.45, -0.45, -0.2), 40.0, -15.0), loop=True, priority="Action", joints=B, gun=("Sniper", None))
     Clip("HoldDual", 3.0, dual_hold, loop=True, priority="Action", joints=B, gun=("Pistol", "Pistol"))
     Clip("CarryTwoHanded", 2.6, carry_two_handed, loop=True, priority="Action", joints=Lt, gun=(None, "Rifle"))
+    Clip("CarryTwoHandedLow", 2.6, carry_two_handed_low, loop=True, priority="Action", joints=Lt, drop=1.8, gun=(None, "Rifle"))
+    Clip("CarryTwoHandedCover", 2.6, carry_two_handed_cover, loop=True, priority="Action", joints=Lt, gun=(None, "Rifle"))
     Clip("InjuredArmLeft", 2.2, injured_arm("Left"), loop=True, priority="Action", joints=Lt)
     Clip("InjuredArmRight", 2.2, injured_arm("Right"), loop=True, priority="Action", joints=R)
     Clip("AimPistol", 3.0, aim_pistol, loop=True, priority="Action2", joints=R, gun=("Pistol", None))

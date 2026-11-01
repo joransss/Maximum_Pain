@@ -25,6 +25,9 @@ KNEEL = L.FLOOR + 1.2  # GettingUp lowers them 1.2
 LOW = L.FLOOR + 1.8  # crouching and low cover
 PREP = L.FLOOR + 0.6  # the dive's run-up
 AIR_DROP = -0.55  # the body flies a little below the root part, so dives stay low
+# Lying poses rest this far into the floor (studs). The boxes here are the default avatar's; slimmer
+# avatars' parts are thinner and floated 0.18 above the floor when the boxes just touched it.
+LYING = -0.06
 SIDES = (("Left", -1.0), ("Right", 1.0))
 
 
@@ -135,7 +138,7 @@ def dive_impact(direction, floor=PRONE):
         lead, trail = (20.0, 0, 0, -40.0), (-6.0, 0, 0, -16.0)
         legs(p, lead if s > 0 else trail, trail if s > 0 else lead)
         empty_arms(p, 90.0, 30.0, 40.0)
-    return L.ground(p, floor)
+    return L.ground(p, floor, LYING)
 
 
 def on_floor(t, floor=PRONE, slump=0.0, period=2.4):
@@ -156,7 +159,7 @@ def on_floor(t, floor=PRONE, slump=0.0, period=2.4):
     p.set("LeftAnkle", -12.0, 0, 0)
     # empty hands: propped on the elbows behind
     empty_arms(p, -38.0, 26.0, 70.0, -20.0)
-    return L.ground(p, floor)
+    return L.ground(p, floor, LYING)
 
 
 def dive_land(direction):
@@ -224,7 +227,7 @@ def last_stand_fall():
     sitting.set("Neck", -10.0, 0, 0)
     legs(sitting, (64.0, 10.0, -10.0, -70.0), (54.0, -10.0, 10.0, -54.0), 0.0)
     empty_arms(sitting, -20.0, 36.0, 30.0, -20.0)
-    L.ground(sitting, PRONE)
+    L.ground(sitting, PRONE, LYING)
     keys = Keys()
     keys.add(0.0, stagger)
     keys.add(0.24, sitting)
@@ -278,44 +281,46 @@ def last_stand_wakeup():
 
 # --- Vault -------------------------------------------------------------------------------------------
 def vault():
-    """Over a low obstacle (made at 0.6 s, played at the vault's own length): drive off the left foot,
-    left hand onto the top, legs tucked and swung over to the right side, and down running. The game
-    flies the root part over (VaultRules.position: rising quickly to 1.5 above the top, mid-obstacle)
-    and the gun arm keeps aiming. With a one-handed gun the free left hand takes the top."""
+    """Over a low obstacle, a speed vault (made at 0.6 s): drive off the left foot, left hand onto the
+    top, the body tipped over it while both legs swing out to the right, tucked, and down running. The
+    game flies the root part over (VaultRules.position: up to 2.1 above the top by the near face, level
+    across, down after the far face) and paces this clip by the way over, not the clock: the legs are
+    up (tucked, 0.15 s, to clear, 0.43 s) from the near face to the far face, where the hips and tucked
+    legs hang at most 1.85 below the root part. The gun arm keeps aiming; with a one-handed gun the free
+    left hand takes the top."""
     run = M.gait(0.12, dict(M.RUN, direction=V(0, 0, -1)))
     drive = empty_arms(Pose(), 30.0, 16.0, 60.0)
-    drive.set("Root", -24.0, 6.0, 8.0, move=(0, -0.2, 0))
+    drive.set("Root", -20.0, 6.0, 10.0, move=(0, -0.1, 0))
     drive.set("Waist", -10.0, -6.0, 6.0)
     drive.set("Neck", 16.0, 0, -4.0)
-    drive.set("LeftHip", -20.0, 0, -4.0)
-    drive.set("LeftKnee", -20.0, 0, 0)
-    drive.set("LeftAnkle", -40.0, 0, 0)  # pushing off the toes
-    drive.set("RightHip", 80.0, 0, 6.0)
-    drive.set("RightKnee", -100.0, 0, 0)
-    drive.set("RightAnkle", -10.0, 0, 0)
+    legs(drive, (-25.0, 0, -4.0, -30.0), (110.0, 0, 6.0, -130.0), -30.0)  # left pushing off, right knee driving up
     drive.set("LeftShoulder", 60.0, 0, -20.0)
     drive.set("LeftElbow", 30.0, 0, 0)
-    tuck = empty_arms(Pose(), 40.0, 30.0, 50.0)  # left hand on the top, knees up and swinging right
-    tuck.set("Root", -14.0, -20.0, 24.0, move=(0.1, 0.05, 0))
-    tuck.set("Waist", -12.0, 10.0, 14.0)
+    tuck = empty_arms(Pose(), 40.0, 30.0, 50.0)  # left hand on the top, knees up, tipping over it
+    tuck.set("Root", -12.0, -15.0, 45.5, move=(0.1, 0.05, 0))
+    tuck.set("Waist", -12.0, 8.0, -18.2)
     tuck.set("Neck", 12.0, 14.0, -18.0)
-    legs(tuck, (96.0, -20.0, 20.0, -118.0), (90.0, -24.0, 24.0, -112.0), -20.0)
+    legs(tuck, (110.0, -10.0, 65.0, -135.0), (105.0, -12.0, 70.0, -130.0), -30.0)
     tuck.set("LeftShoulder", 40.0, 0, -36.0)
     tuck.set("LeftElbow", 6.0, 0, 0)
     tuck.set("LeftWrist", 60.0, 0, 0)  # palm flat on the top
-    over = empty_arms(Pose(), 50.0, 40.0, 40.0)  # legs out to the right, level with the hips, body tipped over the hand
-    over.set("Root", -6.0, -38.0, 30.0, move=(0.2, 0.1, 0))
-    over.set("Waist", -6.0, 24.0, 10.0)
+    over = empty_arms(Pose(), 50.0, 40.0, 40.0)  # tipped right over the hand, the legs swung out to the right
+    over.set("Root", -6.0, -20.0, 65.0, move=(0.2, 0.1, 0))
+    over.set("Waist", -6.0, 10.0, -35.75)
     over.set("Neck", 6.0, 20.0, -24.0)
-    legs(over, (70.0, -40.0, 30.0, -60.0), (62.0, -46.0, 36.0, -48.0), -20.0)
+    legs(over, (85.0, -10.0, 75.0, -105.0), (80.0, -10.0, 80.0, -100.0), -25.0)
     over.set("LeftShoulder", 20.0, 0, -30.0)
     over.set("LeftElbow", 4.0, 0, 0)
     over.set("LeftWrist", 50.0, 0, 0)
-    reach = Pose()  # coming down the far side, feet reaching for the floor
+    clear = over.copy()  # past the far face, the legs still up, coming round under the body
+    clear.set("Root", -8.0, -15.0, 45.5, move=(0.1, 0.1, 0))
+    clear.set("Waist", -6.0, 8.0, -22.75)
+    legs(clear, (80.0, -10.0, 65.0, -105.0), (70.0, -10.0, 70.0, -95.0), -20.0)
+    reach = Pose()  # coming down the far side, both feet forward under the body for the floor
     reach.set("Root", -8.0, -6.0, 6.0, move=(0, 0.05, 0))
     reach.set("Waist", -6.0, 4.0, 2.0)
     reach.set("Neck", 10.0, 2.0, -4.0)
-    legs(reach, (24.0, 0, -6.0, -24.0), (6.0, 0, 6.0, -10.0), -16.0)
+    legs(reach, (60.0, 0, -6.0, -45.0), (50.0, 0, 6.0, -30.0), -16.0)
     empty_arms(reach, 40.0, 30.0, 40.0)
     land = Pose()  # down on the right foot first, knees taking it, running on
     land.set("Root", -16.0, 2.0, -2.0, move=(0, -0.28, 0))
@@ -325,12 +330,8 @@ def vault():
     plant(land, "Right", 0.55, -0.35, L.FLOOR, -6.0)
     plant(land, "Left", -0.6, 0.45, L.FLOOR, 6.0, 0, 30.0)
     keys = Keys()
-    keys.add(0.0, run)
-    keys.add(0.08, drive)
-    keys.add(0.2, tuck)
-    keys.add(0.33, over)
-    keys.add(0.47, reach)
-    keys.add(0.6, land)
+    for t, pose in ((0.0, run), (0.06, drive), (0.15, tuck), (0.3, over), (0.43, clear), (0.52, reach), (0.6, land)):
+        keys.add(t, pose)
     return keys.at
 
 
@@ -356,7 +357,9 @@ def cover_high(side):
 
 def cover_low(side):
     """Low cover (hips 1.8 lower): down on the balls of the feet behind it, head under the top (the
-    lowest cover is 3 studs), turned a little toward the edge being worked."""
+    lowest cover is 3 studs), turned a little toward the edge being worked. An R15 has to hunch far
+    over to keep its head that low, so the head reaches about 2.8 studs ahead of the root part, to
+    the wall (side-on, it would stick out past the wall's ends instead)."""
     s = 1.0 if side == "Right" else -1.0
 
     def pose(t):
@@ -405,36 +408,30 @@ def cover_move(height, side):
 
 def cover_corner(height, side):
     """Round an outside corner (0.35 s): the game swings the root part round the end of the wall
-    and turns its facing with it; the legs cross over and step round."""
+    and turns its facing with it. The clip starts and ends on the cover idle at rest, so it blends in
+    and out without a jump. Between, the body squares up to the turn and the trailing foot comes
+    across (high: crossing in front of the leading one; crouched: only closing up)."""
     s = 1.0 if side == "Right" else -1.0
     high = height == "High"
-    floor = L.FLOOR if high else LOW
-    reach = 1.3 if high else 0.75  # crouched, the trailing foot only closes up (no crossover)
-
-    def at(u, cross):
-        p = Pose()
-        if high:
-            p.set("Root", -4.0, -s * 20.0 * (1 - u), -s * 6.0 * math.sin(math.pi * u), move=(0, -0.15, 0.1))
-            p.set("Waist", -6.0, -s * 10.0, 0)
-            p.set("Neck", 6.0, -s * 20.0, 0)
-            empty_arms(p, 30.0, 10.0, 70.0)
-        else:
-            p.set("Root", -32.0, -s * 14.0 * (1 - u), -s * 4.0 * math.sin(math.pi * u), move=(0, 0.7, 0.15))
-            p.set("Waist", -46.0, -s * 6.0, 0)
-            p.set("Neck", 56.0, -s * 18.0, 0)
-            empty_arms(p, 50.0, 12.0, 90.0)
-        lead = "Right" if s > 0 else "Left"
-        trail = "Left" if s > 0 else "Right"
-        # the trailing foot comes across (high: in front of the leading one), then they part again
-        plant(p, lead, s * (0.7 - 0.2 * cross), -0.1, floor, -s * 40.0 * u, 0, 0.0 if high else 18.0)
-        lifted = (0.3 if high else 0.2) * math.sin(math.pi * min(u / 0.7, 1.0))
-        sole, r = L.foot_on_floor(-s * 0.5 + s * reach * cross, -(0.35 if high else 0.0) * cross, floor + lifted, -s * 50.0 * u)
-        L.leg_ik(p, trail, sole, r, V(s * 0.3, 0, -1))
-        return p
+    rest = (cover_high if high else cover_low)(side)(0.0)
+    lead, trail = ("Right", "Left") if s > 0 else ("Left", "Right")
+    mid = rest.copy()
+    if high:
+        mid.set("Root", -4.0, -s * 10.0, -s * 6.0, move=(0, -0.15, 0.1))
+        mid.set("Waist", -6.0, -s * 10.0, 0)
+        mid.set("Neck", 6.0, -s * 20.0, 0)
+        plant(mid, lead, s * 0.54, -0.1, L.FLOOR, -s * 20.0)
+        sole, r = L.foot_on_floor(s * 0.54, -0.28, L.FLOOR + 0.24, -s * 25.0)
+        L.leg_ik(mid, trail, sole, r, V(s * 0.3, 0, -1))
+    else:
+        mid.set("Root", -32.0, -s * 8.0, -s * 4.0, move=(0, 0.7, 0.15))
+        plant(mid, lead, s * 0.54, -0.1, LOW, -s * 20.0, 0, 18.0)
+        sole, r = L.foot_on_floor(s * 0.1, 0.0, LOW + 0.16, -s * 25.0)
+        L.leg_ik(mid, trail, sole, r, V(s * 0.3, 0, -1))
     keys = Keys()
-    keys.add(0.0, at(0.0, 0.0))
-    keys.add(0.18, at(0.5, 0.8))
-    keys.add(0.35, at(1.0, 0.25))
+    keys.add(0.0, rest)
+    keys.add(0.175, mid)
+    keys.add(0.35, rest.copy())
     return keys.at
 
 
@@ -492,12 +489,12 @@ def register():
         Clip("DodgePrep" + d, 0.2, guarded(dive_prep(d), PREP), drop=0.6)
         Clip("DodgeAir" + d, 1.0, (lambda dd: lambda t: dive_air(dd, t))(d), loop=True, note="flight")
         # the first 0.15 s is still above the floor: the root part is falling onto it
-        Clip("DodgeLand" + d, 0.45, guarded(dive_land(d), PRONE, 0.15), drop=2.2, note="lands from the flight pose")
-    Clip("DodgeGround", 2.4, guarded(on_floor, PRONE), loop=True, drop=2.2)
-    Clip("GettingUp", 0.6, guarded(getting_up()[0], KNEEL), drop=1.2)
-    Clip("LastStandFall", 0.6, guarded(last_stand_fall(), PRONE), drop=2.2)
-    Clip("LastStand", 3.2, guarded(lambda t: on_floor(t, PRONE, 1.0, 3.2), PRONE), loop=True, drop=2.2)
-    Clip("LastStandWakeup", 3.0, guarded(last_stand_wakeup(), KNEEL), drop=1.2)
+        Clip("DodgeLand" + d, 0.45, guarded(dive_land(d), PRONE + LYING, 0.15), drop=2.2, note="lands from the flight pose")
+    Clip("DodgeGround", 2.4, guarded(on_floor, PRONE + LYING), loop=True, drop=2.2)
+    Clip("GettingUp", 0.6, guarded(getting_up()[0], KNEEL + LYING), drop=1.2)
+    Clip("LastStandFall", 0.6, guarded(last_stand_fall(), PRONE + LYING), drop=2.2)
+    Clip("LastStand", 3.2, guarded(lambda t: on_floor(t, PRONE, 1.0, 3.2), PRONE + LYING), loop=True, drop=2.2)
+    Clip("LastStandWakeup", 3.0, guarded(last_stand_wakeup(), KNEEL + LYING), drop=1.2)
     Clip("Vault", 0.6, vault(), note="stretched to the vault's length")
     for side in ("Left", "Right"):
         Clip("CoverHigh" + side, 6.4, cover_high(side), loop=True)
@@ -506,7 +503,7 @@ def register():
         Clip("CoverHighMove" + side, g["cycle"], high, loop=True, note="9.6 studs/s")
         low, g = cover_move("Low", side)
         Clip("CoverLowMove" + side, g["cycle"], guarded(low, LOW), loop=True, drop=1.8, note="8 studs/s")
-        Clip("CoverCornerHigh" + side, 0.35, cover_corner("High", side))
+        Clip("CoverCornerHigh" + side, 0.35, guarded(cover_corner("High", side), L.FLOOR))
         Clip("CoverCornerLow" + side, 0.35, guarded(cover_corner("Low", side), LOW), drop=1.8)
     Clip("CoverAim", 2.8, cover_aim, loop=True)
     Clip("LandRoll", 0.8, guarded(land_roll, L.FLOOR))

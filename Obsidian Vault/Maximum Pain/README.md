@@ -17,6 +17,7 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Animation Hooks]]: the animation slots and rules, ready for when animations are made.
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
+- [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.
 
 ## Max Payne 3 (primary reference)
 - [[Max Payne 3 Mechanics Reference]] — every mechanic found: single player and multiplayer.

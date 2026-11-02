@@ -4,3 +4,5 @@ Pasted image *
 .obsidian/
 # Blender's automatic backups
 *.blend1
+# Python bytecode (Blender rewrites it every time the animation scripts are imported)
+__pycache__/

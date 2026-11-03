@@ -4,41 +4,182 @@ Every change to the game, newest first. Each entry says what changed, the decisi
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
 ## 2026-11-02: Play tests, the fixes they needed, and the Blender export
-Full detail and every measurement: [[Animation and MP3 Systems - Progress and To Do]] (session 3).
+Session 3 ran on JackT6785's PC, with Claude Code driving Studio: 2026-11-02 20:58 to 22:20, then 2026-11-03 01:51 to 02:00 (UK time).
+- Every play test left on the to-do list was run in Studio play mode on JackT6785's R15 avatar, and measured frame by frame: each body part's box, the root, the camera and each clip's weight.
+- Every fault found was fixed and measured again.
+- 13 scripts changed, all in the Team Create place. The Blender export and the notes changed in the repo.
+- The per-gun reload table, every measurement and the code details are in [[Animation and MP3 Systems - Progress and To Do]] (session 3).
 
-**Fixed**
-- **Vaults:**
-  - The legs no longer go into the top. The vault takes over the body in a tenth of a second, and the arc rises with the avatar's leg length.
-  - Landing no longer plays the Fall clip or bounces.
-  - The camera eases over the hop instead of jumping 2 to 4 studs.
-- **Height changes:**
-  - The camera no longer pops when the hips drop or rise without the root moving (a vault from cover, a dive's landing).
-  - Stances the server forces (Last Stand, a wakeup, a timed get-up) move the root at once instead of letting it fall or rise through physics.
-  - The feet stay on the floor while a height change eases out (they dipped up to a third of a stud).
-  - A dive's launch no longer pushes the feet into the floor.
-- **Guns:**
-  - Slides and bolts no longer stay racked back after reloads.
-  - A pistol reload no longer drops the carried rifle's magazine.
-  - Dropped guns lie on the floor, short of tables and walls. Before, they hung in the air for the player who dropped them and floated half a stud for everyone else.
-- **An engine pitfall removed everywhere:** state kept in weak-keyed tables keyed by instances vanished while the instance still existed. Fixing it also stopped muzzle lights piling up on guns, spray patterns resetting mid-burst and the kill cam losing its hit log.
-- **Cover:**
-  - Swinging round the corners of crates and pillars works behind low cover again; it had stopped when the low-cover gap grew.
-  - Ducking back from aiming over low cover no longer lunges at the wall.
-  - After a slide the body eases back against the wall.
-- **Blender:** the export runs on Blender 5 (it used an API that Blender 5 removed) and writes the same file every time.
+**Fixed: vaults** (`AnimationController`, `VaultRules`, `VaultController`, `CameraController`)
+- **The legs went into the top of the obstacle:** 0.19 into the LowWall, 0.31 into a crate.
+  - Cause: when the leading foot reached the near face, the Vault clip had only blended in to 0.78. The standing clips' straight legs still pulled the feet down.
+  - Fix: the Vault clip blends in at 30 per second (`VAULT_FADE`) instead of the body layer's 10, so it is at 0.99 by the near face. The arc also rises with the avatar's legs (see Changed).
+  - Result:
+    - The lowest point over the top is +0.23 over the LowWall and +0.16 over a crate.
+    - Out of low cover the left hand rests on the top (0.00).
+    - In slow motion the tightest point is +0.06, at the front edge.
+- **Every landing played the Fall clip** for about 0.2 s (weight 0.16).
+  - Cause: a finished vault handed the humanoid back in Freefall, which plays Fall until it finds the floor.
+  - Fix: `VaultController.release(landed)` puts it straight into Running. Only a vault cut short falls.
+- **Landings bounced 0.2** once the arc was higher.
+  - Cause: the speed handed to physics in the last frames carried the root below the landing, so the feet hit the floor and the body sprang up.
+  - Fix: on the way down the vault caps that speed, so one physics step ends at the landing height.
+- **The camera jumped 2 to 4 studs in a tenth of a second:** 1.17 in one frame at take-off, and −1.35 then +2.15 out of low cover.
+  - Cause: the view followed the hop rigidly.
+  - Fix: new `CameraController.setVerticalLag(share)`. While vaulting (`CAMERA_LAG` 0.5), the view takes half of each rise and fall at once and eases into the rest. An earlier try fed each step of the path to the camera; landings juddered, so it was dropped.
+  - Result: largest step 0.6 to 0.8 (0.22 in bullet time).
+
+**Fixed: height changes** (`CameraController`, `CharacterController`, `AimLayer`)
+- **The camera popped when the hips moved without the root jumping:** out of low cover into a vault (above), and +1.68 on a dive's landing.
+  - Cause: the camera only held its height back when `CharacterController` reported moving the root.
+  - Fix: the camera watches the hip height itself every frame, whoever changed it. It holds 75% of each change (`CROUCH_CAMERA_KEEP`) and eases it out at 10 per second. `absorbRise` now only reports the root jumping.
+- **Stances the server forces moved the body by physics.** Dropping into a Last Stand was a 2.2-stud free fall, with the feet 0.74 under the floor and a 1.77 camera pop. A timed get-up rose over 8 frames.
+  - Cause: for a Last Stand, a wakeup and a timed get-up, the server's HipHeight reaches the client before the stance does. The client saw no change and never moved the root.
+  - Fix: `CharacterController` compares with the hip height it last put the root at (`appliedHip`). It moves the root to the new height over the floor in the same frame, or only the rest of the way if physics already moved it.
+  - Result: the drop is instant, the feet are at −0.05 and the largest camera step is 0.20.
+- **A dive's launch pushed the feet 0.39 into the floor** for four frames.
+  - Cause: the aim layer held the body at the run-up's lower height while the launch carried the root up.
+  - Fix: `DodgeAir` and `Dead` count as real moves of the root in `AimLayer`; its `FALLS` now matches `CharacterController`'s `AIRBORNE`.
+  - Result: +0.21.
+- **The feet dipped into the floor while a height change eased out:** 0.11 crouching, 0.14 to 0.30 standing up, 0.33 into a Last Stand (to-do 4.1).
+  - Cause: the clips bend and straighten the legs at their own pace, not the body's.
+  - Fix: a foot guard in `AimLayer`. For 1 s after a height change, the body is lifted just enough that neither foot's box is more than 0.05 under the floor beneath it (one ray per foot, at most 0.6).
+  - Result: within 0.05 in every case.
+
+**Fixed: guns** (`WeaponEffects`, `AnimationController`, `WeaponController`, `AimLayer`, `ProceduralLayer`, `HitReactions`)
+- **Slides and bolts stayed racked back after reloads** (FAL, M4, Desert Eagle).
+  - Cause: the marker that sends them home fired on time, but the part's resting pose had been lost.
+    - Resting poses were kept in a weak-keyed table (`__mode = "k"`) keyed by the guns' Motor6Ds.
+    - The engine can drop an instance's Lua handle while the instance still exists, so entries vanish at random. This was reproduced: a key vanished after one garbage collection while the motor was still in the gun.
+  - Fix: the resting pose is stored on the motor (`RestC0` attribute) and read through `WeaponEffects.restPose`, shared by the reload markers and the firing kick.
+- **The same pattern was removed everywhere:** 10 tables in six controllers. Each is now a plain table, emptied when its instance leaves the game:
+  - `WeaponEffects`: the kick's resting poses. If an entry was lost while a part was kicked back, the next shot took the kicked pose as the rest.
+  - `WeaponEffects`: the muzzle effects. Each lost entry added another shadow-casting light and three particle emitters to the muzzle. They're now found by name, and the flash counter is the muzzle's `Flashes` attribute.
+  - `WeaponController`: each gun's spray, bloom and predicted ammo, which restarted when lost.
+  - `AimLayer`: each body's state. A lost entry reset a height change mid-move.
+  - `ProceduralLayer`: the joints' base poses.
+  - `HitReactions`: the flinch springs, the joint cache, and the hit log that the death push and the kill cam read.
+  - Kept on purpose: `AimLayer`'s gun-box cache, where a lost entry only costs a rebuild.
+- **A pistol reload moved the carried rifle's parts too.** A Desert Eagle reload dropped a spent magazine from the M4 in the left hand and moved its bolt.
+  - Fix: reload markers move only the gun in the right hand, or both pistols for `ReloadDual`.
+- **Result:**
+  - All 13 guns and the dual reload play their clip once at full weight, with no restart.
+  - Each clip is stretched to its gun's reload time, from 0.81× speed (Desert Eagle, Uzi, dual) to 1.15× (MP5).
+  - Every part comes back to rest, and the ammo is right after each reload.
+
+**Fixed: dropped guns** (`LoadoutService`)
+- **For the player who dropped it, the gun hung in the air** where it left the hand.
+  - Cause: the gun was still part of that player's physics (their client owns it). The server moved it in the same frame as it released it, and that move never reached them.
+  - Fix: the gun is anchored and released at once, then laid down 0.1 s later (`SETTLE_DELAY`). Its `DroppedAt` time doubles as a token, so a late lay-down can't move a gun that was picked up or dropped again.
+- **For everyone else, guns floated about 0.45 above the floor.**
+  - Cause: `GetBoundingBox` turns with the gun, so for a gun on its side the box's "height" was a width.
+  - Fix: `bottomOf` measures the real lowest point. `layDown` rolls the gun onto its side and rests it 0.03 above the highest floor under its middle and both ends.
+- **Result** (server and client agree):
+  - Open floor: 0.03 above the floor.
+  - Against the gun table: on the floor, 0.21 short of it.
+  - A swap at the rack: on the table top.
+
+**Fixed: cover** (`CoverRules`, `CoverController`)
+- **Corner swings behind low cover had stopped working** (tested on CrateA).
+  - Cause: `CoverRules.outerCorner` looked for the wall's end face from the high-cover distance (1.15). Low cover keeps 2.2 to 2.8 since session 2, so its probes started in front of the wall and found nothing.
+  - Fix: it now takes the character's real distance from the wall, and returns the swing's middle point as well as its target.
+  - Result: holding D went round two corners of the crate in a row, with nothing inside it.
+- **Ducking back from aiming over low cover lunged at the wall:** the root moved 0.57 toward it and the forearm went 0.83 into it.
+  - Cause: the distance from the wall was re-measured on the upright aiming pose while it blended out.
+  - Fix: `CoverController` remembers the body's deepest reach for each cover stance while in cover. It eases that back (0.5 studs/s) only when settled (0.4 s after a stance change), still, and not firing (1.5 s after a shot).
+  - Result: the gap held at 2.54 through popping up and back. After a slide the body eases back to the wall (head 0.07 to 0.13 off it; it stayed 0.2 out before).
+
+**Fixed: the Blender export** (`mp_lib.py`)
+- **It crashed on Blender 5.** `mp_lib.bake` used `action.fcurves`, which Blender 5.0 removed; F-curves now sit in the action's layers, strips and channel bags. The new `_fcurves(action)` reads either layout, so older Blender versions still work.
+- **Every export rewrote `keyframes.json`.** `clip_data` walked a Python set, whose order changes every run; the tracks are now sorted. Two exports are byte-identical, and the regenerated clips equal the committed ones, so Studio didn't need a re-import.
+
+**Changed**
+- **The vault's arc depends on the avatar:** `VaultRules.apexAbove(rootHeight)` = max(2.1, 0.6 × the root's standing height + 0.2). A standard avatar still flies 2.1 above the top, JackT6785's 2.23 and a tall Rthro 2.54.
+- **Vault landing:** a finished vault lands straight into running, and the camera eases over the hop.
+- **Reload markers** move only the gun being reloaded.
+- **Dropped guns** lie on their side on the highest floor under them, about 2 studs ahead of the feet. `dropFront` checks for the gun's length ahead at shin height: the gun stops short of anything in the way, or lies across the feet when there's less than 0.6 of room.
+- **Low cover:** the distance from the wall is the deepest reach of the stance since taking cover. It relaxes only when the character is settled, still and not firing.
 
 **Added**
-- `MaximumPain_Animations.blend` (the rig and all 93 clips) and FBX copies of every clip. The FBX copies are rebuilt by the export and not kept in git.
-- Notes: [[Euphoria-style Reactions and Ragdolls]], [[Max Payne 3 Kill Cam]].
+- **Code:**
+  - `CameraController.setVerticalLag`.
+  - `WeaponEffects.restPose`.
+  - `VaultRules.apexAbove`, `LEG_TUCK` 0.6 and `LEG_CLEARANCE` 0.2, with self-checks.
+  - A `gap` argument for `CoverRules.outerCorner`, and its returned `apex`.
+  - `AimLayer`'s foot guard (`footDip`, `FOOT_SLACK` 0.05, `MAX_FOOT_LIFT` 0.6).
+  - `LoadoutService.bottomOf`, `layDown` and `dropFront`.
+  - `CharacterController`'s `appliedHip`.
+  - `CoverController`'s `REACH_SETTLE` 0.4, `REACH_RELAX` 0.5 and `FIRED_HOLD` 1.5.
+- **Attributes,** set by each client on its own copy:
+  - `RestC0` on gun motors (the part's resting pose).
+  - `Flashes` on muzzles (the flash counter).
+- **Repo:**
+  - `MaximumPain_Animations.blend`: the rig and all 93 clips as actions (1.95 MB).
+  - FBX copies of every clip in `Exports/FBX` (93 files, 14.6 MB). They're kept out of git: `L.export(fbx=True)` rebuilds them in about 12 s.
+- **Notes:** [[Euphoria-style Reactions and Ragdolls]], [[Max Payne 3 Kill Cam]].
 
-**Tested** (Studio play mode, on a second avatar)
-- Every vault, dive, Last Stand, reload (13 guns and dual), pickup, painkiller and drop.
-- Low and high cover.
-- Bullet time on a vault and a crouch.
-- The server's view of a vault.
-- The output log stayed clean.
+**Removed**
+- Ten weak-keyed tables (above).
+- The "cover-to-cover moves" lines from this changelog's 2026-10-31 entry and from [[Cover System]], as the to-do asked.
+- Python bytecode from git (`__pycache__/` is now ignored).
 
-**Not done:** a two-player test, publishing the animations (the place's owner has to do it), and the low-cover pose decision. See the to-do list.
+**Decisions**
+- State that must survive is kept on the instance (as attributes) or in plain tables emptied when the instance leaves. It never goes in weak-keyed tables keyed by instances; only caches may stay weak.
+- The camera handles every hip height change itself, instead of relying on each script that changes it.
+- The server lays a dropped gun down 0.1 s after the drop, not in the drop frame.
+- The FBX copies aren't committed, since they're rebuilt in seconds; the `.blend` is.
+- The low-cover pose stays hunched until JackT6785 and JordanSaa decide (to-do 3).
+- The commits stay local until JackT6785 pushes them, as it's JordanSaa's public repo.
+- Publishing the animations is left to JordanSaa, because an experience only plays animations its owner owns.
+
+**Tested** (Studio play mode, JackT6785's avatar; before → after)
+| Test | Result |
+|---|---|
+| Vault over the LowWall from standing | lowest point −0.19 → +0.23; Fall clip 0.16 → 0; camera step 1.17 → 0.62 |
+| Vault over a crate | −0.31 → +0.16 |
+| Vault out of low cover | camera −1.35/+2.15 → 0.83; the hand rests on the top (0.00) |
+| Vault landing | bounce 0.20 → 0 |
+| Vault in bullet time (0.3) | 1.40 s in the air; +0.06 at the front edge; camera 0.22 |
+| Dive launch / landing | feet −0.39 → +0.21 / camera +1.68 → 0.56 |
+| Last Stand drop and wakeup | free fall, feet −0.74, camera +1.77 → instant, feet −0.05, camera 0.20 |
+| Crouch and stand | feet −0.11 / −0.14 to −0.30 → −0.05 |
+| Get-up forced after 8 s | rose by physics over 8 frames → at once |
+| Turning while lying (8 angles) | lowest point +0.04 to +0.06; guns +0.38 |
+| Reloads: 13 guns and dual | 3 guns left racked, and the carried rifle dropped a magazine too → all correct |
+| Pickup (F) ×14, painkiller (H) | worked: torso 82 → 100, painkillers 3 → 2 |
+| Drop (G) | hung (the dropper) / floated 0.45 (everyone else) → 0.03 above the floor |
+| Low cover: slide and ends | 8 studs/s; stops 0.74 to 0.85 from the ends |
+| Low cover: corner swings | never swung → two corners in a row |
+| Low cover: pop up and back | lunge 0.57 → gap steady at 2.54 |
+| High cover: blind fire and pop out | right arm only; shots round the corner; the carried AK ≥ 1.29 off the wall |
+| Network (the server's view) | stance, hip height, the root's drop and the Vault clip's pacing replicate |
+| Output log | clean |
+
+**Scripts changed** (in the Team Create place; not in git)
+| Script | Change |
+|---|---|
+| `CameraController` | follows every hip height change; `setVerticalLag` |
+| `CharacterController` | `appliedHip`; moves the root over the floor, including for forced stances |
+| `AimLayer` | DodgeAir and Dead in `FALLS`; foot guard; plain `bodies` table |
+| `AnimationController` | `VAULT_FADE`; resting poses from `WeaponEffects`; markers on the reloaded gun only |
+| `VaultController` | lands in Running; caps the landing speed; turns the camera lag on and off |
+| `VaultRules` | `apexAbove`, `LEG_TUCK`, `LEG_CLEARANCE`, self-checks |
+| `WeaponEffects` | `restPose`; muzzle effects found by name; `Flashes` |
+| `WeaponController` | plain `gunStates` table |
+| `ProceduralLayer` | plain `bases` and `applied` tables |
+| `HitReactions` | plain `springs`, `hits` and `joints` tables |
+| `LoadoutService` | `bottomOf`, `layDown`, the delayed lay-down, `dropFront` |
+| `CoverRules` | `outerCorner` takes the gap and returns the apex |
+| `CoverController` | reach remembered per cover stance; corner swing from the real gap |
+
+**Repo:** committed on JackT6785's PC on 2026-11-02 and 03: `3634cce` (stop tracking bytecode), `7f86ec1` (the Blender export on Blender 5, deterministic, and the `.blend`), `a608dc7` (notes).
+
+**Not done**
+- Saving the place in Studio after these changes (File > Save to Roblox).
+- A two-player test (Studio's Clients and Servers). Only the server's view was checked.
+- Publishing the 93 animations: JordanSaa has to do it, as the place's owner.
+- The low-cover pose decision.
+- 12 polish items, listed in the to-do with ideas for each.
 
 ## 2026-11-01 (later): Animation fixes, carried guns, low cover and the vault (in progress)
 Full detail, measurements and next steps: [[Animation and MP3 Systems - Progress and To Do]].

@@ -557,7 +557,8 @@ def clip_data(clip):
     times = samples(clip)
     poses = [clip.sample(t) for t in times]
     tracks = {}
-    for joint in clip.joints:
+    # By pose name, so every export writes the same file (a set's order changes between runs).
+    for joint in sorted(clip.joints, key=lambda j: POSE_NAME[j]):
         values = [(p.q(joint), p.t(joint)) for p in poses]
         # keep quaternions on one hemisphere so interpolation never takes the long way
         for k in range(1, len(values)):
@@ -768,15 +769,29 @@ def apply_pose(pose):
     bpy.context.view_layer.update()
 
 
+def _fcurves(action):
+    """An action's F-curves. Blender 4.4 moved them into layers and slots, and 5.0 removed
+    action.fcurves; older versions keep them on the action itself."""
+    if hasattr(action, "fcurves"):
+        return list(action.fcurves)
+    curves = []
+    for layer in action.layers:
+        for strip in layer.strips:
+            for bag in strip.channelbags:
+                curves.extend(bag.fcurves)
+    return curves
+
+
 def bake(clip):
     """Keys the clip into a Blender action (one key per sampled frame) so the .blend holds it."""
     obj = rig()
     if obj.animation_data is None:
         obj.animation_data_create()
-    action = bpy.data.actions.get(clip.name) or bpy.data.actions.new(clip.name)
+    old = bpy.data.actions.get(clip.name)
+    if old:
+        bpy.data.actions.remove(old)  # rebaking starts from an empty action
+    action = bpy.data.actions.new(clip.name)
     action.use_fake_user = True
-    for fc in list(action.fcurves):
-        action.fcurves.remove(fc)
     obj.animation_data.action = action
     for t in samples(clip):
         frame = t * FPS
@@ -788,7 +803,7 @@ def bake(clip):
             pb.location = loc
             pb.keyframe_insert("rotation_quaternion", frame=frame)
             pb.keyframe_insert("location", frame=frame)
-    for fc in action.fcurves:
+    for fc in _fcurves(action):
         for kp in fc.keyframe_points:
             kp.interpolation = "LINEAR"
     for t, name, _ in clip.markers:

@@ -6,3 +6,5 @@ Pasted image *
 *.blend1
 # Python bytecode (Blender rewrites it every time the animation scripts are imported)
 __pycache__/
+# FBX copies of every clip: rebuilt in seconds by mp_lib.export(fbx=True), about 15 MB each time
+Assets/Blender/Animation/Exports/FBX/

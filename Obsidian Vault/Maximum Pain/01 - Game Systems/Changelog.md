@@ -3,6 +3,43 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-02: Play tests, the fixes they needed, and the Blender export
+Full detail and every measurement: [[Animation and MP3 Systems - Progress and To Do]] (session 3).
+
+**Fixed**
+- **Vaults:**
+  - The legs no longer go into the top. The vault takes over the body in a tenth of a second, and the arc rises with the avatar's leg length.
+  - Landing no longer plays the Fall clip or bounces.
+  - The camera eases over the hop instead of jumping 2 to 4 studs.
+- **Height changes:**
+  - The camera no longer pops when the hips drop or rise without the root moving (a vault from cover, a dive's landing).
+  - Stances the server forces (Last Stand, a wakeup, a timed get-up) move the root at once instead of letting it fall or rise through physics.
+  - The feet stay on the floor while a height change eases out (they dipped up to a third of a stud).
+  - A dive's launch no longer pushes the feet into the floor.
+- **Guns:**
+  - Slides and bolts no longer stay racked back after reloads.
+  - A pistol reload no longer drops the carried rifle's magazine.
+  - Dropped guns lie on the floor, short of tables and walls. Before, they hung in the air for the player who dropped them and floated half a stud for everyone else.
+- **An engine pitfall removed everywhere:** state kept in weak-keyed tables keyed by instances vanished while the instance still existed. Fixing it also stopped muzzle lights piling up on guns, spray patterns resetting mid-burst and the kill cam losing its hit log.
+- **Cover:**
+  - Swinging round the corners of crates and pillars works behind low cover again; it had stopped when the low-cover gap grew.
+  - Ducking back from aiming over low cover no longer lunges at the wall.
+  - After a slide the body eases back against the wall.
+- **Blender:** the export runs on Blender 5 (it used an API that Blender 5 removed) and writes the same file every time.
+
+**Added**
+- `MaximumPain_Animations.blend` (the rig and all 93 clips) and FBX copies of every clip. The FBX copies are rebuilt by the export and not kept in git.
+- Notes: [[Euphoria-style Reactions and Ragdolls]], [[Max Payne 3 Kill Cam]].
+
+**Tested** (Studio play mode, on a second avatar)
+- Every vault, dive, Last Stand, reload (13 guns and dual), pickup, painkiller and drop.
+- Low and high cover.
+- Bullet time on a vault and a crouch.
+- The server's view of a vault.
+- The output log stayed clean.
+
+**Not done:** a two-player test, publishing the animations (the place's owner has to do it), and the low-cover pose decision. See the to-do list.
+
 ## 2026-11-01 (later): Animation fixes, carried guns, low cover and the vault (in progress)
 Full detail, measurements and next steps: [[Animation and MP3 Systems - Progress and To Do]].
 
@@ -71,7 +108,7 @@ Full detail and the next steps: [[Animation and MP3 Systems - Progress and To Do
 - No animations (as requested); the body sinks for crouches and guns hang from the hands. No sounds.
 - Not tested with two real players or under lag; no touch controls.
 - The angled wall, the ledge dive and Last Stand's line-of-sight failure weren't tried in play. Studio's Script Analysis wasn't checked.
-- Player-triggered bullet time from the adrenaline meter, vaulting, cover-to-cover moves and rolling on the floor aren't built.
+- Player-triggered bullet time from the adrenaline meter, vaulting and rolling on the floor aren't built.
 
 ## 2026-10-31: HUD restyled to match the Max Payne 3 reference
 **Changed**

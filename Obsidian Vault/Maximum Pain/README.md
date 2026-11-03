@@ -14,7 +14,7 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Last Stand and Bullet Time]]: Last Stand, localized bullet time and the adrenaline meter.
 - [[Limb Health]]: per-limb health, the limping, crawling, one-arm and disarmed rules, painkillers.
 - [[HUD Layout]]: blueprint of the HUD (Max Payne 3 style health figure and gun list, boxed keybinds and prompts).
-- [[Animation Hooks]]: the animation slots and rules, ready for when animations are made.
+- [[Animation Hooks]]: how the 93 animations are made in Blender, imported, layered, chosen and published.
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
 - [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.
@@ -24,6 +24,8 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Max Payne 3 Gunplay - Accuracy and Recoil]] — first-shot accuracy, spread while firing fast, recoil and how it recovers.
 - [[Max Payne 3 Animation Reference]] — movement, dives, cover, hits and deaths, frame by frame from official footage.
 - [[Max Payne 3 HUD and Combat UI Reference]]
+- [[Max Payne 3 Kill Cam]]: the final kill cam and the multiplayer death panel, and how this game's kill cam is built.
+- [[Euphoria-style Reactions and Ragdolls]]: Euphoria in Max Payne 3, Roblox's physical avatar joints, and how this game's flinches and ragdolls work.
 
 ## Other references
 - [[Reference Games]] — other games and Roblox games worth studying.

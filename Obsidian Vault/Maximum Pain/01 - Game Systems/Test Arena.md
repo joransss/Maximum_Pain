@@ -43,8 +43,24 @@ Red markers show where the dummies stand. Each area has a floating label.
 
 No errors appeared in the output during the tests.
 
+## Test log (2026-11-02, Studio play mode, with animations)
+| Feature | Result |
+|---|---|
+| Vaults | LowWall from standing and out of low cover, and CrateA: legs clear the top (+0.16 to +0.23), no Fall clip, no bounce, smooth camera. In bullet time: 1.40 s in the air at 0.3. |
+| Dives | Back, left and right: 17.9 studs, feet clear at the launch, steady camera on landing, a full turn while lying stays off the floor. |
+| Last Stand | Gunman hostile, four shots during the window: survived. Drop and wakeup move the root at once; feet within 0.05. |
+| Guns | All 13 guns and the dual reload: right clip, right parts, nothing stuck. Pickups ×14, a painkiller, drops in the open, against the table and swapped on the rack. |
+| Low cover | LowWall slides and ends, two corner swings round CrateA, popping up and back with a steady gap. |
+| High cover | Blind fire round the HighWall's end; popping out carrying the AK. |
+| Output | Clean. |
+
+Details and the before/after numbers: [[Animation and MP3 Systems - Progress and To Do]].
+
 ## Not tested yet
 Two real players, network lag, phones and tablets (there are no touch controls), the angled wall, the ledge dive, the line-of-sight failure in Last Stand, and Studio's Script Analysis (type warnings).
 
 ## Tips
-In Studio only, a Vector2 `DebugLook` attribute on your player (yaw and pitch in radians) points the camera. Set it from the command bar to aim precisely.
+- In Studio only, a Vector2 `DebugLook` attribute on your player (yaw and pitch in radians) points the camera. Set it from the command bar to aim precisely; it only applies when the value changes.
+- **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it (5 s per activation).
+- **Picking up a gun:** the F prompt is the one nearest the crosshair, so point the camera at the gun you want.
+- **Moving around:** don't teleport the character, since the server's speed check moves it back; walk instead. The walls at z 85 to 87 have gaps at x −23 to −17 and −3 to 4, and the gun table blocks x −28 to 28 at z 70.

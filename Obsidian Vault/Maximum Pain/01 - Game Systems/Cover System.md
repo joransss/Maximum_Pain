@@ -7,7 +7,8 @@ Related: [[Movement State Machine]] · [[Weapons and Recoil]] · [[Test Arena]] 
 - **E** (gamepad L1) takes the nearest wall in front of the camera. A HUD prompt shows when there is one: TAKE COVER HIGH or TAKE COVER LOW.
 - A wall counts when it is near-vertical, within 3.5 studs of the character's centre, and at least **3 studs** tall. Characters, dummies and dropped guns never count.
 - **High cover** reaches 5.2 studs above the floor and hides a standing character. **Low cover** is shorter (crates, low walls), and the character crouches behind it (head top about 3.5 studs, under a 3.6-stud wall).
-- The character keeps 1.15 studs from the wall and faces it.
+- The character faces the wall. Behind high cover it keeps 1.15 studs from it. Behind low cover it keeps what its hunched body needs. An R15 leaning over reaches 2.2 to 2.8 studs ahead of its root, depending on the avatar, so the root stays that far back plus 0.05 and the head touches the wall. Keeping less pressed the head into the wall and slid the body along it.
+- That reach is remembered for each cover stance for as long as the character stays in cover. Ducking back from aiming over the wall uses the hunched reach straight away; measuring the upright pose made the body lunge 0.57 at the wall. It eases back toward what the pose needs (0.5 studs/s) once the character is settled, still and hasn't fired for 1.5 s. A slide leans further, and blind fire straightens the back, which mustn't pull the body in.
 - The server repeats the search from its own copy of the character's position and decides high or low itself.
 
 ## Moving along cover
@@ -15,7 +16,7 @@ Related: [[Movement State Machine]] · [[Weapons and Recoil]] · [[Test Arena]] 
 - **Ends:** the character stops when the wall doesn't carry on 0.9 studs past its side.
 - **High to low:** sliding from a tall section onto a short one switches to low cover, and back.
 - **Inside corners** (a second wall ahead) turn onto the new wall automatically.
-- **Outside corners:** keep pushing at an end for 0.35 s to swing round it, if the end face is at least about 2.3 studs wide (pillars and crates qualify; ordinary 2-stud walls don't). The way round is checked for obstacles and drops first.
+- **Outside corners:** keep pushing at an end for 0.35 s to swing round it, if the end face is at least about 2.3 studs wide (pillars and crates qualify; ordinary 2-stud walls don't). The way round is checked for obstacles and drops first. The search and the way round are measured from the character's real distance off the wall, so behind low cover the character also keeps its hunched distance off the new face. Until 2026-11-02 they assumed 1.15, so swinging round crates in low cover never happened.
 - After either kind of corner the camera turns with it, so the same key keeps going the same way. Tested: holding D circled the 3.5-stud pillar, face by face.
 
 ## Leaving cover
@@ -38,6 +39,19 @@ The server builds the gun's path from the body: chest, then shoulder, then muzzl
 
 Tested: blind fire from the middle of the high wall hit the wall face; from its end, the shot went round the corner; popped up over low cover, a headshot landed on the dummy behind it; blind fire over the low wall reached the same dummy.
 
+## Animations
+| What | Clips |
+|---|---|
+| Hidden, idle | CoverHighLeft/Right, CoverLowLeft/Right (the side being worked) |
+| Sliding | CoverHighMoveLeft/Right (9.6 studs/s), CoverLowMoveLeft/Right (8) |
+| Outside corners | CoverCornerHighLeft/Right, CoverCornerLowLeft/Right. They start and end on the cover idle and hold their last frame while blending back into it. |
+| Gun while hidden | High: CoverHoldHighOne/Two/Dual, the gun up close to the chest. Low: CoverHoldLowOne (pistol by the right knee), CoverHoldLowDual, and CoverHoldLowTwoLeft/Right (the rifle low across the front, one per side because the body turns 24° each way). |
+| Carried rifle | CarryTwoHandedCover beside the left leg behind high cover, CarryTwoHandedLow behind low cover |
+| Blind fire | BlindFireHighLeft/Right (right arm only, round the end), BlindFireLowLeft/Right (right arm and waist, up over the top) |
+| Popped out | CoverAim, AimPistol/AimRifle/AimDual |
+
+Max Payne 3 holds the gun low in cover, and an R15's chest lies on its thighs when hunched, so the low holds are a crouched low ready. A raised gun beside the face isn't possible. An R15 arm only reaches the top of a wall about 3.7 studs tall from the crouch. Blind fire over a 3.6 wall clears the top by 0.26 to 0.30; over anything taller the gun stays below the top.
+
 ## Camera
 - The shoulder follows the side being worked: moving left puts the camera on the left shoulder; popping out at an edge puts it on that edge's side.
 - **Q** still swaps shoulders at any time.
@@ -49,10 +63,18 @@ Tested: blind fire from the middle of the high wall hit the wall face; from its 
 - Popping out of high cover needs an edge at the server's position.
 - Firing uses the server's position, stance and cover for the gun's path.
 
-## Numbers (`CoverRules`)
-REACH 3.5 · GAP 1.15 · LOW_PROBE 3 · HIGH_PROBE 5.2 · EDGE_MARGIN 0.9 · PEEK_CLEAR 1.3 · CORNER_HOLD 0.35. The pop-out settle time (0.25 s) is in `StanceService` and `CharacterController`.
+## Numbers
+- `CoverRules`: REACH 3.5 · GAP 1.15 · LOW_PROBE 3 · HIGH_PROBE 5.2 · EDGE_MARGIN 0.9 · PEEK_CLEAR 1.3 · CORNER_HOLD 0.35.
+- `CoverController`: the gap behind low cover is the body's reach toward the wall + 0.05, with a 0.08 deadband. The reach eases back at REACH_RELAX 0.5 studs/s once settled for REACH_SETTLE 0.4 s and not fired for FIRED_HOLD 1.5 s.
+- The pop-out settle time (0.25 s) is in `StanceService` and `CharacterController`.
+- Space in low cover vaults over the wall ([[Movement State Machine]], Vaulting).
+
+## Tested (2026-11-02)
+- **Low wall:** sliding stops 0.74 to 0.85 from each end. Popping up doesn't move the root, and ducking back holds the gap (2.54). After a slide the head eases back to within 0.13 of the wall, with nothing more than 0.05 into it.
+- **Crate:** pushing at its end swings round two corners in a row, without touching it.
+- **High wall:** blind fire from the end leaves from round the corner. Popping out carrying the AK keeps the AK at least 1.29 off the wall. Details in [[Animation and MP3 Systems - Progress and To Do]].
 
 ## Not done
-- No vaulting over low cover (Max Payne 3 has it).
-- No cover-to-cover moves.
-- No animations: the body faces the wall while hidden and sinks into the floor behind low cover.
+- **Low cover pose:** facing the wall hunched (now) or side-on like Max Payne 3, which would need the body shifted at wall ends. It's a decision in the to-do.
+- **Arm transitions:** popping up and ducking back, the gun crosses the cover's top for 0.08 s. Stepping out of high cover, the right forearm sweeps the wall's corner.
+- **Tall low cover:** blind fire over low cover taller than about 3.7 can't reach the top.

@@ -16,6 +16,7 @@ Related: [[Architecture]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand
 | DodgePrep | run-up | 0.6 | 1.3 | 1 | aim (0.2 s, then DodgeAir) |
 | DodgeAir | flight | — | 1.3 | 1.2 | fire, aim |
 | DodgeGround | — | 2.2 | 0.9 | 1 | fire, aim, reload, switch, painkiller |
+| Vaulting | the vault's path (14 along the ground) | — | 1.3 | 1.1 | fire, aim, reload, switch |
 | GettingUp | — | 1.2 | — | — | nothing (defenseless) |
 | LastStand | — | 2.2 | 1 | 1 | fire, aim |
 | Dead | — | — | — | — | nothing |
@@ -27,8 +28,9 @@ Walking adds up to +35% spread at full walking speed (standing or crouched). Jum
 ## Transitions
 | From | Can change to |
 |---|---|
-| Standing, Sprinting, Crouching | each other, CoverHigh, CoverLow, DodgePrep, LastStand, Dead |
-| CoverHigh, CoverLow | each other (the wall's height changes), CoverPeek, Standing, Crouching, LastStand, Dead |
+| Standing, Sprinting, Crouching | each other, CoverHigh, CoverLow, DodgePrep, Vaulting, LastStand, Dead |
+| CoverHigh, CoverLow | each other (the wall's height changes), CoverPeek, Standing, Crouching, Vaulting (only low cover passes the height check), LastStand, Dead |
+| Vaulting | Standing (Crouching under a low ceiling), LastStand, Dead |
 | CoverPeek | CoverAim, CoverHigh, CoverLow, Standing, Crouching, LastStand, Dead |
 | CoverAim | CoverHigh, CoverLow, Standing, Crouching, LastStand, Dead |
 | DodgePrep | DodgeAir, Standing, LastStand, Dead |
@@ -49,8 +51,16 @@ The server times these, and the client times the same steps itself so nothing wa
 | GettingUp → Standing (Crouching if there is no headroom) | 0.6 s after a dive, 3 s after a Last Stand |
 | DodgeAir → DodgeGround | when the client lands; forced after 2.5 s |
 | DodgeGround → GettingUp | when a movement key is pressed; forced after 8 s |
+| Vaulting → Standing | when the client lands (0.45 to 0.75 s at full speed); the server rises on its own 0.3 s after the vault's time if the landing message is lost |
 
 All timers stretch under bullet time, so nothing can get stuck: every stance either has an exit the player controls or a timer that forces one.
+
+## Height
+Each stance's hip drop sets the humanoid's `HipHeight` (crouch, low cover, prone, getting up, Last Stand).
+- **On the ground:** the root part moves to the new height over the floor in the same frame (`CharacterController.applyHeight`) instead of falling or springing there over several frames. The free fall used to sink the body up to a stud into the floor and play the Fall clip.
+- **Easing:** the clips blend over a fifth of a second. Meanwhile the aim layer holds the body where it was and eases it to the new height, lifting it wherever the legs' blend would put a foot through the floor. The camera holds its height and eases too.
+- **In the air:** in DodgeAir, DodgeGround, Vaulting and Dead the root isn't moved, because the launch, the landing, the vault's path or the ragdoll take it there for real. The body goes with the root.
+- **Server-forced stances:** when the server forces a stance (Last Stand, a wakeup, a timed get-up), its new hip height reaches the client before the stance does. The client therefore compares with the height it last put the root at, not with the humanoid's current value, so these move the root at once too (since 2026-11-02).
 
 ## Actions (upper body)
 Reloading and switching guns run alongside the stance, in the character attributes `Action` and `ActionEnds`. A stance that doesn't allow reloading (diving, getting up, Last Stand, dead) cancels a reload. No ammo moves until a reload finishes, so nothing is lost or duplicated.
@@ -74,7 +84,7 @@ Reloading and switching guns run alongside the stance, in the character attribut
 - C toggles it. The hips drop 1.8 studs (head top about 3.5 studs above the floor). Speed 8.8, spread ×0.8, recoil ×0.85, no jumping.
 - **Headroom check:** standing up (or sprinting out of a crouch) is refused under anything lower than standing height, and the HUD shows NO ROOM TO STAND. Tested under the arena's 4-stud crouch tunnel.
 - Separate from low cover: a free crouch moves anywhere; low cover is attached to a wall.
-- Until there is a crouch animation, the body sinks into the floor by the hip drop. The camera only follows a quarter of the drop, so it can still see over low cover.
+- The crouch clips (CrouchIdle, CrouchWalk in four directions) fold the legs to match the hip drop. The camera only follows a quarter of the drop, so it can still see over low cover.
 
 ## Movement check (anti-cheat)
 Roblox lets each player's own computer move their character, so the server can only check afterwards. Every 0.5 s it compares how far each character moved with the top speed its stance allows (×1.35, plus 6 studs/s for lag). Two windows too fast in a row and the character is put back where it last moved legally, with a warning in the output. Tested: a faked run at 200 studs/s was pulled back.

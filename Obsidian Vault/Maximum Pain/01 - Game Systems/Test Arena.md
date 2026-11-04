@@ -32,7 +32,7 @@ Red markers show where the dummies stand. Each area has a floating label.
 | Dual wield | 4 dropped the AK (with a pickup prompt); M9 right, Uzi left; firing alternates hands; the 3 s dual reload topped both guns up correctly. |
 | Pickups | Picking the AK up while dual wielding ended dual wielding. SWAP M9 FOR DESERT EAGLE swapped them and left the M9 (13 rounds) on the table. |
 | Reloads | Cut off by a switch: no ammo moved. Completed: 7/5. |
-| High cover | 1.15 studs from the wall, facing it; stops at the ends; pops out to 1.37 past the end; ducks back to the same spot. |
+| High cover | 1.15 studs from the wall, facing it; stops at the ends; pops out to 1.37 past the end; ducks back to the same spot. (Since 2026-11-04 the gap also counts the shoulders: 1.5 to 1.8 on JackT6785's avatar.) |
 | Corners | The inside corner turned onto the second wall; holding D circled the pillar. |
 | Firing from cover | Aimed shots from the high wall's end killed TargetFar. Blind fire round the end cleared the wall; blind fire mid-wall hit the wall. |
 | Low cover | Head top 3.49 under a 3.6 wall. A pop-up headshot hit the dummy behind; blind fire over the top reached it. |
@@ -56,11 +56,22 @@ No errors appeared in the output during the tests.
 
 Details and the before/after numbers: [[Animation and MP3 Systems - Progress and To Do]].
 
+## Test log (2026-11-04, Studio play mode, the test harness)
+| Feature | Result |
+|---|---|
+| Height changes | Crouch, stand, cover, pop-up, get-up: no frame drawn out of place (the body was drawn a stance's height out for one frame); camera steps ≤ 0.22 |
+| Dive landing | Put on the floor and eased: no fall, no bounce, camera 0.35 |
+| Cover | Low cover pop-up and back ≤ 0.05 into the wall; high cover clear at rest and stepping out; low cover gap 2.52, high cover 1.5 to 1.8 |
+| Vaults | LowWall from standing +0.19 with no contact, from close 0.02, out of low cover +0.26; bullet time 1.52 s in the air |
+| Last Stand | Survived; drop, wakeup and stand with the feet ≥ −0.05 |
+| Output | Clean |
+
 ## Not tested yet
 Two real players, network lag, phones and tablets (there are no touch controls), the angled wall, the ledge dive, the line-of-sight failure in Last Stand, and Studio's Script Analysis (type warnings).
 
 ## Tips
 - In Studio only, a Vector2 `DebugLook` attribute on your player (yaw and pitch in radians) points the camera. Set it from the command bar to aim precisely; it only applies when the value changes.
-- **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it (5 s per activation).
+- **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it. An activation can end within a few seconds, so for a test re-arm it every 0.25 s from a server loop.
+- **Measuring:** `ServerStorage.Tools.TestHarness` records and measures play tests (floor and wall clearances, camera steps, clips). How to install and use it: the to-do note's "How to resume".
 - **Picking up a gun:** the F prompt is the one nearest the crosshair, so point the camera at the gun you want.
 - **Moving around:** don't teleport the character, since the server's speed check moves it back; walk instead. The walls at z 85 to 87 have gaps at x −23 to −17 and −3 to 4, and the gun table blocks x −28 to 28 at z 70.

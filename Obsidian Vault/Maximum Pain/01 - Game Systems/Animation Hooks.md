@@ -22,6 +22,12 @@ Headless rebuild, Blender 5.2: `blender --background --factory-startup --python 
 
 On top of the clips, every frame, the procedural layers bend the joints (`ProceduralLayer`):
 - **AimLayer:** puts the gun exactly where the player aims, plus the chest blade, head look, recoil springs, momentum lean, a run arm pump, and the left hand on the gun's Support point. It also keeps a carried gun out of the floor and eases the body through height changes without the feet going through the floor.
+- **Arm guard (AimLayer, since 2026-11-04):** after everything else, any arm whose boxes (upper arm, forearm, hand, its gun) go more than 0.05 into a wall is turned at the shoulder by the smallest angle that clears it. The ways out:
+  - *lift* toward upright, for a raised gun;
+  - *swing* straight out, for a hanging arm or the carried gun;
+  - *yaw* outward about the vertical, for the bent hold arm.
+  - A turn is at most 60°, or 30° with the upper arm in the wall. Where the shoulder itself is too close, cover gives the body room instead.
+- **Before them, the stance's root move** (`CharacterController.moveRoot`) runs first in the pass.
 - **HitReactions:** flinches.
 
 ## Rules
@@ -29,6 +35,10 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
 - **One-off clips hold their last frame** while they fade (Play() would restart them from frame 0). Wanted again while fading, as on a second corner, they restart.
 - **Clips bound to a stance** (DodgePrep, GettingUp, LastStandWakeup) hold until the stance ends, then fade with the height change.
 - **Markers are cosmetic.** MagOut, MagGrab, MagIn, BoltBack, BoltForward, ShellIn, Pump, CylinderOut, CylinderIn, BreakOpen and BreakClose move the parts of the gun being reloaded through its own Motor6Ds: the right-hand gun, or both pistols for ReloadDual. A gun part's resting pose is kept on its motor (`RestC0`).
+  - **Every client runs them for every character** (since 2026-11-04). A marker only fires where its track plays and moved parts don't replicate, so each client wires everyone else's reload tracks too, found by their animation id (`watchReloads`).
+  - **When a reload track stops,** the gun goes back to rest (magazine shown, parts home), so a reload cut short can't leave the magazine hidden.
+  - In Studio this can't work between players: each process gives a clip its own temporary id. It needs published ids.
+- **Every clip is loaded when the character is set up.** A track reads a length of 0 until its animation has loaded, and the first vault, reload or draw of a life used to play its first frames unstretched.
 - **Bullet time:** locomotion follows the slowed velocity, and everything else plays at the character's `TimeScale`. The blends run in real time.
 - **Animator only**, never the old `Humanoid:LoadAnimation`. Roblox's `Animate` script is switched off for the character once the clips can play.
 - **Arm clips are chest-relative.** Author them with IK on the body they'll play on, then check them by FK on every body that plays them (rifle box against the floor, the wall and the body).
@@ -55,6 +65,8 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
   - If the gun would still go into the floor (dives, rolls, the longest guns), AimLayer swings the arm up at the shoulder just enough.
 - **Dive clips:** picked by comparing the dive's direction with where the body faces, so a sideways dive with the gun forward plays the sideways clips.
 - **The vault:** the clip's playback chases the way over the obstacle. The legs are tucked (25% of the clip) when the leading knee reaches the near face (1.3 studs ahead of the root), and stay up (72%) until the trailing foot passes the far face (0.9 behind). The playback speed (at most 6) replicates to other players.
+  - Since 2026-11-04 the clip chases where `VaultController` has aimed the root for the next frame, so the body and the clip arrive together at any frame rate.
+  - A track about to be started is chased from 0: a stopped track keeps its old time, but `Play()` starts from 0.
 - **Cover:** the idle follows the side being worked, the move clips run at the speed along the wall, and the corner clips play while swinging round.
 - **Blind fire:** high cover uses the right arm only (the left keeps the carried rifle). Low cover uses the right arm and the waist, one clip per side.
 

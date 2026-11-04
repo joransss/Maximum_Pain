@@ -57,9 +57,10 @@ All timers stretch under bullet time, so nothing can get stuck: every stance eit
 
 ## Height
 Each stance's hip drop sets the humanoid's `HipHeight` (crouch, low cover, prone, getting up, Last Stand).
-- **On the ground:** the root part moves to the new height over the floor in the same frame (`CharacterController.applyHeight`) instead of falling or springing there over several frames. The free fall used to sink the body up to a stud into the floor and play the Fall clip.
-- **Easing:** the clips blend over a fifth of a second. Meanwhile the aim layer holds the body where it was and eases it to the new height, lifting it wherever the legs' blend would put a foot through the floor. The camera holds its height and eases too.
-- **In the air:** in DodgeAir, DodgeGround, Vaulting and Dead the root isn't moved, because the launch, the landing, the vault's path or the ragdoll take it there for real. The body goes with the root.
+- **On the ground:** the root part moves to the new height over the floor at once, instead of falling or springing there over several frames. The free fall used to sink the body up to a stud into the floor and play the Fall clip.
+- **When:** since 2026-11-04 the hip height and the root change together just before physics (`CharacterController.moveRoot`, the first procedural layer), right before the aim layer holds the body. Moved on the key press, the root took the body with it and a frame was drawn a stance's height out (the feet 1.8 into the floor on a crouch). The humanoid keeps its old hip height until then: it checks its floor between the render step and physics, and told the new height early it lost the floor and fell.
+- **Easing:** the clips blend over a fifth of a second. Meanwhile the aim layer holds the body where it was and eases it to the new height, lifting it (up to 1.2) wherever the legs' blend would put a foot through the floor. The camera hears of the root's move and the new drop together (`absorbHeight`), holds its view and eases too.
+- **In the air:** in DodgeAir, Vaulting and Dead the root isn't moved, because the launch, the vault's path or the ragdoll take it there for real. The body goes with the root. A dive's landing (DodgeGround) is moved and eased like a crouch since 2026-11-04; it used to fall the last 2.4 studs and bounce.
 - **Server-forced stances:** when the server forces a stance (Last Stand, a wakeup, a timed get-up), its new hip height reaches the client before the stance does. The client therefore compares with the height it last put the root at, not with the humanoid's current value, so these move the root at once too (since 2026-11-02).
 
 ## Actions (upper body)

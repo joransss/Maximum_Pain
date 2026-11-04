@@ -7,8 +7,11 @@ Related: [[Movement State Machine]] · [[Weapons and Recoil]] · [[Test Arena]] 
 - **E** (gamepad L1) takes the nearest wall in front of the camera. A HUD prompt shows when there is one: TAKE COVER HIGH or TAKE COVER LOW.
 - A wall counts when it is near-vertical, within 3.5 studs of the character's centre, and at least **3 studs** tall. Characters, dummies and dropped guns never count.
 - **High cover** reaches 5.2 studs above the floor and hides a standing character. **Low cover** is shorter (crates, low walls), and the character crouches behind it (head top about 3.5 studs, under a 3.6-stud wall).
-- The character faces the wall. Behind high cover it keeps 1.15 studs from it. Behind low cover it keeps what its hunched body needs. An R15 leaning over reaches 2.2 to 2.8 studs ahead of its root, depending on the avatar, so the root stays that far back plus 0.05 and the head touches the wall. Keeping less pressed the head into the wall and slid the body along it.
+- The character faces the wall and keeps what its body needs from it: how far the head, torso and upper arms reach toward the wall, plus 0.05. The upper arms count only below the cover's top, and not while firing, so blind fire and aiming over low cover don't push the body back.
+  - **Low cover:** an R15 leaning over reaches 2.2 to 2.8 studs ahead of its root, depending on the avatar, so the root stays that far back and the head touches the wall. Keeping less pressed the head into the wall and slid the body along it.
+  - **High cover:** at least 1.15. The side idles turn the body about 40° toward the side being worked, which brings the leading shoulder toward the wall, so on JackT6785's avatar the gap is 1.5 (working right, AK carried) to 1.8 (at the east end). At 1.15 the leading upper arm went half a stud into the wall (fixed 2026-11-04).
 - That reach is remembered for each cover stance for as long as the character stays in cover. Ducking back from aiming over the wall uses the hunched reach straight away; measuring the upright pose made the body lunge 0.57 at the wall. It eases back toward what the pose needs (0.5 studs/s) once the character is settled, still and hasn't fired for 1.5 s. A slide leans further, and blind fire straightens the back, which mustn't pull the body in.
+- **Arms and guns stay out of the wall:** the aim layer turns any arm that would go into it at the shoulder, just enough (see [[Animation Hooks]]). Popping up over low cover the gun comes up over the top as the body rises, and ducking back it lifts over the lip before dropping behind it.
 - The server repeats the search from its own copy of the character's position and decides high or low itself.
 
 ## Moving along cover
@@ -29,8 +32,8 @@ Press E again, or pull away from the wall for 0.25 s. A sprint can't start in co
 | Aim held (pop out) | Low cover: stand up over it. High cover: only at an end; the character steps out to 1.3 studs past it. The first 0.25 s is **peeking** and is shaky. | 1.5 |
 | Aim settled (CoverAim) | Braced against the cover. | 0.85 |
 
-- Letting go of aim ducks back in (at high cover, the character steps back to where it was).
-- Trying to aim in the middle of high cover shows MOVE TO AN EDGE TO AIM.
+- Letting go of aim ducks back in (at high cover, the character steps back to where it was). The step out and back walks no faster than reaches the spot by the next frame, so it can't overshoot (it went back and forth at low frame rates until 2026-11-04), and bullet time slows it.
+- Trying to aim in the middle of high cover shows MOVE TO AN EDGE TO AIM, and the gun stays in the cover hold. Until 2026-11-04 the aim clip played anyway and raised the gun into the wall.
 - Reloading works in every cover pose.
 - Recoil: ×1.3 blind firing, ×0.8 braced.
 
@@ -65,7 +68,7 @@ Max Payne 3 holds the gun low in cover, and an R15's chest lies on its thighs wh
 
 ## Numbers
 - `CoverRules`: REACH 3.5 · GAP 1.15 · LOW_PROBE 3 · HIGH_PROBE 5.2 · EDGE_MARGIN 0.9 · PEEK_CLEAR 1.3 · CORNER_HOLD 0.35.
-- `CoverController`: the gap behind low cover is the body's reach toward the wall + 0.05, with a 0.08 deadband. The reach eases back at REACH_RELAX 0.5 studs/s once settled for REACH_SETTLE 0.4 s and not fired for FIRED_HOLD 1.5 s.
+- `CoverController`: the gap is the body's reach toward the wall (head, torso, and the upper arms below the top when not firing) + 0.05, at least GAP, with a 0.08 deadband. The reach eases back at REACH_RELAX 0.5 studs/s once settled for REACH_SETTLE 0.4 s and not fired for FIRED_HOLD 1.5 s. Stepping out of high cover: STEP_SPEED 10, done within STEP_DONE 0.05.
 - The pop-out settle time (0.25 s) is in `StanceService` and `CharacterController`.
 - Space in low cover vaults over the wall ([[Movement State Machine]], Vaulting).
 
@@ -74,7 +77,17 @@ Max Payne 3 holds the gun low in cover, and an R15's chest lies on its thighs wh
 - **Crate:** pushing at its end swings round two corners in a row, without touching it.
 - **High wall:** blind fire from the end leaves from round the corner. Popping out carrying the AK keeps the AK at least 1.29 off the wall. Details in [[Animation and MP3 Systems - Progress and To Do]].
 
+## Tested (2026-11-04)
+- **Low wall:** popping up and ducking back, nothing goes more than 0.05 into the wall (the gun went 0.73 and 0.56 in before). The gap stays 2.52.
+- **High wall:**
+  - At rest on either side, nothing is in the wall (the leading arm went up to 0.55 in before).
+  - Aim held mid-wall keeps the cover hold.
+  - Stepping out round the east end is clear. Stepping back, a 0.1 s brush (0.20).
+- Details in [[Animation and MP3 Systems - Progress and To Do]] (session 4).
+
+## Decided
+- **Low cover pose:** keep the hunched pose facing the wall (JackT6785, 2026-11-04). Side-on like Max Payne 3 would have meant remaking 12 clips and the wall-end logic.
+
 ## Not done
-- **Low cover pose:** facing the wall hunched (now) or side-on like Max Payne 3, which would need the body shifted at wall ends. It's a decision in the to-do.
-- **Arm transitions:** popping up and ducking back, the gun crosses the cover's top for 0.08 s. Stepping out of high cover, the right forearm sweeps the wall's corner.
 - **Tall low cover:** blind fire over low cover taller than about 3.7 can't reach the top.
+- **High cover, stepping back to the edge:** for about 0.2 s, while the edge idle blends back in, the leading upper arm reaches up to 0.43 into the wall before settling.

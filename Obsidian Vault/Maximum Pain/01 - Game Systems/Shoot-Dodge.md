@@ -44,8 +44,8 @@ Roblox lets each player's own computer simulate their character, so the client f
 The direction's clips are picked by comparing the dive's direction with where the body faces, so a sideways dive with the gun forward plays the sideways clips.
 
 **Height:**
-- **Launch and landing:** these move the root for real, so the aim layer leaves the body with the root (since 2026-11-02 for the launch too, which had pushed the feet 0.39 into the floor).
-- **The landing drop:** the hips drop 2.2 and the root falls the rest of the way through physics, while the camera holds its height and eases down after it. It used to jump 1.7 up first.
+- **Launch:** it moves the root for real, so the aim layer leaves the body with the root (since 2026-11-02; holding it had pushed the feet 0.39 into the floor).
+- **The landing:** the root goes onto the floor at once, measured from the floor, and the body and camera ease down after it, like a crouch (since 2026-11-04). In the flight the hip height is the standing one, so the humanoid catches the root at standing height. The body then used to fall the last 2.4 studs at up to 31 studs/s and bounce, with the camera dropping 1.38 in one frame.
 - **Getting up:** the root rises at once, whether from a movement key or the server's forced get-up after 8 s. Before 2026-11-02 the forced get-up rose through physics over 8 frames.
 
 ## Compared with Max Payne 3
@@ -61,4 +61,9 @@ Forward dive: 17 studs, 1.6 studs high, about 0.5 s in the air. Sideways and bac
 - **Landing camera:** steady (largest step 0.56, was a 1.7 jump).
 - **Lying:** turning a full circle in 45° steps kept the lowest point 0.04 to 0.06 above the floor and the carried gun 0.38 above it.
 - **Getting up:** a key press and the forced 8-second get-up both lifted the root at once.
-- **Still open:** the left forearm's box dips 0.3 into the floor for one frame at the landing impact. See [[Animation and MP3 Systems - Progress and To Do]].
+
+## Tested (2026-11-04)
+- **Landing:** no fall and no bounce; the humanoid stays in Running; the camera step is 0.35 (was 1.38); hands and forearms stay above the floor (≥ −0.02).
+- **Run-up:** the body is no longer drawn a frame at the run-up's height (the feet were 0.60 into the floor for one drawn frame).
+- **Getting up:** feet within 0.05; camera step 0.15.
+- **Maybe later:** the body now settles onto the floor smoothly. A fall-shaped ease would land harder, more like Max Payne 3. See [[Animation and MP3 Systems - Progress and To Do]] (4.15).

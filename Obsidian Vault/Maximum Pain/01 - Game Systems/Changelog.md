@@ -3,6 +3,121 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-04: Polish pass: height changes, arms against walls, the dive landing, vaults, others' reloads
+Session 4 ran on JackT6785's PC, with Claude Code driving Studio. It worked through the to-do list in order and measured every change in Studio play mode on JackT6785's avatar.
+- **Measured what is drawn.** A new test harness (`Tools/TestHarness.luau`, in the repo and the place) records each frame at the end of the render step, which is what the player sees, as well as after physics. Session 3 logged only after physics, so it couldn't see the first fault below. Clearances and depths are exact box-against-box results.
+- **Low frame rate.** Studio in the background draws about 15 frames a second while physics runs at 60, so render-step code (camera, stances, movers, clip weights) runs in 66 ms steps. Several faults below only showed at that rate, but each would also hit players on slow machines, so each was fixed rather than put down to the test.
+- 9 scripts changed and one was added, all in the Team Create place. The notes and the harness changed in the repo.
+- Every measurement and the code details are in [[Animation and MP3 Systems - Progress and To Do]] (session 4).
+
+**Fixed: height changes drawn a frame early** (`CharacterController`, `CameraController`, `ProceduralLayer`)
+- **The whole body was drawn a stance's height out for one frame** on every crouch, stand, cover entry or exit, pop-up and get-up: crouching, the feet were 1.80 into the floor; standing, 1.89 above it.
+  - Cause: the root moved at once (on the key press or in the render step), but the aim layer's hold only came before the next physics step, after that frame was drawn.
+  - Fix: the hip height and the root change together just before physics. `moveRoot` is the first procedural layer, run right before the aim layer holds the body. The humanoid keeps its old hip height until then: it checks its floor between the render step and physics, and told the new height first it lost the floor and fell.
+  - Result: no frame is drawn out of place, and the humanoid stays in Running.
+- **The camera jumped on every height change:** 0.87 crouching, 0.88 standing, 0.87 popping up from low cover at 15 fps (about 0.3 at 60).
+  - Cause: the camera watched `HipHeight` itself and heard of the root's move separately. Part of one eased away before the other arrived.
+  - Fix: `CameraController.absorbHeight(rise, drop)` receives both at once from `moveRoot`, between two camera frames.
+  - Result: the largest step is 0.22 (the ease itself).
+
+**Fixed: the dive's landing** (`CharacterController`, `AimLayer`; to-do 4.3)
+- **The body fell the last 2.4 studs onto the floor at up to 31 studs/s and bounced.** The camera dropped 1.38 in one frame.
+  - Cause: in the flight the hip height is the standing one, so the humanoid caught the root at standing height. Then DodgeGround dropped the hips 2.2 with nothing moving the root.
+  - Fix: DodgeGround left `AIRBORNE` and `FALLS`. The landing puts the root on the floor at once (measured from the floor) and the aim layer eases the body down, like a crouch.
+  - Result: no fall, no bounce, the humanoid stays in Running, and the camera step is 0.35. No forearm or hand went more than 0.05 under the floor (session 3's 0.30 forearm dip didn't occur).
+
+**Fixed: arms and guns in walls** (`AimLayer`, `AnimationController`, `CoverController`; to-do 4.2)
+- **Popping up from low cover** the gun went 0.73 into the wall; **ducking back** 0.56.
+- **Holding aim in high cover away from an edge** played the aim clip anyway (the pop-out is refused there) and raised the gun 0.67 into the wall. The arms now keep the cover hold, as the camera already did.
+- **Behind high cover the leading arm was in the wall at rest.** The body turns toward the side worked: at the east end the right upper arm was 0.55 in, the hand 0.45 and the M9 0.11. On the right side the carried AK's upper arm was 0.32 in.
+- **Stepping out of high cover** the M9 went 1.00 into the wall's corner and the forearm 0.85.
+- Fixes:
+  - **Arm guard** in the aim layer: after everything else has posed the arms, any arm whose boxes (upper arm, forearm, hand, gun) overlap a wall is turned at the shoulder by the smallest angle that clears it. There are three ways out: *lift* (toward upright: an aimed gun comes up as from a high ready, shrinking to nothing as the body rises), *swing* (straight out of what it went into: a hanging arm, the carried gun) and *yaw* (flared out about the vertical: the bent hold arm, whose elbow and gun move opposite ways under the other turns). A turn is at most 60°, or 30° with the upper arm in the wall. A way, once taken, is kept while it works, so the arm doesn't flick.
+  - **High cover keeps room for the shoulders:** the gap is the body's reach including the upper arms (below the cover's top and not while firing, so blind fire and aiming over low cover don't push the body back). On JackT6785's avatar that's 1.52 to 1.78 instead of 1.15.
+  - **No aim clip while hidden in cover** (`AnimationController.ready`).
+- Result: popping up and ducking back ≤ 0.05 (the box slack); high cover at rest, nothing in the wall; stepping out, clear, and stepping back a 0.1 s brush (M9 0.20). Low cover's gap is unchanged (2.52).
+- **The step out of high cover overshot back and forth** (0.5 studs each frame at 15 fps, 0.33 at 30): it walked at full speed until within 0.2 of the spot. It now walks no faster than reaches the spot by the next frame, and bullet time slows it like any walk.
+
+**Fixed: vaults** (`VaultController`, `AnimationController`, `VaultRules`; to-do 4.4, part of 4.5)
+- **The path wasn't followed between frames.** Between two placements of the root, gravity sagged it up to 0.47 below the path over the top, and the velocity carried on from the last frame threw it 0.7 above the path at take-off. Both shrink at 60 fps but not to nothing.
+  - Fix: gravity is cancelled for the vault (a `VectorForce` the character's weight), and physics is aimed at where the path will be by the next frame. The root runs along the path's chords at any frame rate. The landing cap isn't needed any more.
+- **The clip lagged the path at take-off,** so the legs still hung when they reached the obstacle. Three causes:
+  - A track reads a length of 0 until its animation has loaded, so the first vault of a life (and the first reload or draw) played its first frames unstretched. Every clip is now loaded when the character is set up.
+  - A stopped track keeps its old time (the last vault's end), but `Play()` starts it from 0. The chase used the old time and left the clip frozen on its first frame for a frame.
+  - The root was placed a frame ahead of the clip. It now starts exactly at the start, and the clip chases the place the root is aimed at.
+- **The margin:** in slow motion the far edge was cleared by nothing (−0.05). `LEG_CLEARANCE` 0.2 → 0.3 lifts the arc 0.1 for longer-legged avatars; a standard avatar still flies 2.1 above the top.
+- Result: from 2.5 back, +0.19 over the LowWall with no contact (was −0.12 to −0.56 at take-off); from 2.09 back, the near face is touched by 0.02 (was 0.23); out of low cover +0.26; no Fall clip, no bounce, the feet at 0.00 after landing.
+
+**Fixed: other players' reloads** (`AnimationController`; to-do 4.13)
+- Reload markers fired only on the reloading player's client, and gun parts moved there don't replicate, so others saw the clip but no magazine or bolt move. Each client now runs the markers itself on everyone else's reload tracks, found by their animation id.
+- **A reload cut short left the magazine hidden** until the next reload, for the owner too. A reload track that stops now puts the gun back at rest.
+- Tested on one client: a reload played on the gunman by another script moved its AK's magazine and bolt, and one stopped after MagOut brought the magazine back. The owner's own reload is unchanged (M9 12 → 15 rounds). Seeing it from a second player needs the two-client test, with published animation ids (see Not done).
+
+**Fixed: a big drop at a low frame rate** (`AimLayer`)
+- Dropping into a Last Stand (2.2) at 15 fps sank the feet 0.47: the clips' weights change once a drawn frame while the body's hold eases every physics step, so the straight legs sank further than the foot guard's 0.6 lift. `MAX_FOOT_LIFT` 0.6 → 1.2. Result: −0.05.
+
+**Changed**
+- **High cover:** the character stands 1.5 to 1.8 studs off the wall (its reach with the upper arms) instead of 1.15.
+- **Arms** are turned at the shoulder to stay out of walls, held and carried guns included.
+- **The dive's landing** is eased onto the floor instead of falling the last 2.4 studs.
+- **Hidden in cover**, holding aim where you can't pop out keeps the gun in the cover hold.
+- **Vaults** fly 0.1 higher for avatars taller than standard.
+
+**Added**
+- **Code:**
+  - `CharacterController.moveRoot` (a procedural layer).
+  - `CameraController.absorbHeight`.
+  - `AimLayer`'s arm guard (`guardArm`, `GUARD_LIMIT` 60°, `GUARD_SHOULDER_LIMIT` 30°, `GUARD_SLACK` 0.05).
+  - `AnimationController`'s `wireMarkers`, `restGun` and `watchReloads`.
+  - `CoverController`'s `stepToward`.
+- **Tools:** `ServerStorage.Tools.TestHarness`, also `Tools/TestHarness.luau` in the repo. It records play tests and reports floor and wall clearances, penetrations, camera steps, clips and the stance timeline, and it can walk the character and point a debug camera. Install steps are in its header.
+
+**Removed**
+- `CameraController.absorbRise` and its own `HipHeight` watching (replaced by `absorbHeight`).
+- The vault's landing speed cap (the path's chords can't overshoot).
+
+**Decisions**
+- **Low cover pose: keep the hunched pose facing the wall** (JackT6785, 2026-11-04; to-do 3).
+- The two-client test waits: the Studio connection can't reach the test windows, so it has to be run by hand.
+- What is drawn is the measure. Tests are checked at the end of the render step, and every timing fix has to hold at a low frame rate.
+
+**Tested** (Studio play mode, JackT6785's avatar, drawn at about 15 fps; before → after)
+| Test | Result |
+|---|---|
+| Crouch and stand | first drawn frame: feet −1.80 / +1.89 → in place; camera step 0.87 → 0.22; humanoid stays Running |
+| Low cover pop-up and back | gun 0.73 / 0.56 into the wall → 0.05; camera 0.87 → 0.22; gap 2.52 (unchanged) |
+| High cover, aim held mid-wall | gun 0.67 into the wall → stays in the cover hold |
+| High cover at rest | right arm 0.55 (east end), AK's arm 0.32 (right side) → nothing in the wall; gap 1.78 / 1.52 |
+| High cover step out and back | M9 1.00, forearm 0.85 → clear out; 0.1 s brush back (0.20); no overshoot |
+| Dive landing | fell 2.4 at 31 studs/s and bounced, camera −1.38 → put on the floor, eased; camera 0.35; hands ≥ −0.02 |
+| Vault from standing (2.5 / 2.09 back) | legs −0.12…−0.56 at take-off → +0.19 crossing, no contact / 0.02 |
+| Vault out of low cover | +0.26 over the top; no Fall clip; feet 0.00 after |
+| Vault in bullet time (0.3) | 1.52 s in the air; tightest −0.05 at the far edge → `LEG_CLEARANCE` 0.3 |
+| Last Stand (survived) | drop: feet −0.47 → −0.05, camera 0.12; wakeup and stand ≥ −0.05, camera ≤ 0.14; painkillers 3 → 2 |
+| Dive get-up, first reload of a life | feet ≥ −0.05; the reload stretched from its first frame (1.6 s clip known) |
+| Others' reloads (one client) | magazine and bolt moved by a reload this client didn't start; cut short, the magazine came back |
+| Output log | clean |
+
+**Scripts changed** (in the Team Create place; not in git)
+| Script | Change |
+|---|---|
+| `CharacterController` | `moveRoot`: hip height and root change together before physics; DodgeGround out of `AIRBORNE` |
+| `CameraController` | `absorbHeight` replaces `absorbRise` and the `HipHeight` watching |
+| `AimLayer` | arm guard; DodgeGround out of `FALLS`; `MAX_FOOT_LIFT` 1.2 |
+| `AnimationController` | no aim clip in hidden cover; every clip preloaded; the vault clip's chase; markers for everyone else's reloads; guns back at rest when a reload stops |
+| `CoverController` | upper arms in the reach (below the top, not while firing); `stepToward` |
+| `VaultController` | gravity cancelled; the root placed then aimed at the next frame's place; landing momentum from the path |
+| `VaultRules` | `LEG_CLEARANCE` 0.3; self-check tolerant of rounding |
+| `ProceduralLayer`, `ClientMain` | comments: the root move is the first procedural layer |
+| `ServerStorage.Tools.TestHarness` | new (test tool, never sent to players) |
+
+**Repo:** `Tools/TestHarness.luau` and these notes, committed on JackT6785's PC (not pushed).
+
+**Not done**
+- **Saving the place** after these changes (File > Save to Roblox).
+- **The two-client test.** A finding for it: Studio's temporary clip ids (`KeyframeSequenceProvider`) differ from one process to another (the server's and a client's id for the same clip didn't match). So in a Studio two-player test, one player can't see the other's clips or reload markers. With published ids, as in live servers, they match.
+- Polish still open: 4.5 (the hand on the top, a vault from idle), 4.6, 4.8 (not tried with the M107), 4.9, 4.10, 4.11, 4.12, and what this pass found: arms against walls when hugging a wall in the open, the carried AK brushing the top in a vault, a 0.2 s high-cover brush after stepping back. Details in the to-do.
+
 ## 2026-11-02: Play tests, the fixes they needed, and the Blender export
 Session 3 ran on JackT6785's PC, with Claude Code driving Studio: 2026-11-02 20:58 to 22:20, then 2026-11-03 01:51 to 02:00 (UK time).
 - Every play test left on the to-do list was run in Studio play mode on JackT6785's R15 avatar, and measured frame by frame: each body part's box, the root, the camera and each clip's weight.

@@ -336,98 +336,193 @@ def vault():
 
 
 # --- Cover -------------------------------------------------------------------------------------------
+# Max Payne 3's cover, side-on: the back and the inner shoulder against the wall, turned toward the edge
+# being worked, the head looking along the wall to it, the gun low or upright in front (Steam trailers:
+# "Design and Tech Video 2" 2:53-2:58, "Multiplayer" 1:35-1:43). Along the wall the body runs side-on,
+# facing the way it goes. The game keeps the root part facing the wall (CoverController) and keeps the gap
+# the body's reach toward the wall needs, so these clips turn the body round inside the root part and
+# lean its back onto the wall: no gameplay code depends on which way the body faces.
+HIGH_TURN = 150.0  # degrees the body is turned from facing the wall (180: flat against it)
+LOW_TURN = 180.0  # folded over the knees, the body faces straight out so the head stays behind the wall's end
+# How far the back reaches toward the wall from the root part. The game keeps the root part GAP (1.15)
+# off the wall, or what the body's reach needs plus 0.05 (CoverController), so at 1.1 the back rests on
+# the wall.
+BACK_REACH = 1.1
+# The root part stops 0.9 short of a wall's end (CoverRules.EDGE_MARGIN; 0.82 to 0.85 measured), and an
+# R15's shoulders and the arm on the edge's side reach 1.3 to 1.8 along the wall. The idles sit back
+# along the wall, away from the edge, so less of the body shows past the end: 0.5 past it there, centred
+# on the root part (83tg's avatar, 2026-11-07). Any further, and the gun arm can't reach round the end to
+# blind fire working right (it is the arm away from the edge, back to the wall).
+HIGH_BACK = 0.35
+LOW_BACK = 0.75
+TORSO = ("Head", "UpperTorso", "LowerTorso")
+UPPER_ARMS = ("LeftUpperArm", "RightUpperArm")  # CoverController counts them too (below the cover's top)
+
+
+def facing(side, turn):
+    """The body's yaw for a side: `turn` degrees round from the wall, toward the edge being worked."""
+    return -(1.0 if side == "Right" else -1.0) * turn
+
+
+def turned(yaw, x, z, shift=(0.0, 0.0)):
+    """A point (x, z) in the turned body's own frame (facing -Z) in the root part's space, plus `shift`."""
+    v = rot(0, yaw, 0) @ V(x, 0, z)
+    return v.x + shift[0], v.z + shift[1]
+
+
+def plant_turned(pose, side, yaw, x, z, floor, toe_out=0.0, toe=0.0, heel=0.0, shift=(0.0, 0.0)):
+    """A foot planted at (x, z) in the turned body's frame, toes along the body plus `toe_out`."""
+    px, pz = turned(yaw, x, z, shift)
+    plant(pose, side, px, pz, floor, yaw + toe_out, toe, heel, rot(0, yaw, 0) @ V(x * 0.4, 0, -1))
+    return pose
+
+
+def look(pose, direction, joint="Neck"):
+    """Turns a joint so its part faces `direction` (root part's space), kept upright. On a body folded
+    over its knees a neck yaw rolls the head instead of turning it, so the head is aimed instead."""
+    _, parent, part, _, _ = L.JOINT[joint]
+    above = L.solve(pose)[parent].to_quaternion()
+    forward = direction.normalized()
+    right = forward.cross(V(0, 1, 0)).normalized()
+    up = right.cross(forward)
+    aim = Matrix((right, up, -forward)).transposed().to_quaternion()
+    pose[joint] = (above.inverted() @ aim, pose.t(joint))
+    return pose
+
+
+def reach(pose, parts=TORSO):
+    """How far the parts reach toward the wall (-Z) from the root part, as CoverController measures it."""
+    world = L.solve(pose)
+    return max(-(world[part] @ V(x * L.PARTS[part][0][0] / 2, y * L.PARTS[part][0][1] / 2, z * L.PARTS[part][0][2] / 2)).z
+               for part in parts for x in (-1, 1) for y in (-1, 1) for z in (-1, 1))
+
+
+def onto_wall(pose, parts=TORSO + UPPER_ARMS):
+    """Moves the body along the root part's Z until the parts reach BACK_REACH toward the wall (-Z), and
+    returns the move (studs) so the feet can be planted with it."""
+    move = reach(pose, parts) - BACK_REACH
+    pose.move("Root", 0, 0, move)
+    return move
+
+
 def cover_high(side):
-    """High cover (facing the wall, 1.15 studs off it): tall and tight, turned toward the edge being
-    worked, inside shoulder to the wall, head on the edge."""
+    """High cover: back and inner shoulder on the wall, turned toward the edge, knees soft, the feet out
+    from the wall so the weight rests back on it, the inner arm forward off the wall, the head turned
+    along the wall to the edge. A slow breath and a shift of weight."""
     s = 1.0 if side == "Right" else -1.0
+    yaw = facing(side, HIGH_TURN)
+    lead, trail = ("Left", "Right") if s > 0 else ("Right", "Left")  # the foot on the edge's side leads
 
     def pose(t):
         breath = math.sin(TAU * t / 3.2)
         shift = math.sin(TAU * t / 6.4)
         p = Pose()
-        p.set("Root", -2.0, -s * 34.0, s * 2.0 * shift, move=(s * 0.05 * shift, -0.12 + 0.01 * breath, 0.15))
-        p.set("Waist", -4.0 - breath, -s * 6.0, -s * 4.0)  # leaning the inside shoulder in
-        p.set("Neck", 2.0, -s * 26.0 + s * 3.0 * shift, 0)
-        empty_arms(p, 30.0, 10.0, 70.0)
-        plant(p, "Right" if s > 0 else "Left", s * 0.75, -0.45, L.FLOOR, -s * 40.0)  # outside foot toward the edge
-        plant(p, "Left" if s > 0 else "Right", -s * 0.45, 0.35, L.FLOOR, -s * 20.0)
+        hips = turned(yaw, s * 0.03 * shift, 0.0)
+        x = hips[0] - s * HIGH_BACK
+        p.set("Root", 5.0, yaw, s * 1.5 * shift, move=(x, -0.16 + 0.01 * breath, hips[1]))
+        p.set("Waist", -4.0 - breath, s * 8.0, -s * 1.5)
+        p.set("Neck", 2.0, s * (38.0 + 3.0 * shift), -s * 3.0)
+        empty_arms(p, 10.0, 6.0, 24.0)
+        p.set(lead + "Shoulder", 16.0, 0, -s * 4.0)  # the inner arm a little forward, off the wall
+        p.set(lead + "Elbow", 30.0, 0, 0)
+        z = onto_wall(p)
+        plant_turned(p, lead, yaw, -s * 0.52, -0.45, L.FLOOR, s * 12.0, shift=(x, z))
+        plant_turned(p, trail, yaw, s * 0.62, -0.28, L.FLOOR, -s * 8.0, shift=(x, z))
         return p
     return pose
 
 
 def cover_low(side):
-    """Low cover (hips 1.8 lower): down on the balls of the feet behind it, head under the top (the
-    lowest cover is 3 studs), turned a little toward the edge being worked. An R15 has to hunch far
-    over to keep its head that low, so the head reaches about 2.8 studs ahead of the root part, to
-    the wall (side-on, it would stick out past the wall's ends instead)."""
+    """Low cover (hips 1.8 lower): down on the balls of the feet with the back against the wall, folded
+    over the knees to keep the head top under 3 studs (the lowest cover), the head turned along the wall
+    to the edge. An R15's head and torso are long for its legs, so only a deep fold gets the head that
+    low; folded straight out from the wall, the head stays behind the wall's end."""
     s = 1.0 if side == "Right" else -1.0
+    yaw = facing(side, LOW_TURN)
+    lead, trail = ("Left", "Right") if s > 0 else ("Right", "Left")
 
     def pose(t):
         breath = math.sin(TAU * t / 2.6)
         shift = math.sin(TAU * t / 5.2)
         p = Pose()
-        # head top about 2.8 studs off the floor: under the lowest cover (3 studs)
-        p.set("Root", -32.0, -s * 18.0, s * 2.0 * shift, move=(s * 0.03 * shift, 0.7 + 0.01 * breath, 0.15))
-        p.set("Waist", -46.0 - breath, -s * 6.0, 0)
-        p.set("Neck", 56.0, -s * 18.0, 0)
-        empty_arms(p, 50.0, 12.0, 90.0)
-        plant(p, "Right" if s > 0 else "Left", s * 0.7, -0.35, LOW, -s * 24.0, 0, 18.0)
-        plant(p, "Left" if s > 0 else "Right", -s * 0.55, 0.45, LOW, -s * 10.0, 0, 10.0)
+        x = -s * LOW_BACK + s * 0.02 * shift  # back along the wall, away from the edge
+        p.set("Root", -30.0, yaw, s * 1.5 * shift, move=(x, 0.4 + 0.01 * breath, 0))
+        p.set("Waist", -46.0 - breath, s * 8.0, 0)
+        look(p, V(s * 0.93, -0.12, 0.34))  # along the wall to the edge
+        z = onto_wall(p, TORSO)  # the legs and arms aren't placed yet
+
+        def feet():
+            plant_turned(p, lead, yaw, -s * 0.58, -0.55, LOW, s * 12.0, 0, 20.0, (x, z))
+            plant_turned(p, trail, yaw, s * 0.6, -0.4, LOW, -s * 8.0, 0, 14.0, (x, z))
+        feet()
+        # squatting, the backs of the thighs come out behind the hips: off the wall too
+        extra = reach(p, TORSO + ("LeftUpperLeg", "RightUpperLeg")) - BACK_REACH
+        if extra > 0:
+            p.move("Root", 0, 0, extra)
+            z += extra
+            feet()
+        # empty hands resting on the knees
+        world = L.solve(p)
+        for hand in ("Left", "Right"):
+            knee = world[hand + "LowerLeg"] @ V(0, 0.55, -0.35)
+            palm(p, hand, knee.x, knee.z, knee.y - 0.16, yaw, V(0.25 if hand == "Left" else -0.25, -1, 0.3))
         return p
     return pose
 
 
 def cover_move(height, side):
-    """Shuffling along the wall, still facing it: high cover 9.6 studs/s upright, low cover 8 studs/s
-    crouched with the head kept under the top. Short side steps that never cross."""
+    """Moving along the wall side-on, facing the way it goes, the inner shoulder by the wall: a hunched
+    jog behind high cover (9.6 studs/s), a crouched run behind low cover (8 studs/s) folded far enough
+    to keep the head under the top. The chest opens a little to the open side and the head looks
+    ahead along the wall."""
     s = 1.0 if side == "Right" else -1.0
     if height == "High":
-        g = {
-            "speed": 9.6, "cycle": 0.56, "duty": 0.5, "pelvis": -0.2, "bob": 0.05, "walk": True, "twist": 3.0,
-            "roll": 3.0, "lean": 4.0, "hip_lean": 2.0, "hip_turn": 0.0, "side_lean": 2.0, "counter": 0.9,
-            "arm_swing": 6.0, "arm_carry": 26.0, "elbow": 60.0, "arm_out": 10.0, "width": 1.0, "lift": 0.24,
-            "strike": 4.0, "push": 10.0, "trail": 10.0, "sway": 0.04, "bob_nod": 0.5, "toe_out": 0.0,
-        }
+        g = dict(M.JOG)
+        g.update({"speed": 9.6, "cycle": 0.56, "duty": 0.4, "pelvis": -0.42, "bob": 0.06, "lean": 12.0,
+                  "hip_lean": 6.0, "hip_turn": 90.0, "counter": 0.0, "side_lean": 0.0, "arm_swing": 14.0,
+                  "arm_carry": 14.0, "elbow": 60.0, "lift": 0.34, "width": 0.95, "toe_out": 4.0})
     else:
+        # the waist takes most of the fold: folded at the hips, the trailing shin went through the floor
         g = dict(M.CROUCH_WALK)
-        g.update({"speed": 8.0, "cycle": 0.56, "duty": 0.55, "hip_lean": 30.0, "hip_turn": 0.0, "pelvis": 0.76,
-                  "width": 1.15, "lift": 0.18, "toe_out": 0.0, "arm_swing": 4.0, "arm_carry": 46.0, "elbow": 90.0})
+        g.update({"speed": 8.0, "cycle": 0.56, "duty": 0.55, "hip_lean": 28.0, "lean": 58.0, "hip_turn": 90.0,
+                  "counter": 0.0, "side_lean": 0.0, "pelvis": 0.74, "width": 1.1, "lift": 0.2, "toe_out": 4.0,
+                  "arm_swing": 8.0, "arm_carry": 50.0, "elbow": 80.0})
     g["direction"] = V(s, 0, 0)
+    open_ = -s * 10.0  # the chest turned a little out from the wall
+
+    def run(t):
+        p = M.gait(t, g)
+        p.turn("Waist", rot(0, open_, 0))
+        # the gait turns the head back to the root part's front (the wall): it looks ahead instead
+        p.set("Neck", 10.0 if height == "High" else 54.0, -open_ * 0.6, 0)
+        return p
+
+    # One shift for the whole cycle (a changing one would slide the feet): the inner shoulder and arm
+    # come no nearer the wall than the idle's back, so the game holds the gap the idle needed, and the
+    # body sits back along the way it goes, so the head leads the root part by no more than 0.8 (high) or
+    # 1 (low). The root stops 0.9 short of a wall's end, and the head leading further poked past it while
+    # the run blended into the idle (0.64 past, leading by 1.5).
+    cycle = [run(g["cycle"] * i / 8) for i in range(8)]
+    out = max(reach(p, TORSO + UPPER_ARMS) for p in cycle) - BACK_REACH
+    half = V(*L.PARTS["Head"][0]) / 2
+    lead = max(s * (L.solve(p)["Head"] @ V(x * half.x, y * half.y, z * half.z)).x
+               for p in cycle for x in (-1, 1) for y in (-1, 1) for z in (-1, 1))
+    back = -s * max(lead - (0.8 if height == "High" else 1.0), 0.0)
 
     def pose(t):
-        p = M.gait(t, g)
-        if height == "High":
-            p.set("Waist", -4.0, -s * 8.0, 0)
-            p.set("Neck", 2.0, -s * 30.0, 0)
-        else:
-            p.set("Waist", -46.0, -s * 6.0, 0)
-            p.set("Neck", 56.0, -s * 22.0, 0)
-        return p
+        return run(t).move("Root", back, 0, out)
     return pose, g
 
 
 def cover_corner(height, side):
-    """Round an outside corner (0.35 s): the game swings the root part round the end of the wall
-    and turns its facing with it. The clip starts and ends on the cover idle at rest, so it blends in
-    and out without a jump. Between, the body squares up to the turn and the trailing foot comes
-    across (high: crossing in front of the leading one; crouched: only closing up)."""
-    s = 1.0 if side == "Right" else -1.0
+    """Round an outside corner (0.35 s): the game swings the root part round the end of the wall and
+    turns its facing with it. The clip starts and ends on the cover idle at rest, so it blends in and
+    out without a jump; between, the body takes a side-on stride round the corner, as it would moving
+    along the wall."""
     high = height == "High"
     rest = (cover_high if high else cover_low)(side)(0.0)
-    lead, trail = ("Right", "Left") if s > 0 else ("Left", "Right")
-    mid = rest.copy()
-    if high:
-        mid.set("Root", -4.0, -s * 10.0, -s * 6.0, move=(0, -0.15, 0.1))
-        mid.set("Waist", -6.0, -s * 10.0, 0)
-        mid.set("Neck", 6.0, -s * 20.0, 0)
-        plant(mid, lead, s * 0.54, -0.1, L.FLOOR, -s * 20.0)
-        sole, r = L.foot_on_floor(s * 0.54, -0.28, L.FLOOR + 0.24, -s * 25.0)
-        L.leg_ik(mid, trail, sole, r, V(s * 0.3, 0, -1))
-    else:
-        mid.set("Root", -32.0, -s * 8.0, -s * 4.0, move=(0, 0.7, 0.15))
-        plant(mid, lead, s * 0.54, -0.1, LOW, -s * 20.0, 0, 18.0)
-        sole, r = L.foot_on_floor(s * 0.1, 0.0, LOW + 0.16, -s * 25.0)
-        L.leg_ik(mid, trail, sole, r, V(s * 0.3, 0, -1))
+    move, g = cover_move(height, side)
+    mid = move(g["cycle"] * 0.3)  # mid-stride, the leading foot reaching round
     keys = Keys()
     keys.add(0.0, rest)
     keys.add(0.175, mid)
@@ -435,18 +530,183 @@ def cover_corner(height, side):
     return keys.at
 
 
+AIM_YAW, AIM_PITCH = 14.0, -4.0  # cover_aim's Root
+# x, z, yaw, heel. The back heel is up: flatter, the shin leant over the foot and its box went 0.12 into
+# the floor (2026-11-08).
+AIM_FEET = {"Left": (-0.7, -0.45, 14.0, 0.0), "Right": (0.7, 0.45, -18.0, 22.0)}
+
+
 def cover_aim(t):
     """Aiming out of cover (popped round high cover, or up over low cover): a braced stance, feet
     wide, knees soft, weight forward. The aim clip and the aim layer do the arms and the chest."""
     breath = math.sin(TAU * t / 2.8)
     p = Pose()
-    p.set("Root", -4.0, 14.0, 0, move=(0, -0.22 + 0.01 * breath, 0.05))
+    p.set("Root", AIM_PITCH, AIM_YAW, 0, move=(0, -0.22 + 0.01 * breath, 0.05))
     p.set("Waist", -6.0 - breath, -10.0, 0)
     p.set("Neck", 6.0, -4.0, 0)
     empty_arms(p, 20.0, 12.0, 40.0)
-    plant(p, "Left", -0.7, -0.45, L.FLOOR, 14.0)
-    plant(p, "Right", 0.7, 0.45, L.FLOOR, -18.0, 0, 6.0)
+    for side, (x, z, yaw, heel) in AIM_FEET.items():
+        plant(p, side, x, z, L.FLOOR, yaw, 0, heel)
     return p
+
+
+# --- Popping up out of low cover and ducking back ----------------------------------------------------
+# The low idle faces out from the wall and the aim faces over it, so a blend between them turned the body
+# about 166° in a fifth of a second, the feet swinging round with the hips through the wall's base (0.43
+# deep, 2026-11-07). These clips take the turn: the body rises (or sinks) turning toward the edge the head
+# was looking at, the feet stepping round outside the wall. The game changes the hip height at once and
+# AimLayer holds the body where it was, easing it to the new height at HEIGHT_EASE; the feet are planted
+# where that hold leaves the floor, so they stay on it. The game plays them in real time, as the hold eases.
+POP_TIME = 0.25  # the CoverPeek stance (PEEK_TIME), bound to it
+DUCK_TIME = 0.3
+HEIGHT_EASE = 10.0  # AimLayer's rate, per second
+LOW_DROP = 1.8  # low cover's hip drop (StanceRules)
+LOW_PITCH = -30.0  # cover_low's Root
+LOW_FEET_HEEL = (20.0, 14.0)  # cover_low's heels: lead, trail
+TURN_SWAY = 0.6  # studs the hips sway out from the wall at the middle of the turn
+KNEE_FOLLOWS_FOOT = 0.75  # how much of its turn a knee takes with its foot's step; the rest with the hips
+DUCK_DROP = (0.2, 1.0)  # the share of the duck the hips go down over: the feet start round first
+DUCK_FOLD = (0.0, 0.7)  # and the body folds over
+STEP_LIFT = (0.3, 0.12)  # studs a stepping foot comes up: popping up, ducking
+# The legs are kept off the wall: it is 1.15 from the root part (CoverController's least gap). The aim's
+# knees reach 1.03 to 1.06 (the default R15's boxes), so where the pop-up ends, still 0.15 low, they
+# touch it; turning them out any further twisted the legs 58 degrees from the aim they hand over to.
+LEG_REACH = 1.15
+
+
+def sole_spot(pose, side):
+    """A planted foot's sole middle (x, z) and which way its toes point (yaw, degrees), from a pose."""
+    world = L.solve(pose)
+    point = L.sole(world, side)
+    toes = world[side + "Foot"].to_3x3() @ V(0, 0, -1)
+    return point.x, point.z, math.degrees(math.atan2(-toes.x, -toes.z))
+
+
+def knee_spot(pose, side):
+    """Which way a leg's knee bends in a pose: its pivot's direction off the hip-ankle line (root part's
+    space), and that direction's yaw (degrees)."""
+    world = L.solve(pose)
+    hip, knee, ankle = (L.pivot(world, side + joint) for joint in ("Hip", "Knee", "Ankle"))
+    line = (ankle - hip).normalized()
+    off = ((knee - hip) - line * (knee - hip).dot(line)).normalized()
+    return off, math.degrees(math.atan2(-off.x, -off.z))
+
+
+def wrap(angle):
+    """An angle in degrees, wrapped to -180..180."""
+    return (angle + 180.0) % 360.0 - 180.0
+
+
+# A one-handed gun holstered on the left thigh (LoadoutRules), as a box in the LeftUpperLeg's frame: the
+# Uzi's, measured in the game (2026-11-08). It hangs past the knee, so a thigh raised toward the wall
+# puts it in the wall.
+HOLSTER = (V(-0.504, -0.117, 0.022), V(0.177, 1.70, 1.026))
+
+
+def leg_reach(pose, side):
+    """How far a leg's boxes (and on the left the holstered gun) reach toward the wall (-Z) from the
+    root part."""
+    world = L.solve(pose)
+    boxes = [(world[side + part], V(), V(*L.PARTS[side + part][0])) for part in ("UpperLeg", "LowerLeg")]
+    if side == "Left":
+        boxes.append((world["LeftUpperLeg"],) + HOLSTER)
+    return max(-(m @ (centre + V(x * size.x / 2, y * size.y / 2, z * size.z / 2))).z
+               for m, centre, size in boxes for x in (-1, 1) for y in (-1, 1) for z in (-1, 1))
+
+
+def cover_turn(side, up):
+    """Popping up out of low cover to aim (`up`, CoverPopUp), or ducking back into it (CoverDuck). The
+    body turns toward the edge being worked: working right from facing out (yaw -180) up through facing
+    the edge (-90) to the aim (14); working left from 180 down through 90.
+    Turned side-on, the torso is as wide toward the wall as it is across, so popping up the body leaves
+    the wall before it turns (it went 0.47 into it turning in place), and ducking it turns before it
+    settles back against the wall, folding over as it turns and going down once the feet are round
+    (folded while still facing the wall, the knees went into it). The foot on the turn's outside steps
+    round first. The knees turn with the feet, and out from the wall where they (or a holstered gun)
+    would reach it."""
+    s = 1.0 if side == "Right" else -1.0
+    lead, trail = ("Left", "Right") if s > 0 else ("Right", "Left")
+    low, aim = cover_low(side)(0.0), cover_aim(0.0)
+    first, last = (low, aim) if up else (aim, low)
+    length = POP_TIME if up else DUCK_TIME
+    yaw_low = facing(side, LOW_TURN)
+    yaws = (yaw_low, AIM_YAW) if up else (AIM_YAW, yaw_low)
+    pitches = (LOW_PITCH, AIM_PITCH) if up else (AIM_PITCH, LOW_PITCH)
+    heels_low = {lead: LOW_FEET_HEEL[0], trail: LOW_FEET_HEEL[1]}
+    # (start, end) shares of the clip for each part of the move
+    spans = {
+        "turn": (0.0, 1.0) if up else (0.0, 0.55),
+        "off_wall": (0.0, 0.55) if up else (0.45, 1.0),  # the hips along and away from the wall
+        "chest": (0.0, 1.0) if up else DUCK_FOLD,  # the waist, neck, arms and the body's lean
+        trail: (0.05, 0.5) if up else (0.15, 0.45),
+        lead: (0.4, 0.9) if up else (0.0, 0.3),
+        "drop": DUCK_DROP,  # ducking, the hips down to the floor
+    }
+    lift = STEP_LIFT[0] if up else STEP_LIFT[1]
+    feet = {}
+    for foot in ("Left", "Right"):
+        a, b = sole_spot(first, foot), sole_spot(last, foot)
+        turn = yaws[1] - yaws[0]
+        toe_b = a[2] + turn + wrap(b[2] - (a[2] + turn))  # the toes turn with the body
+        # The knee turns with the toes too, from the bend it has in the pose the clip starts on to the
+        # one it ends on. Bent the way the body faced (away from the wall), it bent backward over the
+        # feet once they had stepped round, and the legs ended 100 to 146 degrees twisted from the aim.
+        bend_a, yaw_a = knee_spot(first, foot)
+        bend_b, yaw_b = knee_spot(last, foot)
+        knee_turn = (toe_b - a[2]) + wrap(yaw_b - (yaw_a + toe_b - a[2]))
+        bend_b = rot(0, -knee_turn, 0) @ bend_b  # turned back to the start, to blend with it
+        heels = (heels_low[foot], AIM_FEET[foot][3]) if up else (AIM_FEET[foot][3], heels_low[foot])
+        feet[foot] = (a, b, toe_b, heels, bend_a, bend_b, knee_turn)
+
+    def share(u, part):
+        start, end = spans[part]
+        return L.smoother((u - start) / (end - start))
+
+    def floor(t):
+        # where the floor is in the clip while AimLayer holds the body: below it popping up, above ducking
+        held = LOW_DROP * math.exp(-HEIGHT_EASE * t)
+        return L.FLOOR + held if up else LOW - held
+
+    def pose(t):
+        u = min(max(t / length, 0.0), 1.0)
+        p = L.blend(first, last, share(u, "chest"), {"Waist", "Neck"} | L.ARMS)
+        e = share(u, "turn")
+        yaw = yaws[0] + (yaws[1] - yaws[0]) * e
+        a, b = first.t("Root"), last.t("Root")
+        off = share(u, "off_wall")
+        if up:
+            y = a.y + (b.y - a.y) * L.smoother(u)
+        else:
+            # Ducking, the hips' height over the floor follows DUCK_DROP whatever AimLayer's hold does (the
+            # root takes back what the hold has eased so far). Left to the hold, they dropped half way in
+            # 0.06 s, with the feet still stepping: the knees folded forward over them, the shins nearly
+            # flat (0.3 into the floor), and the front knee into the wall.
+            eased, total = floor(t) - floor(0.0), floor(length) - floor(0.0)
+            y = a.y + (b.y - a.y - total) * share(u, "drop") + eased
+        # half-turned the chest's width faces the wall: the hips sway out from it through the turn
+        sway = TURN_SWAY * math.sin(math.pi * e)
+        move = (a.x + (b.x - a.x) * off, y, a.z + (b.z - a.z) * off + sway)
+        p.set("Root", pitches[0] + (pitches[1] - pitches[0]) * share(u, "chest"), yaw, 0, move=move)
+        for foot, (fa, fb, toe_b, heels, bend_a, bend_b, knee_turn) in feet.items():
+            v = share(u, foot)
+            x, z = fa[0] + (fb[0] - fa[0]) * v, fa[1] + (fb[1] - fa[1]) * v
+            height = floor(t) + lift * math.sin(math.pi * v)
+            sole, r = L.foot_on_floor(x, z, height, fa[2] + (toe_b - fa[2]) * v, 0.0, heels[0] + (heels[1] - heels[0]) * v)
+            # mostly with the foot (a shin hardly twists on it), a little with the hips
+            k = KNEE_FOLLOWS_FOOT * v + (1.0 - KNEE_FOLLOWS_FOOT) * e
+            knee = rot(0, knee_turn * k, 0) @ bend_a.lerp(bend_b, k)
+            L.leg_ik(p, foot, sole, r, knee)
+            # Over the toes, the knee of a foot near the wall reached 0.17 past its face (the front foot of
+            # the aim is 0.2 from it): turn it out from the wall, no more than it needs.
+            if leg_reach(p, foot) > LEG_REACH:
+                lo, hi = 0.0, 4.0
+                for _ in range(10):
+                    mid = (lo + hi) / 2
+                    L.leg_ik(p, foot, sole, r, knee + V(0, 0, mid))
+                    lo, hi = (mid, hi) if leg_reach(p, foot) > LEG_REACH else (lo, mid)
+                L.leg_ik(p, foot, sole, r, knee + V(0, 0, hi))
+        return p
+    return pose
 
 
 # --- Landing roll (replaces mp_locomotion's) ---------------------------------------------------------
@@ -505,5 +765,16 @@ def register():
         Clip("CoverLowMove" + side, g["cycle"], guarded(low, LOW), loop=True, drop=1.8, note="8 studs/s")
         Clip("CoverCornerHigh" + side, 0.35, guarded(cover_corner("High", side), L.FLOOR))
         Clip("CoverCornerLow" + side, 0.35, guarded(cover_corner("Low", side), LOW), drop=1.8)
+        # made for AimLayer's height hold (see cover_turn): no floor guard, the floor moves. A half turn in
+        # a quarter second: sampled at the game's frame rate, not interpolated from 30.
+        pop = Clip("CoverPopUp" + side, POP_TIME, cover_turn(side, True), fps=60, note="real time; plays bound to CoverPeek")
+        duck = Clip("CoverDuck" + side, DUCK_TIME, cover_turn(side, False), drop=1.8, fps=60, note="real time")
+        # Self-check: each turn starts on the legs of the pose it leaves (a twisted start shows as a spin).
+        for clip, start in ((pop, cover_low(side)(0.0)), (duck, cover_aim(0.0))):
+            begin = clip.pose(0.0)
+            for joint in L.LEGS:
+                angle = math.degrees(begin.q(joint).rotation_difference(start.q(joint)).angle)
+                angle = min(angle, 360.0 - angle)
+                assert angle < 5.0, "%s starts %.0f degrees off at %s" % (clip.name, angle, joint)
     Clip("CoverAim", 2.8, cover_aim, loop=True)
     Clip("LandRoll", 0.8, guarded(land_roll, L.FLOOR))

@@ -9,12 +9,12 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Movement State Machine]]: every stance (standing, sprint, crouch, cover, shoot-dodge, getting up, Last Stand, dead), what each allows, prediction and server checks.
 - [[Loadout and Dual Wielding]]: two one-handed guns and one two-handed gun, dual wielding and its drop penalty, pickups, switching, reloads.
 - [[Weapons and Recoil]]: weapon balancing, where shots come from, accuracy modifiers, CS2-style recoil and spread, aiming and the sniper scope, tracers and muzzle flash.
-- [[Cover System]]: high and low cover, corners, popping out, blind fire, the cover camera.
+- [[Cover System]]: high and low cover (side-on, back to the wall, as Max Payne 3), corners, popping out, blind fire, the cover camera.
 - [[Shoot-Dodge]]: the dive in any direction, from run-up to getting up.
 - [[Last Stand and Bullet Time]]: Last Stand, localized bullet time and the adrenaline meter.
 - [[Limb Health]]: per-limb health, the limping, crawling, one-arm and disarmed rules, painkillers.
 - [[HUD Layout]]: blueprint of the HUD (Max Payne 3 style health figure and gun list, boxed keybinds and prompts).
-- [[Animation Hooks]]: how the 93 animations are made in Blender, imported, layered, chosen and published.
+- [[Animation Hooks]]: how the 98 animations are made in Blender, imported, layered, chosen and published.
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
 - [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.

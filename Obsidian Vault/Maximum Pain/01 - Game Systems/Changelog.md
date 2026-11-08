@@ -3,6 +3,127 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-08: Popping up and ducking back in low cover turn the body round
+Session 5 ran on this PC (Studio signed in as 83tg), 2026-11-08, with Claude Code driving Blender headless and Studio. It did to-do 4.14, ran 4.19's first test, and found two new faults on the way (the cover slide's feet, fixed, and 4.20).
+- Side-on, the low cover idle faces out from the wall and the aim faces over it. Popping up and ducking back used to turn the body about 166° in the body layer's 0.2 s blend, and the feet swept through the wall's base.
+- Four new clips take the turn (98 clips now). Three scripts changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 5).
+
+**Added: the turn clips** (`mp_stances.cover_turn`)
+- `CoverPopUpLeft/Right` (0.25 s, as long as `CoverPeek`) and `CoverDuckLeft/Right` (0.3 s). Sampled at 60 per second, not 30: they turn the body half round in a quarter second.
+- **The turn:** toward the edge being worked, so the head that was looking along the wall leads it. Working right the body goes from facing out (-180°) through facing the edge (-90°) to the aim (14°), working left through 90°.
+- **Popping up:** the body rises, leaves the wall and only then turns (turning in place, the side-on torso went 0.47 into the wall). The hips sway 0.6 out from the wall halfway round. The foot on the outside of the turn steps first.
+- **Ducking back:** the body turns and folds over first, and goes down once the feet are round. Left to `AimLayer`'s height ease, the hips dropped halfway in 0.06 s with the feet still stepping: the knees folded forward over them and the shins went 0.3 into the floor.
+- **The game's height ease is built in:** the game changes the hip height at once, and `AimLayer` holds the body where it was and eases it to the new height (10 per second). The clips plant the feet where that hold leaves the floor, so they stay on it.
+- **Knees:** they turn with the feet, from the way they bend in the pose the clip starts on to the way they bend in the one it ends on, so each clip starts and ends on its neighbours' legs. Where a knee, or a gun holstered on the left thigh, would reach past the wall's face, the knee turns out from the wall, no further than it needs.
+- **`CoverAim`:** the back heel is up (22°). Flatter, the shin leant over the foot and its box went 0.12 into the floor.
+
+**Changed: the game** (Team Create place)
+- `AnimationController`:
+  - Low cover to `CoverPeek` plays `CoverPopUp<side>`, bound to the stance. `CoverPeek` or `CoverAim` back to low cover plays `CoverDuck<side>`. They play in real time, as the height ease does (bullet time doesn't slow them), and take the body over at 25 per second (`TURN_FADE`).
+  - For the first 0.15 s of a pop-up (`POP_AIM`) the gun stays in the low cover hold. Raised at once it went through the wall's top; at 0.1 s it still went 0.5 into the wall's face working left, where the turn takes the gun shoulder past the wall.
+  - Other players' characters use the right-hand clips, as their cover idles already do.
+- `AnimationConfig`: the four slots (105 slots now).
+- `AimLayer`: the foot guard (the body lifts so no foot is under the floor) now runs in every cover stance, not only while a height change eases. Sliding along low cover, the idle blends into the run a quarter turn round, and the feet went 0.36 under the floor.
+
+**Tested** (Studio play mode, 83tg's avatar, the LowWall)
+| Test | Result |
+|---|---|
+| Pop up and duck back, working right and left | the clips play on the stance changes. A shin 0.08 under the floor for one frame at most (0.22 with the clips' first version); feet 0.05; no leg in the wall |
+| The gun coming up while popping up | working left, the gun 0.05 in the wall's face for a few frames (0.59 with `POP_AIM` at 0.1); aiming over the top, the forearm rests on it (0.05), as before |
+| Sliding along low cover, start and stop | feet 0.05 under the floor (0.36 before the guard ran in cover); shins, thighs and holstered gun still go 0.33 under (4.20) |
+| Blind fire while sliding along low cover (4.19, first test) | nothing in the wall, but on the run the gun is 2.7 out from the wall pointing back along it |
+| Camera | largest step 0.08 |
+| Output log | clean (client and server) |
+
+**Not fixed**
+- **New, 4.20:** the crouch walk and the low cover run fold the trailing leg so low that the knee is 0.19 above the floor: the shin's box goes 0.44 to 0.47 under it, the thigh's 0.26, a holstered gun's 0.34 (default R15; 0.33 in game). Tried in Blender: the push-off heel, the knees turned out, shorter strides, the feet further forward: no better than 0.35. Hips 0.2 to 0.3 higher with short strides: 0.16 to 0.3, the head 0.2 to 0.33 higher.
+- At the start of ducking back working right, the holstered gun is 0.14 in the wall for 2 frames while the clip blends in over the aim. The right upper arm rests on the wall's top edge (0.08) as the aim lowers.
+- **4.19, tested:** blind firing while sliding along low cover turns the chest the wrong way (the clip twists the waist for the idle's hips, which face out; the run's face along the wall). Needs a call: stop the slide while blind firing, or blind fire clips made on the run.
+
+## 2026-11-07: Side-on cover, as Max Payne 3 does it
+Session 4 ran on this PC (Studio signed in as 83tg), 2026-11-07 from 19:26 (UK time), with Claude Code driving Blender headless and Studio. Studio had updated itself at 19:18 and dropped Claude Code's Studio connection, so the session drove Studio's own `StudioMCP.exe` directly (see "How to resume" in [[Animation and MP3 Systems - Progress and To Do]]).
+- The three open decisions in the to-do were made: the game's code stays out of git, the test harness goes into the repo, and cover goes side-on, high and low, like Max Payne 3.
+- 24 cover clips were remade in Blender and one added (94 clips now). Five scripts changed in the Team Create place, two of them only in comments.
+- Everything was measured in Studio play mode, frame by frame, on 83tg's avatar (a slim R15: torso 1.4 studs wide where the default is 1.94, root 3.13 above the floor).
+- Details, numbers and what's left: [[Animation and MP3 Systems - Progress and To Do]] (session 4).
+
+**What Max Payne 3 does** (frames from the Steam trailers, studied at 2 to 4 fps; nothing stored in the repo)
+- *Design and Tech Video 2*, 2:53–2:54: Max runs to a tall cabinet and puts his **back flat against it**, facing out, SMG low in the right hand, the left hand up by his face, head turned toward the edge.
+- Same video, 2:56–2:57: behind a low counter he **crouches with his back against it**, knees up, gun up by his shoulder, head turned to the edge. Popping up, he turns round to face over it.
+- *Multiplayer* trailer, 1:35–1:36: players stand with their **back to a wall at its edge**, pistol low, head turned along the wall. 1:43: a rifle held **upright beside the face**.
+- The official screenshot `ss_4ae054ce…` (see [[Reference Images]]): back to the wall beside a window, the pistol low in both hands, head turned to the window.
+- So "side-on" here is Max's version: back and inner shoulder on the wall, the body turned toward the edge being worked, the head looking along the wall to it. Moving along the wall, the body runs side-on, facing the way it goes.
+
+**Changed: the cover clips** (`mp_stances.py`, `mp_hands.py`, `mp_arms.py`)
+- **How they fit the game:** the game keeps the root part facing the wall, and keeps the gap the body's reach toward the wall needs (`CoverController.bodyReach`). So the clips turn the body round inside the root part and lean it back until the head, torso and upper arms reach 1.1 toward the wall: the gap comes out at 1.15 and the back rests on the wall. No gameplay code depends on which way the body faces.
+- **High cover idle** (`CoverHighLeft/Right`): turned 150° from facing the wall, so the back and inner shoulder are on it, knees soft, feet out from the wall, the head turned along the wall to the edge.
+- **Low cover idle** (`CoverLowLeft/Right`): a deep squat on the balls of the feet, back against the wall, folded over the knees. The head is aimed along the wall to the edge with a look-at, since a neck turn on a folded body rolls the head instead. Head top 2.80 above the floor on the default R15, so it's under even the lowest (3-stud) cover. The old pose's was 3.22, and 3.49 in game.
+- **Moving along cover** (`Cover…Move…`): side-on, facing the way it goes. High is a hunched jog at 9.6 studs/s; low is a crouched run at 8 studs/s, folded at the waist to keep the head under 3 studs. Folding at the hips put the trailing shin through the floor.
+- **Corners** (`CoverCorner…`): from the idle, a side-on stride round the corner, and back to the idle.
+- **Wall ends:** the root stops 0.9 short of an end (`EDGE_MARGIN`), and an R15's shoulders reach further than that along the wall. So the idles sit back along the wall, away from the edge: 0.35 (high) and 0.75 (low). The runs sit back so the head leads the root by no more than 0.8 (high) and 1 (low).
+- **Holds while hidden:**
+  - High: `CoverHoldHighOne` (the pistol low in front of the belly, muzzle down, as in the screenshot), `CoverHoldHighTwo` (the rifle upright across the chest, muzzle up and to the left, its top 4.5 above the floor, under the 5.2 wall) and `CoverHoldHighDual` (both pistols up in front of the chest).
+  - Low: `CoverHoldLowOne` and `CoverHoldLowDual` (the gun up beside the face), and `CoverHoldLowTwoLeft/Right` (the rifle upright past the face, leaning away from the edge the head looks to).
+  - The guns are placed in a body part's frame and aimed in the body's facing frame, so one clip fits both sides.
+- **Blind fire:**
+  - **Low** (`BlindFireLowLeft/Right`, now keys the waist and neck): the hips stay against the wall and the chest twists 105° to put the gun shoulder to it. The arm goes straight up, and the gun goes over the top, the head ducked and facing away.
+    - With the back to the wall the arm can't reach over: folded to keep the head down, the shoulders are 2 studs out from the wall, and upright the head is above it.
+    - The hand stays in front of the wall's face. With the hand over the wall, the forearm cut 1.2 into the top edge of the 2-stud-thick LowWall.
+  - **High** (`BlindFireHigh…`, now keys the waist and neck): the gun arm out along the wall and the gun turned round the edge, the head looking along the wall, not round it.
+    - Working right, the gun arm is on the side away from the edge (back to the wall), so the chest leans out and toward the edge and the arm reaches across.
+- **Carried rifle:** `CarryTwoHandedCover` now hangs the rifle muzzle down in front of the left thigh, off the wall on either side. The new `CarryTwoHandedCoverLow` holds it by the knee, muzzle forward and down, away from the wall. `CarryTwoHandedLow` is now only for crouching and getting up.
+
+**Changed: the game** (Team Create place)
+- `AimLayer`:
+  - The head no longer looks at the aim while hidden in cover. The aim is past the wall, behind the turned head, and would wring the neck round. It eases on and off at 8 per second (`gaze`).
+  - The momentum lean is worked out in the hips' frame. In the root part's frame it went the wrong way once the body turned round, and it was 45 to 50° off on strafes too.
+- `AnimationController.carryFor`: low cover uses `CarryTwoHandedCoverLow`.
+- `AnimationConfig`: the new slot, and the cover comments.
+- `CoverController`, `CoverRules`: comments only (no more "hunched").
+
+**Found in the place** (done after the 2026-11-03 notes, without notes or commits; found reading the code)
+- `AimLayer.guardArm` keeps each arm, its gun and the carried gun out of walls (to-do 4.2 and 4.7).
+- The dive landing is held and eased like a crouch, so the root no longer falls 2.4 and bounces (`DodgeGround` left `FALLS`; 4.3). The foot guard now lifts up to 1.2.
+- `VaultRules.LEG_CLEARANCE` is 0.3 (4.4).
+- `AnimationController.watchReloads` runs the reload markers on other players' guns (4.13). A reload cut short puts the gun back to rest, and every clip is loaded at spawn so the first vault isn't unstretched.
+- `CoverController.bodyReach` counts the upper arms below the cover's top. The high-cover step out is capped at what lands on the spot by the next frame.
+- `ServerStorage.Tools.TestHarness`: a 733-line play-test harness. `ServerStorage.Tools.AnimationImporter` was rewritten as a module.
+- A large block, `Workspace.Part` (4 × 18 × 18 at x 32, z 47), stands between the spawn and the arena.
+
+**Added: repo**
+- `Tools/TestHarness.luau`: the place's harness (to-do decision 2). How to install and use it is in the file's header and in [[Test Arena]].
+- `Assets/Blender/Animation/studio_import.luau` now matches the place's `AnimationImporter`.
+- 94 clips in `Exports/keyframes.json` and in `MaximumPain_Animations.blend`. Only the 24 cover clips changed, plus the new one; the other 69 are byte-identical.
+
+**Decisions**
+- The game's code stays out of git: the repo is public (JordanSaa's call, to-do 1).
+- Cover is side-on as Max Payne 3 has it: back and inner shoulder to the wall, turned to the edge (to-do 3). Moving is side-on, facing the way it goes.
+- The body is turned inside the root part, not the root part itself, so cover detection, the gap, edges, peeking, the server's checks and the virtual muzzle all stay as they were.
+- The wall ends are handled in the clips (sitting back from the edge), not by widening `EDGE_MARGIN`. A wider margin would change where peeking and blind fire work.
+
+**Tested** (Studio play mode, 83tg's avatar)
+| Test | Result |
+|---|---|
+| Low cover, settled | head top 2.77, 0.83 under the 3.6 wall (3.49 before); root 1.21 off the wall; nothing in the wall or the floor |
+| Low cover at the wall's ends | head 0.47 inside the end; the edge-side upper arm 0.33 past it (0.73 before the idle sat back) |
+| Low cover, the run stopping at an end | head 0.21 past the end while the run blends out (0.64 before) |
+| High cover at the wall's ends | head 0.39 inside; arm 0.29, legs 0.15, holstered Uzi 0.47 past (head 0.84 and arm 0.96 past before the idle sat back) |
+| Blind fire over the LowWall | head 0.34 under the top, gun 0.11 over it (0.39 on the default R15); nothing in the wall; gap held at 1.21 |
+| Blind fire round the HighWall's ends | working left: gun 1.07 past the end, round the corner; working right: just past the corner, the body leaning out |
+| Popping up and out, ducking back | right clips; aiming over the wall the forearm only rests on the top (0.05); ducking back into high cover the gun is 0.22 in the wall for 3 frames |
+| Corner swings round CrateA | nothing in the crate |
+| Vault out of low cover | flies clear; see Not fixed |
+| Camera | largest step 0.08 |
+| Output log | clean |
+
+**Not fixed** (in the to-do as 4.14 to 4.19)
+- Popping up and ducking back in low cover turn the body round in a 0.2 s blend. A foot goes up to 0.43 into the wall's base, and the gun arm 1.2 into the top for the first frame. A turn clip for each would fix it.
+- Vaulting out of low cover: for one frame a foot is 0.74 inside the wall as the body turns.
+- At an inside corner the root turns 90° in one frame, and the run's body (up to 1.8 off the root) swings with it. Sliding round CrateA into the next crate, it went 1.1 into CrateA for about 3 frames.
+- Blind fire working right reaches only just past the corner.
+- Not tested: two players, other avatars in game, firing while sliding along low cover.
+
 ## 2026-11-02: Play tests, the fixes they needed, and the Blender export
 Session 3 ran on JackT6785's PC, with Claude Code driving Studio: 2026-11-02 20:58 to 22:20, then 2026-11-03 01:51 to 02:00 (UK time).
 - Every play test left on the to-do list was run in Studio play mode on JackT6785's R15 avatar, and measured frame by frame: each body part's box, the root, the camera and each clip's weight.

@@ -23,7 +23,7 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | `BulletTimeRules` | The adrenaline meter's levels, how long each lasts, who counts as seen, the aim penalty. |
 | `VaultRules` | What can be vaulted, the path over it (its apex rises with the avatar's legs), and the timing. The server only uses `find`. |
 | `RagdollRules` | The Euphoria-style death: muscles that pull toward a collapse and fade (see [[Euphoria-style Reactions and Ragdolls]]). |
-| `AnimationConfig` | Every animation slot and the clip it plays (93 clips made in Blender). In Studio an unpublished slot plays its KeyframeSequence directly. |
+| `AnimationConfig` | Every animation slot and the clip it plays (105 slots, 98 clips made in Blender). In Studio an unpublished slot plays its KeyframeSequence directly. |
 | `WeaponConfig`, `WeaponMath`, `LimbRules` | Gun numbers, spread and recoil maths, limb health rules (from the first milestone). |
 
 ### Server (ServerScriptService)
@@ -45,22 +45,20 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | Controller | Job |
 |---|---|
 | `Keybinds` | Every control in one table. The HUD's keybind list reads it. |
-| `CharacterController` | The client's state machine: predicts stances, sprint and crouch keys, walk speed, jumping, the painkiller and bullet-time keys. Works out each stance's hip height (`applyHeight`, which also handles heights the server forces first) and changes it together with the root just before physics (`moveRoot`, the first procedural layer). Hands the body to the cover, dodge and vault controllers. Reads WASD and the left stick itself. |
-| `CoverController` | Taking cover, moving along it, corners, popping out to aim, the cover prompt. Keeps the gap the body needs, shoulders included (`bodyReach`, remembered per cover stance); steps out of high cover without overshooting (`stepToward`). |
+| `CharacterController` | The client's state machine: predicts stances, sprint and crouch keys, walk speed, jumping, the painkiller and bullet-time keys. Sets the hip height and moves the root with it (`applyHeight`, which also handles heights the server forces first). Hands the body to the cover, dodge and vault controllers. Reads WASD and the left stick itself. |
+| `CoverController` | Taking cover, moving along it, corners, popping out to aim, the cover prompt. Keeps the root part facing the wall and the gap the body's reach needs (`bodyReach`, remembered per cover stance); the side-on cover clips turn the body round inside the root part and lean its back onto the wall. |
 | `DodgeController` | The dive: run-up, flight, wall collisions, landing, lying down, getting up. |
-| `VaultController` | The vault: flies the body along `VaultRules`' path with free aim, gravity cancelled and physics aimed at the next frame's place (exact at any frame rate); `progress()` paces the Vault clip; softens the camera over the hop. |
+| `VaultController` | The vault: flies the body along `VaultRules`' path with free aim; `progress()` paces the Vault clip; softens the camera over the hop. |
 | `WeaponController` | Hold modes, trigger, aim, reload, pickups, recoil, reticle. |
 | `WeaponEffects` | Muzzle flash, gun kick, tracers, impacts. `restPose(motor)`: a gun part's resting pose, kept on the motor. |
-| `CameraController` | Shoulder camera, aim and scope zoom, recoil, cover shoulder and corner turns, dive field of view, Last Stand lock. Holds its height through hip-height changes and eases (`absorbHeight`: the root's move and the new hip drop, reported together by `moveRoot`; `setVerticalLag` for a vault). Reports where the player looks (`AimUpdate`). |
+| `CameraController` | Shoulder camera, aim and scope zoom, recoil, cover shoulder and corner turns, dive field of view, Last Stand lock. Holds its height through hip-height changes and eases (`absorbRise` for the root jumping, `setVerticalLag` for a vault). Reports where the player looks (`AimUpdate`). |
 | `LastStandController` | Camera lock and drag, killer outline, countdown, the bullet-time look. |
-| `ProceduralLayer` | Runs, once a frame and before physics, everything that moves or bends bodies after the animations, in the order added: the stance's root move (`CharacterController`), then the joint bends (aim, recoil, flinches) on top of the animations. |
-| `AimLayer` | Points every character's gun where its owner aims from any pose, the chest blade, head look, recoil springs, momentum lean, the left hand on the gun, the carried gun's floor guard, the arm guard that keeps arms and guns out of walls, and the height easing (with the foot guard). |
+| `ProceduralLayer` | Applies every procedural joint bend (aim, recoil, flinches) once a frame, before physics, on top of the animations. |
+| `AimLayer` | Points every character's gun where its owner aims from any pose, the chest blade, head look (off while hidden in cover), recoil springs, momentum lean, the left hand on the gun, the carried gun's floor guard, arms and guns kept out of walls (`guardArm`), and the height easing (with the foot guard, which also runs all the time in cover). |
 | `HitReactions` | Euphoria-style flinches on every character, and the recent-hit log the death push and kill cam read. |
 | `RagdollController` | This player's own death: the body goes physical here at once, pushed by the killing shot. |
 | `KillCamController` | This player's kill cam: the bullet, the impact in slow motion, the comic-style panel ([[Max Payne 3 Kill Cam]]). |
-| `AnimationController` | Plays the clips in layers (body, hold, aim, one-off arm actions), stretched to the server's timers, slowed by bullet time; loads every clip up front; moves gun parts on reload markers, for every character's reloads, and puts a gun back at rest when its reload stops. |
-
-**Studio tools** (`ServerStorage.Tools`, never sent to players): `AnimationImporter` builds the clips from Blender's export; `TestHarness` records and measures play tests (also `Tools/TestHarness.luau` in the repo; how to use it is in the to-do note's "How to resume").
+| `AnimationController` | Plays the clips in layers (body, hold, aim, one-off arm actions), stretched to the server's timers, slowed by bullet time; moves gun parts on reload markers. Plays one-off body clips on stance changes, the turns popping up out of low cover and ducking back among them. |
 | `Hud` | Draws everything; holds no rules. |
 
 **Rule:** no weak-keyed tables keyed by instances (`__mode = "k"`) for state that must survive. The engine can drop an instance's Lua handle while the instance still exists, and the entry vanishes with it; this left slides racked back after reloads until 2026-11-02. Keep such state on the instance (attributes) or in a plain table cleared when the instance leaves. AimLayer's gun-box cache is the one weak table left, on purpose.
@@ -103,7 +101,8 @@ Gun models carry `WeaponId`, `Slot`, `Place` (Right, Left, Holster or Dropped), 
 Set on each client only, never replicated: `LastShot` on the character (when this player last fired), `RestC0` on a gun's moving-part motors (their resting pose), `Flashes` on a muzzle (its flash counter).
 Tags: `NotCover` (characters, dummies and dropped guns are never cover) and `Combatant` (non-player characters bullet time can slow).
 
-## Studio test hooks
+## Studio tools and test hooks
+- `ServerStorage.Tools` (never reaches players): `AnimationImporter` builds the clips from Blender's export, and `TestHarness` records and measures play tests. Both are in the repo: `Assets/Blender/Animation/studio_import.luau` and `Tools/TestHarness.luau`. The game's own scripts are not in git, on purpose (the repo is public).
 - A Vector2 `DebugLook` attribute on the player (yaw and pitch in radians) points their camera, in Studio only. Automated play tests use it to aim. It only applies when the value changes.
 - `DebugBulletTime = true` on any character activates its bullet time (it needs `Adrenaline`; a dummy needs an `Aim` toward its target).
 - `StanceService._records` exposes the server's stance records to game scripts in Studio. The command bar's `require` makes its own copy of a module, so it can't see them.

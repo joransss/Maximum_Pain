@@ -20,6 +20,8 @@ Related: [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] �
 
 Red markers show where the dummies stand. Each area has a floating label.
 
+A large block that isn't part of the arena's plan, `Workspace.Part` (4 × 18 × 18, x 30 to 34, z 38 to 56), stands north of the spawn (found 2026-11-07). Walk round it by (38, 38) and (38, 77).
+
 ## Dummies
 - **TargetBehindLow** (behind the low wall), **TargetOpen** and **TargetFar**: plain avatars with limb health. They come back 5 s after dying.
 - **Gunman** (holding an AK): press **T** at it to make it hostile for 20 s. It turns to the nearest player in sight and hits their torso for 18 every 0.8 s (slowed by bullet time). This is how to test Last Stand alone.
@@ -32,7 +34,7 @@ Red markers show where the dummies stand. Each area has a floating label.
 | Dual wield | 4 dropped the AK (with a pickup prompt); M9 right, Uzi left; firing alternates hands; the 3 s dual reload topped both guns up correctly. |
 | Pickups | Picking the AK up while dual wielding ended dual wielding. SWAP M9 FOR DESERT EAGLE swapped them and left the M9 (13 rounds) on the table. |
 | Reloads | Cut off by a switch: no ammo moved. Completed: 7/5. |
-| High cover | 1.15 studs from the wall, facing it; stops at the ends; pops out to 1.37 past the end; ducks back to the same spot. (Since 2026-11-04 the gap also counts the shoulders: 1.5 to 1.8 on JackT6785's avatar.) |
+| High cover | 1.15 studs from the wall, facing it; stops at the ends; pops out to 1.37 past the end; ducks back to the same spot. |
 | Corners | The inside corner turned onto the second wall; holding D circled the pillar. |
 | Firing from cover | Aimed shots from the high wall's end killed TargetFar. Blind fire round the end cleared the wall; blind fire mid-wall hit the wall. |
 | Low cover | Head top 3.49 under a 3.6 wall. A pop-up headshot hit the dummy behind; blind fire over the top reached it. |
@@ -56,22 +58,35 @@ No errors appeared in the output during the tests.
 
 Details and the before/after numbers: [[Animation and MP3 Systems - Progress and To Do]].
 
-## Test log (2026-11-04, Studio play mode, the test harness)
+## Test log (2026-11-07, Studio play mode, side-on cover, 83tg's avatar)
 | Feature | Result |
 |---|---|
-| Height changes | Crouch, stand, cover, pop-up, get-up: no frame drawn out of place (the body was drawn a stance's height out for one frame); camera steps ≤ 0.22 |
-| Dive landing | Put on the floor and eased: no fall, no bounce, camera 0.35 |
-| Cover | Low cover pop-up and back ≤ 0.05 into the wall; high cover clear at rest and stepping out; low cover gap 2.52, high cover 1.5 to 1.8 |
-| Vaults | LowWall from standing +0.19 with no contact, from close 0.02, out of low cover +0.26; bullet time 1.52 s in the air |
-| Last Stand | Survived; drop, wakeup and stand with the feet ≥ −0.05 |
+| Low wall | Head top 2.77 (0.83 under the top); back on the wall (root 1.21 off it); at the ends the head stays 0.47 inside; blind fire clears the top by 0.11 with the head 0.34 under it |
+| High wall | At the ends the head stays 0.39 inside; blind fire round the end (1.07 past it working left, at the corner working right); popping out and back |
+| CrateA | Outer corner swings clean; the inside-corner snap into the next crate went 1.1 into CrateA for about 3 frames (to-do 4.16) |
+| Vault out of low cover | Clears; one frame of a foot in the wall (to-do 4.15) |
 | Output | Clean |
+
+## Test log (2026-11-08, Studio play mode, 83tg's avatar)
+| Feature | Result |
+|---|---|
+| Low wall: popping up and ducking back, both sides | The turn clips play; no leg in the wall; a shin 0.08 under the floor for one frame at most; the gun 0.05 in the wall's face as it comes up |
+| Low wall: sliding, starting and stopping | Feet on the floor (within 0.05); the trailing shin, thigh and the holstered Uzi still go 0.33 under it (to-do 4.20) |
+| Low wall: blind fire while sliding | The gun swings 2.7 out from the wall, pointing back along it, until the slide stops (to-do 4.19). Hold blind fire for a test by setting the character's `LastShot` attribute to `os.clock() + 25` on the client |
+| Output | Clean |
+
+To work the left side without moving along the wall (the move's floor dips would cloud the numbers), press Q before E: the cover side starts on the camera's shoulder.
+
+## Test harness
+`ServerStorage.Tools.TestHarness` (in the repo as `Tools/TestHarness.luau`) records play tests frame by frame and measures them: boxes against the floor and against an obstacle (exact depth), clearance over a top, camera steps, the clip timeline. It can also walk the character, point the camera and frame screenshots. Install it once per play session (see its header):
+- Server: `game.ServerStorage.Tools.TestHarness:Clone().Parent = game.ReplicatedStorage`
+- Client: `_G.mp = require(game.ReplicatedStorage:WaitForChild("TestHarness"))`
 
 ## Not tested yet
 Two real players, network lag, phones and tablets (there are no touch controls), the angled wall, the ledge dive, the line-of-sight failure in Last Stand, and Studio's Script Analysis (type warnings).
 
 ## Tips
 - In Studio only, a Vector2 `DebugLook` attribute on your player (yaw and pitch in radians) points the camera. Set it from the command bar to aim precisely; it only applies when the value changes.
-- **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it. An activation can end within a few seconds, so for a test re-arm it every 0.25 s from a server loop.
-- **Measuring:** `ServerStorage.Tools.TestHarness` records and measures play tests (floor and wall clearances, camera steps, clips). How to install and use it: the to-do note's "How to resume".
+- **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it (5 s per activation).
 - **Picking up a gun:** the F prompt is the one nearest the crosshair, so point the camera at the gun you want.
 - **Moving around:** don't teleport the character, since the server's speed check moves it back; walk instead. The walls at z 85 to 87 have gaps at x −23 to −17 and −3 to 4, and the gun table blocks x −28 to 28 at z 70.

@@ -1,13 +1,18 @@
 # Animation and MP3 Systems: Progress and To Do
 
+<<<<<<< HEAD
 Work log and work queue for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations). Picks up where the [[Changelog]] entries of 2026-11-01 leave off; session 4 (2026-11-04) is the newest. The [[#To do (in order)|to-do list]] was brought up to date on 2026-11-04.
+=======
+Work log and work queue for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations, cover). Picks up where the [[Changelog]] entries of 2026-11-01 leave off; session 5 (2026-11-08, the low cover turns) is the newest. The [[#To do (in order)|to-do list]] was updated on 2026-11-08.
+>>>>>>> 35c5e2de0fc9bb8cfe660496e5aef6791adef680
 
 > [!warning] Save the place
-> The game's scripts and the 93 imported clips live in the Team Create place ("Untitled Experience", place 70765307359272). Save it (File > Save to Roblox) after each session. The Blender scripts, the clips' keyframes and the `.blend` are committed to the repo.
-> **The game's code isn't in git.** The repo's `Maximum-Pain.rbxl` is the 80 KB file from the first commit (2026-10-29, before the restart), so the place is the only copy of the code.
+> The game's scripts and the 98 imported clips live in the Team Create place ("Untitled Experience", place 70765307359272). Save it (File > Save to Roblox) after each session. If Studio's Drafts window lists scripts, commit them first. The Blender scripts, the clips' keyframes and the `.blend` are in the repo.
+> **The game's code isn't in git, on purpose** (decided 2026-11-07: the repo is public). The repo's `Maximum-Pain.rbxl` is the 80 KB file from the first commit (2026-10-29, before the restart), so the place is the only copy of the code.
 
 Related: [[Architecture]] · [[Animation Hooks]] · [[Movement State Machine]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Loadout and Dual Wielding]] · [[Test Arena]] · [[Euphoria-style Reactions and Ragdolls]] · [[Max Payne 3 Kill Cam]]
 
+<<<<<<< HEAD
 ## Where things stand (2026-11-04)
 | Item | State | Who | Next step |
 |---|---|---|---|
@@ -17,6 +22,139 @@ Related: [[Architecture]] · [[Animation Hooks]] · [[Movement State Machine]] �
 | **Low-cover pose** | Decided: keep the hunched pose facing the wall (JackT6785, 2026-11-04) | — | — |
 | **Polish** | 4.2, 4.3, 4.4 and 4.13 done; 4.5 and 4.7 in part; the rest open, none blocking | Anyone | [[#4. Polish]] |
 | **Animations** | All 93 clips play in Studio. None of the 100 slots has a published id, so live servers play Roblox's default animations | JordanSaa (the place's owner) | [[#5. Publish and document]] |
+=======
+## Where things stand (2026-11-08)
+| Item | State | Who | Next step |
+|---|---|---|---|
+| **Place** | Session 4 changed 5 scripts and 25 clips (24 remade, 1 new); session 5 changed 3 scripts and 5 clips (4 new). Scripts had also changed after 2026-11-03 without notes (see session 4). Not saved since | Whoever opens Studio next | Commit any drafts, save ([[#1. Save and push]]) |
+| **Repo** | Sessions 1 to 3 are pushed (`695e191`). Sessions 4 and 5's Blender scripts, export, `.blend`, `Tools/TestHarness.luau` and notes are changed but not committed | JordanSaa | Commit and push ([[#1. Save and push]]) |
+| **Play tests** | Every single-player test passes, the new cover included (sessions 4 and 5); the two-client test hasn't been run | Anyone, in Studio | [[#2. Play tests]] |
+| **Cover pose** | Decided: side-on for high and low cover, as Max Payne 3 (2026-11-07). Done in session 4; the low cover turns in session 5 | — | Polish 4.15 to 4.20 |
+| **Polish** | 4.2, 4.3, 4.4, 4.7 and 4.13 were found done in the place; 4.14 was done in session 5; 4.15 to 4.19 are from session 4 and 4.20 from session 5 | Anyone | [[#4. Polish]] |
+| **Animations** | All 98 clips play in Studio. None of the 105 slots has a published id, so live servers play Roblox's default animations | JordanSaa (the place's owner) | [[#5. Publish and document]] |
+
+---
+
+## Session 5 (2026-11-08): the low cover turns (to-do 4.14)
+- **When and who:** 2026-11-08, on this PC (jorda), Studio signed in as 83tg, Claude Code driving Blender 5.2 (headless) and Studio (`/mcp` had reconnected it; Studio's id changes when it restarts).
+- **The fault:** side-on, the low idle faces out from the wall and the aim faces over it. Popping up and ducking back turned the body about 166° in the body layer's 0.2 s blend: a foot went 0.43 and a shin 0.55 into the wall's base, and the aim clip's arm 1.2 into the top on the first frame.
+
+### 1. The turn clips (`mp_stances.cover_turn`)
+| Clip | What it does |
+|---|---|
+| `CoverPopUpLeft/Right` (0.25 s) | Rises, leaves the wall, then turns toward the edge being worked to face over the wall (working right from -180° through -90° to the aim's 14°; working left through 90°). The hips sway 0.6 out from the wall halfway round (`TURN_SWAY`), so the side-on torso doesn't go into it. The foot on the outside of the turn steps first. Bound to `CoverPeek`, which is as long |
+| `CoverDuckLeft/Right` (0.3 s) | Turns and folds over first (the turn in the first 55%, the fold in 70%), then goes down once the feet are round (`DUCK_DROP` 0.2 to 1), and settles back against the wall |
+
+- **Built for the height ease:** the game changes the hip height at once and `AimLayer` holds the body where it was, easing it to the new height at 10 per second (63% in the first 0.1 s). The clips plant the feet where that hold leaves the floor. Ducking, the clip's root also takes back what the hold has eased, so the hips' height over the floor follows `DUCK_DROP` whatever the hold does.
+- **Knees** turn with the feet (75%) and the hips (25%), from the bend in the pose the clip starts on to the bend in the pose it ends on. Each clip starts on the legs of the pose before it (within 3°) and ends on the next one's, apart from what the height ease still has to do: the pop-up ends 0.15 low, the knees up to 20° more bent, and the aim takes over at the rate the ease finishes. Where a knee, or a gun holstered on the left thigh (the Uzi's box, measured in the game), would reach past the wall's face (1.15 from the root part), the knee turns out from the wall by the least that clears it (`leg_reach`, `LEG_REACH`).
+- **Sampled at 60 per second** (the other clips are 30): they turn half round in a quarter second.
+- **`CoverAim`'s back heel is up 22°** (6° before). Flatter, its shin leant 31° over the foot and the box went 0.12 into the floor.
+- **Faults found and fixed while making them** (measured in Blender on the default R15's boxes):
+  - The first version bent the knees away from the wall whichever way the feet pointed: once the feet had stepped round, the knees bent backward over them, and the legs ended 100° to 146° twisted from the aim pose they hand over to.
+  - Following the feet, the front knee went 0.17 into the wall (the aim's front foot is 0.2 from it) and the holstered Uzi 0.2.
+  - Ducking, `AimLayer`'s hold dropped the hips halfway in 0.06 s while the feet were still stepping round: the hips swung out over the planted feet, the knees folded forward and the shins went 0.3 into the floor (now 0.09 to 0.12, box corners).
+  - Folding the body over across the whole duck kept the head over the wall until 0.19 s; folded with the turn, it's under at 0.17 s. Folding any faster put the chest in the wall.
+- **Checks** (scripts kept in the session's scratchpad, not the repo): each clip frame by frame against a wall 1.15 from the root and the floor where the hold leaves it: every box's depth in the wall and under the floor, the knee bends, the head top, and each end against the pose it joins (joint by joint).
+
+### 2. Scripts changed in session 5
+| Script | Side | What changed |
+|---|---|---|
+| `AnimationController` | client | `POP_TIME` 0.25, `DUCK_TIME` 0.3, `TURN_FADE` 25, `POP_AIM` 0.15. `stanceChanged`: low cover to `CoverPeek` plays `CoverPopUp<side>` bound to the stance; `CoverPeek` or `CoverAim` back to low cover plays `CoverDuck<side>`; in real time (the height ease is). `poppingUp`: for `POP_AIM` the gun keeps the low cover hold and carry (`ready` is false). Other players' characters use the right-hand clips, as their cover idles do. |
+| `AnimationConfig` | shared | `CoverPopUpLeft/Right`, `CoverDuckLeft/Right` (105 slots). |
+| `AimLayer` | client | The foot guard runs in every cover stance, not only while a height change eases. |
+
+### 3. In game (83tg's avatar, the LowWall)
+- **Popping up and ducking back, both sides:** no leg in the wall; a shin 0.08 under the floor for one frame at most (0.22 with the first version of the clips); feet within 0.05; camera steps ≤ 0.08.
+- **The gun coming up:** at `POP_AIM` 0.1 s, working left, the gun went 0.59 and the forearm 0.48 into the wall's face: the turn takes the gun shoulder past the wall. At 0.15 s, 0.05 for a few frames. Aiming over the top the forearm rests on it (0.05), as in session 4.
+- **Left over:** at the start of ducking back working right, the holstered Uzi is 0.14 in the wall for 2 frames (the clip blending in over the aim); the right upper arm rests on the wall's top edge (0.08) as the aim lowers.
+- **Sliding along low cover:** starting and stopping, the idle blends into the run a quarter turn round, and the feet went 0.36 under the floor. With the foot guard on in cover they stay within 0.05. The shins, thighs and holstered Uzi still go 0.33 under it, from the run itself: 4.20.
+
+### Repo changes in session 5 (not committed yet)
+- `mp_stances.py`: `cover_turn`, `knee_spot`, `wrap`, `HOLSTER`, `leg_reach`, the turn numbers, `AIM_FEET`'s back heel, the four clips registered at 60 per second, and a self-check in `register()` that each turn starts on the legs of the pose it leaves (within 5°; the export stops if not).
+- `Exports/keyframes.json` (98 clips) and `MaximumPain_Animations.blend`. Only the four new clips and `CoverAim` differ from session 4's export.
+- This note, the [[Changelog]], [[Cover System]], [[Animation Hooks]], [[Architecture]], [[Test Arena]] and the README.
+
+---
+
+## Session 4 (2026-11-07): side-on cover, the open decisions, the harness
+- **When and who:** 2026-11-07 from 19:26 (UK time), on this PC (jorda), with Studio signed in as 83tg and Claude Code driving Blender 5.2 (headless) and Studio.
+- **Studio connection:** Studio had updated itself at 19:18 (version 0.746) and Claude Code's Studio MCP link was down. The session drove Studio's own `StudioMCP.exe` over stdio instead; how is in [[#How to resume (tools and tricks)]].
+- **Decisions** (from the to-do): the game's code stays out of git; the test harness goes into the repo; cover goes side-on, high and low, as Max Payne 3.
+- **Avatar:** 83tg's, a slim R15 (torso 1.4 wide where the default is 1.94; root part 1.4 × 1.8 × 0.9, 3.13 above the floor). The clips are made on the default R15. Numbers differ by avatar: the low blind fire's gun came out 0.28 lower on this one.
+
+### 1. Max Payne 3's cover, from footage
+Steam trailer frames, cut with Blender's sequencer at 2 to 4 fps (nothing stored):
+- *Design and Tech Video 2* 2:53–2:54: back flat against a tall cabinet, facing out, SMG low, the left hand by the face, head turned to the edge.
+- Same, 2:56–2:57: crouched with the back to a low counter, knees up, gun by the shoulder, head turned to the edge; popping up, he turns round over it.
+- *Multiplayer* 1:35–1:36: back to a wall at its edge, pistol low, head turned along the wall. 1:43: a rifle upright beside the face.
+- The official screenshot `ss_4ae054ce…`: back to the wall, pistol low in both hands, head turned to the window.
+
+So side-on here means back and inner shoulder on the wall, turned toward the edge being worked, head looking along the wall. Moving, the body runs side-on, facing the way it goes. The to-do's earlier "side-on" (shoulder to the wall, `LOW_TURN` 70°) was a guess; the footage is back to the wall.
+
+### 2. How the clips fit the game
+- The game keeps the root part facing the wall and keeps the gap the body's reach needs (`CoverController.bodyReach`: head, torso and the upper arms below the top, + 0.05, at least 1.15).
+- So the clips turn the body round inside the root part (150° high, 180° low) and slide it back until those parts reach 1.1 toward the wall (`mp_stances.onto_wall`, `BACK_REACH`). The gap comes out at 1.15 and the back rests on the wall.
+- Nothing in the gameplay code had to change: cover detection, edges, peeking, the server's checks and the virtual muzzle don't depend on which way the body faces.
+- **Wall ends:**
+  - The root stops 0.9 short of an end, and an R15's shoulders and edge-side arm reach 1.3 to 1.8 along the wall. Centred on the root, the arm stuck out 0.5 to 0.7 past the end.
+  - The idles sit back along the wall, away from the edge (`HIGH_BACK` 0.35, `LOW_BACK` 0.75). Any further, and the right arm can't blind fire round the end working right (it's the arm away from the edge, back to the wall).
+  - The runs sit back so the head leads the root by at most 0.8 (high) or 1 (low).
+- **Checking in Blender:** each pose was measured against a wall placed where the game would keep it: the head top over the floor, any box inside the wall or the floor, how far along the wall toward the edge, and the guns over the top or round the corner. Contact sheets with a face marker on the head show where it looks.
+
+### 3. The clips (24 remade, 1 new)
+| Clip | Now |
+|---|---|
+| `CoverHighLeft/Right` | Back and inner shoulder on the wall, turned 150° from it toward the edge, feet out from the wall, knees soft, head turned along the wall to the edge |
+| `CoverLowLeft/Right` | A deep squat on the balls of the feet, back to the wall, folded over the knees, hands on the knees, the head aimed along the wall to the edge (a look-at: a neck turn on a folded body rolls the head). Head top 2.80 on the default R15 (3.22 before) |
+| `CoverHighMoveLeft/Right` | A hunched side-on jog along the wall at 9.6 studs/s, facing the way it goes, the chest open 10° to the room |
+| `CoverLowMoveLeft/Right` | A crouched side-on run at 8 studs/s, the fold mostly at the waist (folded at the hips, the trailing shin went 0.63 through the floor); head top 2.98 |
+| `CoverCornerHigh/Low…` | The idle, a side-on stride round the corner, the idle |
+| `CoverHoldHighOne/Two/Dual` | The pistol low in front of the belly, muzzle down; the rifle upright across the chest (top 4.5, under the 5.2 wall); two pistols up in front of the chest |
+| `CoverHoldLowOne/Dual`, `CoverHoldLowTwoLeft/Right` | The gun up beside the face; the rifle upright past the face, leaning away from the edge |
+| `BlindFireLowLeft/Right` | Keys the waist and neck: the chest twists 105° to put the gun shoulder to the wall, the arm goes straight up, the gun over the top, the head ducked. The hand stays in front of the wall's face |
+| `BlindFireHighLeft/Right` | Keys the waist and neck: the gun arm out along the wall, the gun round the edge. Working right the arm reaches across, the chest leaning out |
+| `CarryTwoHandedCover` | The carried rifle muzzle down in front of the left thigh |
+| `CarryTwoHandedCoverLow` (new) | The carried rifle by the knee, muzzle forward and down, away from the wall. `CarryTwoHandedLow` stays for crouching and getting up |
+
+### 4. Scripts changed in session 4
+| Script | Side | What changed |
+|---|---|---|
+| `AimLayer` | client | The head's look-at eases to 0 while hidden in cover (`gaze`, `GAZE_EASE` 8): the aim is past the wall, behind the turned head. The momentum lean is worked out in the hips' frame (in the root part's it went the wrong way once the body turned round). The stance is read once per frame. |
+| `AnimationController` | client | `carryFor`: `CarryTwoHandedCoverLow` in low cover. |
+| `AnimationConfig` | shared | The `CarryTwoHandedCoverLow` slot; cover comments. |
+| `CoverController`, `CoverRules` | client, shared | Comments only. |
+
+### 5. Found in the place: work after 2026-11-03 that the notes didn't have
+Found reading the scripts (not re-tested, except through the cover tests):
+- `AimLayer.guardArm`: each arm, its gun and the carried gun are turned at the shoulder (lift, swing or yaw, up to 60°) just enough to stay out of walls. This covers to-do 4.2 and 4.7.
+- The dive landing is held and eased like a crouch (`DodgeGround` is no longer in `FALLS`), so the root no longer falls 2.4 and bounces (4.3). `MAX_FOOT_LIFT` is 1.2.
+- `VaultRules.LEG_CLEARANCE` = 0.3 (4.4).
+- `AnimationController.watchReloads`: each client runs the reload markers on everyone else's reload tracks (4.13). `restGun` puts a gun back to rest when a reload is cut short. Every clip is loaded at spawn.
+- `CoverController`: `bodyReach` counts the upper arms below the cover's top; `stepToward` caps the step out of high cover at what lands on the spot by the next frame.
+- `ServerStorage.Tools.TestHarness` (733 lines) and a module version of `AnimationImporter`.
+- A large block, `Workspace.Part` (4 × 18 × 18 at x 32, z 47), between the spawn and the arena.
+- The clips themselves matched the repo's `keyframes.json` exactly (fingerprints of all 93), so no Blender work had been done outside the repo.
+
+### 6. In game (83tg's avatar)
+- **Low cover:** head top 2.77, 0.83 under the 3.6 LowWall (3.49 in the 2026-10-31 test). Root 1.21 off the wall, nothing in the wall or the floor, camera steps ≤ 0.08.
+- **Ends:**
+  - Low: the head 0.47 inside the end and the edge-side upper arm 0.33 past it (0.73 before the idle sat back). While the run blends out, the head is 0.21 past (0.64).
+  - High: the head 0.39 inside; arm 0.29, legs 0.15 and the holstered Uzi 0.47 past (head 0.84 and arm 0.96 past before).
+- **Blind fire:**
+  - Low: the head 0.34 under the top, the gun 0.11 over it, nothing in the wall, the gap held at 1.21. An earlier version with the hand over the wall had the forearm 1.2 in the wall's top edge, and one aimed lower had the gun 0.05 under the top on this avatar.
+  - High, working left: the gun 1.07 past the end, round the corner. Working right: just past the corner (0.33), the body leaning out.
+- **Popping up and out, ducking back:** the right clips. Aiming over the wall, the forearm only rests on the top (0.05, within the guard's slack). Ducking back into high cover, the gun is 0.22 in the wall for 3 frames.
+- **Corners round CrateA:** nothing in the crate during the swings.
+- **Vault out of low cover:** flies clear.
+- **Faults found:** see 4.14 to 4.19.
+- **Screenshots** (taken with the debug camera, not kept): high cover reads like the screenshot, back to the wall, pistol low, rifle hanging, head to the edge. Low cover reads as crouched against the wall, head down and turned along it. Blind fire low is a twist with the gun over the top, the head ducked.
+
+### Repo changes in session 4 (not committed yet)
+- `mp_stances.py` (the cover bodies, `onto_wall`, `look`, `HIGH_BACK`/`LOW_BACK`), `mp_hands.py` (holds and blind fire), `mp_arms.py` (`facing`, `placed`, `pole`, `by_part`; the two cover carries).
+- `Exports/keyframes.json` (94 clips) and `MaximumPain_Animations.blend`.
+- `Tools/TestHarness.luau` (new) and `studio_import.luau` (matches the place's importer).
+- This note, [[Changelog]], [[Cover System]], [[Animation Hooks]], [[Architecture]], [[Test Arena]], [[Max Payne 3 Animation Reference]] and the README.
+>>>>>>> 35c5e2de0fc9bb8cfe660496e5aef6791adef680
 
 ---
 
@@ -468,6 +606,7 @@ All in the Team Create place (client controllers in `StarterPlayer.StarterPlayer
 ### 1. Save and push
 - [ ] **Save the place in Studio again.**
   - **Who:** whoever opens Studio next.
+<<<<<<< HEAD
   - **How:** File > Save to Roblox.
   - **Why:** session 4 changed 9 scripts and added `ServerStorage.Tools.TestHarness` (see [[#Scripts changed in session 4]]), and the place is the only copy of the game's code.
 - [ ] **Push session 4's commit** (these notes and `Tools/TestHarness.luau`) to `origin/main` (github.com/joransss/Maximum_Pain, a public repo).
@@ -476,10 +615,18 @@ All in the Team Create place (client controllers in `StarterPlayer.StarterPlayer
   - **Check:** GitHub shows the commit, and no screenshots (`Pasted image *`), `__pycache__` or FBX copies went up.
 - [x] Save after session 3: the place's copy on Roblox was updated 2026-11-04 12:56 UTC.
 - [x] Push session 3's commits: `3634cce`, `7f86ec1`, `a608dc7` and `695e191` are on `origin/main` (pushed 2026-11-04 12:54 UTC). Checked: nothing newer upstream, and none of the 50 tracked files is a screenshot, bytecode or an FBX copy.
+=======
+  - **How:** if the Drafts window (View > Drafts) lists scripts, commit them; then File > Save to Roblox.
+  - **Why:** sessions 3 and 4 changed scripts (see [[#Scripts changed in session 3]] and [[#4. Scripts changed in session 4]]) and session 4 replaced 24 clips and added one. The place is the only copy of the game's code.
+- [ ] **Commit and push session 4** (JordanSaa's repo, github.com/joransss/Maximum_Pain, public).
+  - **What:** the Blender scripts, `Exports/keyframes.json`, `MaximumPain_Animations.blend`, `Tools/TestHarness.luau`, `studio_import.luau` and the notes (see [[#Repo changes in session 4 (not committed yet)]]).
+  - **Check:** no screenshots (`Pasted image *`), `__pycache__` or FBX copies go up.
+- [x] Push the session 3 commits: `origin/main` has them (`695e191`, checked 2026-11-07).
+>>>>>>> 35c5e2de0fc9bb8cfe660496e5aef6791adef680
 - [x] Commit the Blender scripts and `Exports/keyframes.json` (done in `ac50a40`).
 - [x] Stop tracking `__pycache__` (`3634cce`).
 - [x] Commit session 3's export fix, the `.blend` and the notes (`7f86ec1`, `a608dc7`), then the detailed notes update (2026-11-03).
-- [ ] **Optional, JordanSaa's call: keep the game's code in git.** A saved `.rbxl` (or exported scripts) in the repo would give a backup and a history of the code. But the repo is public, so anyone could copy the game.
+- [x] **Decided 2026-11-07 (JordanSaa): the game's code stays out of git.** The repo is public, so anyone could copy the game. The place is the only copy: save it after every session.
 
 ### 2. Play tests
 - [x] Everything on the session 2 list below, done in session 3 (see above), apart from:
@@ -497,8 +644,14 @@ All in the Team Create place (client controllers in `StarterPlayer.StarterPlayer
     - [ ] **High cover:** from Player2's window, Player1's arms and guns stay out of the wall, and the body stands 1.5 to 1.8 off it.
     - [ ] **Hits:** flinches on the other body, the death ragdoll, and the kill cam on the dying player's screen.
     - [ ] **Bullet time between players:** Player1's line of sight slows Player2 (`TimeScale`), with the aim penalty, and a counter-activation clears it.
+<<<<<<< HEAD
     - [ ] **Clips:** note what Player2 shows of Player1's clips (see the Studio limit above). Live servers use published ids and don't have this limit.
 - [x] **Optional:** a test harness in the repo, so tests don't start from scratch: `Tools/TestHarness.luau` (session 4, see [[#How to resume (tools and tricks)]]).
+=======
+    - [ ] **Clips:** in Studio each client registers a clip the first time its own character loads it, so Player2 may not show one of Player1's clips until Player2 has used it too. Note any default poses. Live servers use published ids and don't have this limit.
+    - [ ] **Cover (new in session 4):** Player1 in high and low cover, sliding, at an end, blind firing, popping out: does Player2 see the side-on body against the wall, the head along it, the gun round or over the cover? The head's look-at is off while hidden for every character, so Player2's view of Player1 should match Player1's.
+- [x] **Add the test harness to the repo** (decided 2026-11-07): `Tools/TestHarness.luau`, the same script as the place's `ServerStorage.Tools.TestHarness`. Its header says how to install it each play session and what it reports; see also [[Test Arena]].
+>>>>>>> 35c5e2de0fc9bb8cfe660496e5aef6791adef680
 
 <details><summary>The session 2 list, for reference (all done in session 3 apart from two clients)</summary>
 
@@ -514,6 +667,7 @@ All in the Team Create place (client controllers in `StarterPlayer.StarterPlayer
 
 </details>
 
+<<<<<<< HEAD
 ### 3. Low-cover pose (decision) ✅
 **Decided 2026-11-04 by JackT6785: keep the hunched pose facing the wall.** The comparison that led to it is kept below.
 - [x] Decision made: keep. The line in [[Cover System]]'s "Not done" was removed.
@@ -556,14 +710,58 @@ None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars a
   - **Idea:** keep the shoulders off walls in the movement itself (a small push away from walls on the arm's side), or a side-carry clip that tucks the arm in.
   - **Check:** walk west along CornerWallA's face with the wall on the left, then into the CornerWallA/B corner (`mp.inside` on both walls).
 - [ ] **4.8 Sniper and shotgun carries** rely on the floor guard and now the arm guard: they're too long for any fixed pose. Not tried with the M107 yet: pick it up and carry it into cover, along walls and through a dive.
+=======
+### 3. Cover pose (decided: side-on)
+- [x] **Decided 2026-11-07 (JordanSaa): side-on for all cover, high and low, like Max Payne 3, with every animation it needs redone.** Done in session 4 (above).
+  - The old low pose crouched facing the wall, hunched so far over that the head reached 2.2 to 2.8 ahead of the root. The footage shows Max with his back and shoulder to cover instead (session 4, part 1).
+  - Wall ends were the known risk; the idles now sit back from the edge (session 4, part 2), and what still shows past an end is 4.18.
+  - [[Cover System]]'s "Not done" line about the decision is gone.
+
+### 4. Polish
+None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars above. Items marked "found done" were done in the place after 2026-11-03 without notes; session 4 found them in the code (session 4, part 5) and didn't re-test them separately.
+- [x] **4.1 Standing up from a crouch dipped about 0.3 for ~0.1 s.** Done in session 3 as the foot guard in AimLayer: the body lifts while a height change eases out, and the feet stay within 0.05.
+- [x] **4.2 Arm transitions in cover.** Found done: `AimLayer.guardArm` turns each arm and its gun at the shoulder (lift, swing or yaw, up to 60°) just enough to stay out of walls, and a raised gun lifts. In session 4, aiming over the LowWall the forearm only rested on the top (0.05). Popping up from the side-on pose, the gun now waits 0.15 s for the turn (4.14, session 5).
+  - **Seen (session 3):**
+    - Popping up from low cover and ducking back, the gun crosses the cover's top for 0.08 s (its box up to 0.82 inside).
+    - Stepping out of high cover, the right forearm sweeps through the wall's corner (box 0.78 inside).
+  - **Why:** the arms blend straight between the low hold and the aim (`AnimationController`: `AIM_IN` 18/s, `AIM_OUT` 7/s) while the body rises or steps out, so the gun cuts the corner.
+  - **Ideas:**
+    - Hold the aim back until the body has risen or cleared the corner.
+    - Or lift the hold first, then point.
+    - Or add a gun-against-cover guard in `AimLayer`, like `liftCarried` does for the floor.
+  - **Check:** log the gun's box against the cover's top, and the forearm against the wall's corner, frame by frame while popping up/back and stepping out/in.
+- [x] **4.3 Dive landing forearm.** Found done another way: the dive landing is held and eased like a crouch (`DodgeGround` left `AimLayer.FALLS`), so the root is put on the floor instead of falling 2.4 and bouncing. Check it in the next dive test.
+  - **Seen (session 3):** the left forearm's box goes 0.30 under the floor for one frame at the impact.
+  - **Why:** the root lands 0.2 low and springs back.
+  - **Idea:** cap the landing's downward speed in the dive's flight (`DodgeController`) the way the vault now does, so one physics step can't end below the landing height.
+  - **Check:** forearm boxes against the floor through a dive's landing.
+- [x] **4.4 Vault margin.** Found done: `VaultRules.LEG_CLEARANCE` is 0.3.
+  - **Seen (session 3):** in slow motion, the lowest leg point over the LowWall's front edge is +0.06: slim but clear.
+  - **Idea:** raise `VaultRules.LEG_CLEARANCE` from 0.2 to 0.3.
+    - Avatars taller than standard would fly about 0.1 higher; a standard avatar stays at `APEX_ABOVE_TOP` 2.1, and the self-check still holds.
+    - The cost is a slightly higher hop and camera move.
+  - **Check:** the bullet-time vault (see "Slowing the player" below) and the camera step.
+- [ ] **4.5 Vault take-off and style.**
+  - Taking off from very close (under 1.3 studs) brushes the near edge for about 0.05 s (−0.06/−0.12 for 2 frames on the gun table).
+  - At the higher arc the left hand no longer touches the top from standing (it still rests on it from low cover).
+  - A vault from a run starts on a running stride; a standing vault could start from idle.
+- [ ] **4.6 `CarryTwoHandedLow` points the rifle out to the left.** That was so it cleared low walls. Low cover has its own carry now (`CarryTwoHandedCoverLow`, session 4), so `CarryTwoHandedLow` only plays crouching in the open and getting up, and could point forward-down, more like Max Payne 3.
+- [x] **4.7 The carried gun against walls.** Found done: `AimLayer.guardArm` also keeps the carried gun out of walls, after its floor lift.
+  - Session 3: only the floor was guarded (`AimLayer.liftCarried`), plus the high-cover carry clip.
+  - **Idea:** a ray along the gun's box toward walls, swinging the arm in.
+  - **Check:** walk along a wall and into a corner with a pistol out and the AK carried.
+- [ ] **4.8 Sniper and shotgun carries** rely on the floor guard: they're too long for any fixed pose.
+>>>>>>> 35c5e2de0fc9bb8cfe660496e5aef6791adef680
 - [ ] **4.9 Blind fire over tall low cover.**
   - From the crouch, an R15 arm reaches the top of a wall about 3.7 tall. Over anything taller the gun stays below the top and the shots hit the wall.
+  - Session 4's twisted blind fire puts the gun 0.39 over a 3.6 top on the default R15 (0.11 on 83tg's slimmer avatar), so it may now clear the 3.8 crates on some avatars: measure on CrateA.
   - **Idea:** stand up partly, by the wall's height, for taller low cover.
 - [ ] **4.10 Wake-up hands.**
   - The carry clip overrides the left hand that the wake-up clip plants on the floor.
   - Also seen in session 3: the right hand's pistol box touches the floor (0.2) while that hand pushes up, and a holstered gun grazes the floor (0.08) while kneeling.
 - [ ] **4.11 Wake-up forearm:** its box dips into the floor lying on the side (from session 2).
 - [ ] **4.12 Leg IK.** The foot guard lifts the whole body. A full leg IK (each foot on its own floor, bending the knee) would help slopes and stairs.
+<<<<<<< HEAD
 - [x] **4.13 Reload markers on other players' screens.** Done in session 4 (`AnimationController.watchReloads`):
   - Each client runs the markers itself on everyone else's reload tracks.
   - A reload that stops puts the gun back at rest, which also fixed the magazine staying hidden after a reload cut short.
@@ -572,6 +770,35 @@ None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars a
 - [ ] **4.15 The dive's landing ease (optional).** The body now settles onto the floor quickly and smoothly. A fall-shaped ease (carrying on the flight's downward speed, ending on the floor) would land harder, more like Max Payne 3, if this reads as soft.
 - [ ] **4.16 The carried AK brushes the top in a vault** for 7 to 9 physics frames in mid-vault (0.28 to 0.34). Both the floor lift and the arm guard act on it but don't fully clear it there. Check its pose in the Vault clip, or let the guard turn further during a vault.
 - [ ] **4.17 High cover, stepping back to the edge:** while the edge idle blends back in (about 0.2 s), the leading upper arm reaches up to 0.43 into the wall before the gap and the guard settle it to 0.05.
+=======
+- [x] **4.13 Reload markers on other players' screens.** Found done as the idea said: `AnimationController.watchReloads` watches every other character's Animator (`AnimationPlayed`), finds reload tracks by their clip id and runs the same markers on this client. Confirm in the two-client test.
+- [x] **4.14 Popping up and ducking back in low cover turn the body round in a blend** (session 4). Done in session 5: `CoverPopUpLeft/Right` and `CoverDuckLeft/Right`, played on the stance changes; the gun waits 0.15 s for the turn. In game nothing of the legs goes in the wall, a shin 0.08 under the floor for a frame at most (session 5).
+  - **Seen (session 4):** the low idle faces out from the wall and the aim faces over it, so the 0.2 s body blend turned the body about 166°.
+    - The feet swept round with the hips: a foot went up to 0.43 and a shin 0.55 into the wall's base, for 8 to 12 frames.
+    - On the first frame the aim clip's arm pointed through the top, 1.2 deep, while the body was still low.
+    - The same in reverse when ducking back (a shin 0.48 in on the last frame).
+  - **Left over:** ducking back working right, the holstered gun is 0.14 in the wall for 2 frames while the clip blends in over the aim.
+- [ ] **4.15 Vaulting out of low cover: one frame of a foot in the wall** (session 4). The body turns from facing out to the vault in the vault's 0.1 s blend, and on the frame the hips rise, a foot is 0.74 inside the wall. The same turn clip idea, or start the vault's blend from a pose facing the wall.
+- [ ] **4.16 The inside-corner snap** (session 4).
+  - At an inside corner `CoverController` turns the root to the new wall in one frame, and the body turns with it about the root.
+  - The low run's body sits up to 1.8 behind the root (to keep the head from leading past wall ends), so it swings round. Sliding along CrateA's north face into the crate next to it, the hips and legs went up to 1.1 into CrateA for about 3 frames.
+  - The old wall-facing run sat about 2.8 off the root, so this isn't new, but it's more visible now.
+  - **Ideas:** ease the root's turn over 0.2 s at inside corners, or hold the body's yaw and ease it out in `AimLayer` (like the height hold).
+- [ ] **4.17 Blind fire working right reaches only just past the corner** (session 4). With the back to the wall the gun arm is the one away from the edge; the chest leans out and the arm reaches across, and the gun ends 0.33 past the end, at the corner (working left it's 1.07 past). A full-body clip that turns the body to the corner would reach further, but its legs would freeze if the player slid while firing.
+- [ ] **4.18 What still shows past a wall's end** (session 4). Settled at an end, the edge-side upper arm shows 0.29 to 0.33 past it, the legs 0.15, a holstered gun on the thigh up to 0.47. The head is 0.4 inside. Sitting the idles further back stops the right-edge blind fire reaching; a wider `CoverRules.EDGE_MARGIN` (1.4, with `PEEK_STEP` 3.2) would hide it but moves where peeking and blind fire work.
+- [ ] **4.19 Firing while sliding along low cover** (session 4; tested in session 5: it's wrong).
+  - **Seen** (blind fire held, sliding along the LowWall at 8 studs/s): nothing goes in the wall, but on the run the gun is 2.7 out from the wall's face and 2.5 to the side, pointing back along the wall, 0.7 to 0.8 over the top's height. Settled, it's over the top (0.42) with the muzzle over the wall. The shots themselves leave from the server's virtual muzzle, so only the look is wrong.
+  - **Why:** `BlindFireLowLeft/Right` key the waist for the idle's hips, which face out from the wall. The run's hips face along it, so the same twist turns the chest a quarter turn the wrong way. Firing doesn't stop a slide (`CoverController` only reads the last shot to hold the reach).
+  - **Decide (gameplay):**
+    1. Stop sliding while blind firing (until `READY_TIME` after the last shot), as many cover shooters do. Small, and no new clips.
+    2. Or keep the slide: a blind fire made on the run for each way (`BlindFireLowMoveLeft/Right`), the gun arm up over the head without the waist twist (working one way the gun arm is on the wall side, the other way on the open side, so a twist can't serve both), picked while the run plays.
+  - **Check:** `mp.over(LowWall)` for the gun through a slide with `LastShot` held, both ways.
+- [ ] **4.20 The crouch walk and the low cover run fold the trailing leg into the floor** (session 5).
+  - **Seen:** in the second half of each step the planted foot goes back 1.25 behind the low hips, and the knee comes down to 0.19 over the floor, almost kneeling, until the foot has swung forward under the body. On the default R15's boxes the shin goes 0.44 to 0.47 under the floor, the thigh 0.24 to 0.26 and a gun holstered on the thigh 0.28 to 0.37. In game on 83tg's avatar, sliding along the LowWall: shins, thighs and the Uzi 0.33 under. The feet stay on the floor. The crouch walk's numbers are unchanged since they were committed on 2026-11-01; it wasn't caught because the checks looked at the feet.
+  - **Tried in Blender** (`mp_locomotion.CROUCH_WALK`; the low run is made from it): raising the heel at push-off (18° to 45°) changed nothing; turning the knees out, 0.35 at best and worse sideways; shorter, quicker steps (cycle 0.55 to 0.4) with the feet further forward, 0.35 (0.23 at the shortest); the hips 0.2 to 0.3 higher with short steps, 0.16 to 0.3, but the head comes up 0.2 to 0.33.
+  - **Ideas:** hips higher with the waist folding more, so the head stays where it is (the low run's head top must stay under about 3); shorter steps; and a leg check like the turn clips', which lifts a knee that would go under the floor. Or accept it on slim and mesh avatars, whose legs are thinner than the default's boxes (0.33 in game against 0.44 on the boxes).
+  - **Check:** the shins, thighs and holstered gun over the floor through the crouch walk in all four directions and the low run both ways, in Blender and with `mp.floor()` in game.
+>>>>>>> 35c5e2de0fc9bb8cfe660496e5aef6791adef680
 - Accepted as it is: the gun-arm pump lags the opposite leg by about 0.1 of a cycle.
 
 ### 5. Publish and document
@@ -581,8 +808,8 @@ None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars a
   - **Until then:** live servers play none of the clips. `AnimationConfig.resolve` only plays a KeyframeSequence directly in Studio, so `AnimationController` keeps Roblox's default `Animate` script, and the gun parts don't move on reloads.
   - **Steps:**
     1. Open the place in Studio as JordanSaa.
-    2. Publish each of the 93 KeyframeSequences in `ReplicatedStorage.Assets.Animations` as an animation owned by JordanSaa (or the group, if the game moves to one).
-    3. Paste each `rbxassetid://<id>` into the matching slot's `Id` in `AnimationConfig`. There are 100 slots for 93 clips: `ReloadPistol` serves 4 slots (Desert Eagle, M9, Glock 18, Uzi) and `ReloadRifle` 5 (AK-47, FAL, M4, MP5, SPAS-15), so those slots share an id.
+    2. Publish each of the 98 KeyframeSequences in `ReplicatedStorage.Assets.Animations` as an animation owned by JordanSaa (or the group, if the game moves to one).
+    3. Paste each `rbxassetid://<id>` into the matching slot's `Id` in `AnimationConfig`. There are 105 slots for 98 clips: `ReloadPistol` serves 4 slots (Desert Eagle, M9, Glock 18, Uzi) and `ReloadRifle` 5 (AK-47, FAL, M4, MP5, SPAS-15), so those slots share an id.
     4. Publish the place and test in a live server: locomotion, cover, dives, vaults, Last Stand, every reload and its markers.
     5. When a clip changes later in Blender, re-export and re-import it, publish it again, and update its slot's `Id`.
   - Scripted publishing isn't an option for now: `AssetService:CreateAssetAsync` returned "not available yet", even from a plugin, when it was tried for the weapon kit (2026-10-30).
@@ -592,11 +819,12 @@ None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars a
 - [x] Updated [[Architecture]], [[Animation Hooks]], [[Cover System]], [[Shoot-Dodge]], [[Last Stand and Bullet Time]], [[Movement State Machine]], [[Test Arena]].
 - [x] New research notes: [[Euphoria-style Reactions and Ragdolls]] and [[Max Payne 3 Kill Cam]].
 - [x] This note and the [[Changelog]] rewritten in detail (2026-11-03).
+- [x] Session 4: this note, the [[Changelog]], [[Cover System]], [[Animation Hooks]], [[Architecture]], [[Test Arena]], [[Max Payne 3 Animation Reference]] and the README updated for side-on cover and what was found in the place (2026-11-07).
 
 ---
 
 ## How to resume (tools and tricks)
-- **Blender:** `sys.path.insert(0, r"…\Assets\Blender\Animation")`, `import mp_lib as L, mp_locomotion as M, mp_arms as A, mp_stances as S, mp_hands as H`, `L.build_rig()`, `L.CLIPS.clear()`, then `M.register(); A.register(); S.register(); H.register()` (93 clips). `L.export()` (or `L.export(["Name"])`), `import mp_serve; mp_serve.start()`. In Studio **Edit mode**: `require(game.ServerStorage.Tools.AnimationImporter:Clone())()`.
+- **Blender:** `sys.path.insert(0, r"…\Assets\Blender\Animation")`, `import mp_lib as L, mp_locomotion as M, mp_arms as A, mp_stances as S, mp_hands as H`, `L.build_rig()`, `L.CLIPS.clear()`, then `M.register(); A.register(); S.register(); H.register()` (98 clips). `L.export()` (or `L.export(["Name"])`), `import mp_serve; mp_serve.start()`. In Studio **Edit mode**: `require(game.ServerStorage.Tools.AnimationImporter:Clone())()`.
 - **Checks used:** `L.validate(clip, speed, dir)`; `L.render_sheet(clip, path, frames, views)` / `L.render_grid`.
 - **Arm clips are chest-relative.** Author with IK on the body they'll play on, then check by FK on every body that plays them (rifle box vs floor, wall, body).
 - **Studio testing:**
@@ -619,16 +847,30 @@ None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars a
   - **Naming playing clips:** `KeyframeSequenceProvider:RegisterKeyframeSequence` returns a content hash, the same id every time, so playing tracks can be mapped back to clip names.
   - **Shared state:** the command bar's `require` gives its own copy of a module (requiring StanceService gives empty `_records`). Use the game's attributes and remotes instead.
   - **Screen captures in play mode:** they work, but the scripted camera ignores `camera_position`. Take over the camera with a render step at `Camera + 50` (the debug camera trick above).
-  - **The test harness** (about 220 lines, not in the repo yet). Installed in the Client datamodel as `_G.mp`, and re-installed after every play restart.
-    - **Recording:** a recorder on `PostSimulation` logs each part's box, the guns' handles, the root, velocity, hip height, camera, stance, humanoid state, `TimeScale`, and every playing track by clip name (weight, time, speed).
-    - **Helpers:**
-      - `start()` and `stop()` begin and end a recording.
-      - `clearance(obstacle)`: the lowest point over an obstacle's top, per frame.
-      - `floorClearance(floorY)`: the lowest point against the floor.
-      - `timeline()`: the stance, state and heaviest clips whenever they change.
-      - `cameraJumps(limit)`: camera steps above `limit`.
-      - `clipPeak(name)`: a clip's peak weight and when it was up.
+  - **The test harness:** session 3's 220-line version was rewritten in the place (733 lines, `ServerStorage.Tools.TestHarness`) and is in the repo as `Tools/TestHarness.luau` since session 4. Its header has the install lines and every helper. In short:
+    - **Install** each play session: on the Server, clone it into ReplicatedStorage; on the Client, `_G.mp = require(game.ReplicatedStorage:WaitForChild("TestHarness"))`.
+    - **Recording:** `mp.start("render")` logs every frame at the end of the render step (or on `PostSimulation`, or both): each part's frame, the guns, velocity, hip height, camera, stance, humanoid state, `TimeScale`, and every playing clip by name (weight, time, speed). `mp.stop()` ends it.
+    - **Reports:** `mp.floor()`, `mp.inside(part)` (exact box-against-box depth), `mp.over(part)` (clearance over a top), `mp.camera(limit)`, `mp.timeline()`, `mp.clip(name)`. The building blocks are public too: `mp.boxes(frame)`, `mp.penetration(a, b)`, `mp.boxOf(part)`.
+    - **Driving:** `mp.walk(points)`, `mp.halt()`, `mp.look(yaw, pitch)`, `mp.view(eye, at, rootSpace)` / `mp.unview()` for screenshots, `mp.status()`.
   - **Reload checks:** pick each gun up from the rack with F, fire a couple of shots, reload, then compare each moving part's `C0` with its `RestC0`. Count the spent magazines in Workspace (a pistol reload with a rifle carried should drop one).
+- **Learned in session 4:**
+  - **When Claude Code's Studio link is down** (Studio updated itself and the server shows "Connection closed"), Studio's own MCP program still works. Run `%LOCALAPPDATA%\Roblox\Versions\<version>\StudioMCP.exe` over stdio, as `mcp.bat` does:
+    - Send `initialize` and `notifications/initialized`, wait about 4 s for its proxy to find Studio, then `tools/call`.
+    - `list_roblox_studios` gives the `studio_id` every call needs. Asking at once answers "No Roblox Studio instances are connected".
+    - Or run `/mcp` in Claude Code to reconnect.
+  - **Importing clips from the MCP:** `execute_luau` can't reach `127.0.0.1` (the Assistant's HTTP allowlist), so `AnimationImporter` can't fetch from `mp_serve`. Instead, embed the clips' JSON in the Luau code with the importer's `build` function, in batches of about 60 KB. Run it in **Edit** mode (play-mode changes are thrown away), then compare a fingerprint of every KeyframeSequence (pose count and a weighted sum of the CFrames) with `keyframes.json`.
+  - **Keyboard and mouse tools:** `user_keyboard_input` needs `datamodel_type: "Client"` and `wait_time_ms` for waits. `user_mouse_input` needs a `moveTo` in each call before clicks, or the clicks don't register. Right button held = aim, left click = fire.
+  - **Holding blind fire for a screenshot:** set the character's `LastShot` attribute on the client to `os.clock() + 25`. `AnimationController` keeps the blind fire up for 1.2 s after it; it isn't replicated.
+  - **Blender** on this PC is `D:\blender.exe` (5.2.3). All 98 clips export in about 35 s with the FBX copies.
+  - **Walking to the arena:** a block (`Workspace.Part`, x 30–34, z 38–56) stands north of the spawn. Go round it by (38, 38) and (38, 77), then west along z 78 or 80.
+  - **Cover checks in Blender:** measure each pose against a wall placed where the game keeps it. Use the gap from the head, torso and upper arms' reach + 0.05, at least 1.15, then check the head top over the floor, boxes in the wall or floor, the reach toward the edge, and the gun over the top or past the end. Put a face marker on the head in contact sheets to see where it looks.
+  - **Folded bodies:** a neck yaw on a chest folded over the knees rolls the head instead of turning it; aim it with a look-at (`mp_stances.look`). Place guns in a part's frame but aim them in the body's facing frame (`mp_arms.placed`, `by_part`).
+- **Learned in session 5:**
+  - **Clips that play through a height change** must plant their feet where `AimLayer`'s hold leaves the floor: `hold = drop × e^(-10 t)`, in real time from the hip change. Play them in real time too, and their ends will differ from the poses they join by what the hold still has to do.
+  - **Check legs as boxes, not just feet:** the default R15's legs are a stud thick. A shin leant more than about 25° over a flat foot puts its box corner under the floor, and a knee folded forward over the toes near a wall reaches it before the foot does. A gun holstered on the left thigh hangs past the knee.
+  - **Knees in IK:** a fixed knee direction bends them backward once the feet have turned round. Turn the knee with the foot, from the start pose's bend to the end pose's.
+  - **Working the left side without sliding:** press Q before E; the cover side starts on the camera's shoulder.
+  - **Re-importing a few clips:** build the import batch from `keyframes.json` with just those clips (about 33 KB for four), run it in Edit mode, and check their fingerprints; the rest of the place's clips stay as they are.
 - **No weak-keyed tables keyed by instances** (`__mode = "k"`) for anything that must survive: entries vanish while the instance still exists. Keep the state on the instance (attributes) or in a plain table cleared when the instance leaves.
 - **Learned in session 4:**
   - **The test harness** is `ServerStorage.Tools.TestHarness` in the place and `Tools/TestHarness.luau` in the repo (the same script; it never reaches players). Install it each play session:
@@ -678,6 +920,32 @@ None of these blocks anything. Numbers are from sessions 2 to 4 on the avatars a
 | Dive get-up | feet ≥ −0.05; camera 0.15 |
 | First reload of a life | stretched from its first frame (was unstretched until the clip loaded) |
 | Others' reloads (one client) | a reload this client didn't start moved the gunman's AK magazine and bolt; one cut short brought the magazine back |
+| Output log | clean |
+
+## Test log (session 5, 2026-11-08, Studio play mode, 83tg's avatar)
+| Test | Result |
+|---|---|
+| Low cover, pop up and duck back, working right and left | the turn clips play; no leg in the wall; a shin 0.08 under the floor for one frame at most (0.22 with the clips' first version); feet within 0.05 |
+| Popping up, the gun | working left: 0.59 into the wall's face with `POP_AIM` 0.1 → 0.05 with 0.15; aiming over the top, the forearm rests on it (0.05) |
+| Ducking back working right | the holstered Uzi 0.14 in the wall for 2 frames; the right upper arm 0.08 on the top edge |
+| Low cover, sliding (start, stop) | feet 0.36 under the floor → within 0.05 (the foot guard in cover); shins, thighs and the Uzi 0.33 under (4.20) |
+| Low cover, blind fire while sliding (4.19) | nothing in the wall, but the gun 2.7 out from the face pointing back along the wall; over the top only once settled |
+| Camera | largest step 0.08 |
+| Output log | clean |
+
+## Test log (session 4, 2026-11-07, Studio play mode, 83tg's avatar)
+| Test | Result |
+|---|---|
+| Low cover, settled | head top 2.77 (0.83 under the 3.6 wall; 3.49 on 2026-10-31); root 1.21 off the wall; nothing in the wall or floor |
+| Low cover, slides to both ends | the root stops 0.80 from each end; settled: head 0.47 inside, upper arm 0.33 past; the run blending out: head 0.21 past |
+| Low cover, pop up and duck back | the right stances and clips; aiming, the forearm rests on the top (0.05); see 4.14 for the turn |
+| Low cover, blind fire | head 0.34 under the top, gun 0.11 over it, nothing in the wall, gap held (1.21) |
+| High cover, ends | root 0.73 to 0.82 from the end; settled: head 0.39 inside, arm 0.29 past |
+| High cover, blind fire | working left: gun 1.07 past the end; working right: 0.33 past, at the corner |
+| High cover, pop out and back | pops out round the end and steps back; ducking back, the gun 0.22 into the wall for 3 frames |
+| CrateA, outer corners | nothing in the crate during the swings; the inside-corner snap into the next crate is 4.16 |
+| Vault out of low cover | clears; one frame of a foot in the wall (4.15) |
+| Camera | largest step 0.08 |
 | Output log | clean |
 
 ## Test log (session 3, 2026-11-02, Studio play mode)

@@ -27,7 +27,7 @@ Official images: `https://shared.akamai.steamstatic.com/store_item_assets/steam/
 | **Dual wield** | Both arms extended, each gun aimed at the target; fires on the move. | D&T Video 2 1:02–1:04 | 11 (`ss_f528ddad…`), 5 (`ss_649a56ef…`) |
 | **Aim** | Rifle shouldered, head down on the gun, camera tight over the shoulder; about 0.4 s from a sprint to aiming. | Your screenshots; MP trailer 0:40–0:42 | 14 (`ss_e35354a1…`) |
 | **Recoil** | Big muzzle flash; the aiming body barely moves; one-handed pistols kick at the wrist and elbow. | D&T Video 2 1:02–1:04 | 4 |
-| **Cover** | Shoulder or back to the wall with the gun low. In low cover: kneel, pop up to fire, duck with the head well below the edge. At a pillar: lean out. | D&T Video 2 2:55–3:02 | 3 (`ss_4ae054ce…`), 6 (`ss_4fc1bd43…`) |
+| **Cover** | **Back to the wall**, facing out, turned toward the edge, head looking along the wall to it. High cover: back flat on a tall cabinet, SMG low in the right hand, the left hand up by the face. Low cover: crouched with the back to the counter, knees up, gun by the shoulder, head turned to the edge; popping up, he turns round to face over it. A rifle is held upright beside the face. At a pillar: lean out. (Frame study 2026-11-07.) | D&T Video 2 2:53–2:54 (high), 2:56–2:57 (low); Multiplayer 1:35–1:36 (back to a wall at its edge, pistol low), 1:43 (rifle upright) | 3 (`ss_4ae054ce…`: back to the wall, pistol low in both hands, head to the window), 6 (`ss_4fc1bd43…`) |
 | **Melee** | Close-quarters strikes and kicks. | — | 13 (`ss_23bf1fb7…`) |
 
 Other screenshots: 7 (`ss_6a624879…`) close SMG handling · 12 (`ss_0bcd7e1f…`) multiplayer character and crew · 16 (`ss_482c837e…`) character.

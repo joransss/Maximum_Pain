@@ -15,6 +15,7 @@ from mathutils import Matrix
 
 import mp_lib as L
 import mp_locomotion as M
+import mp_stances as S
 from mp_lib import Clip, Pose, V, rot
 
 TAU = 2 * math.pi
@@ -44,6 +45,36 @@ def arms_pose(waist_yaw=0.0, right=None, left=None, right_elbow=None, left_elbow
     if left is not None:
         L.place_hand(pose, "Left", L.hand_for_grip(left), left_elbow)
     return pose
+
+
+def facing(body):
+    """The way a body's hips face (degrees of yaw in the root part's space), and that turn."""
+    forward = L.solve(body)["LowerTorso"].to_3x3() @ V(0, 0, -1)
+    yaw = math.degrees(math.atan2(-forward.x, -forward.z))
+    return yaw, rot(0, yaw, 0)
+
+
+def placed(body, part, offset, yaw=0.0, pitch=0.0, roll=0.0):
+    """A grip frame at `offset` in `part`'s frame (on `body`), aimed in the body's facing frame: yaw turns
+    the muzzle to the body's left, pitch lifts it, roll cants the top right. For bodies turned inside
+    the root part (the cover bodies) or folded over (low cover)."""
+    point = L.solve(body)[part] @ V(*offset)
+    turn = facing(body)[1]
+    return Matrix.Translation(point) @ (turn @ rot(pitch, yaw, -roll)).to_matrix().to_4x4()
+
+
+def pole(body, x, y, z):
+    """An elbow direction given in the body's facing frame, in the root part's space."""
+    return facing(body)[1] @ V(x, y, z)
+
+
+def by_part(body, part, right, up, forward, yaw=0.0, pitch=0.0, roll=0.0):
+    """A grip frame `right`, `up` and `forward` studs from a part's centre, in the body's facing frame and
+    aimed in it: on a body folded over its knees a part's own axes point every which way."""
+    centre = L.solve(body)[part].translation
+    turn = facing(body)[1]
+    point = centre + turn @ V(right, up, -forward)
+    return Matrix.Translation(point) @ (turn @ rot(pitch, yaw, -roll)).to_matrix().to_4x4()
 
 
 def breathing(t, period=3.2, amount=1.0):
@@ -100,11 +131,23 @@ def carry_two_handed_low(t):
 
 
 def carry_two_handed_cover(t):
-    """The carried gun hidden behind high cover: nearly straight down beside the left leg and turned
-    out a little, clear of the wall the character faces (the standing carry pointed into it)."""
+    """The carried gun hidden behind high cover, back to the wall: hanging muzzle down in front of the
+    left thigh, off the wall on either side (the left side is the one against the wall working right)."""
+    body = S.cover_high("Right")(0.0)
     swing = math.sin(TAU * t / 2.6)
-    gun = gun_frame((-1.3, -0.6 + 0.01 * swing, 0.4), 60.0, -80.0 + 1.5 * swing, -6.0)
-    return arms_pose(0.0, left=gun, left_elbow=V(-0.5, 0.0, 1.0))
+    gun = placed(body, "LowerTorso", (-0.62, -0.35 + 0.01 * swing, -0.8), 6.0, -80.0 + 1.5 * swing, 0.0)
+    L.place_hand(body, "Left", L.hand_for_grip(gun), pole(body, -0.6, 0.0, 0.8))
+    return body
+
+
+def carry_two_handed_cover_low(t):
+    """The carried gun behind low cover, folded over the knees with the back to the wall: held by the
+    grip in front of the knees, muzzle forward and down to the floor ahead, away from the wall."""
+    body = S.cover_low("Right")(0.0)
+    swing = math.sin(TAU * t / 2.6)
+    gun = by_part(body, "LeftLowerLeg", -0.25, 0.75 + 0.01 * swing, 0.35, 12.0, -22.0 + 1.5 * swing, -10.0)
+    L.place_hand(body, "Left", L.hand_for_grip(gun), pole(body, -0.6, -0.6, 0.3))
+    return body
 
 
 def injured_arm(side):
@@ -163,6 +206,7 @@ def register():
     Clip("CarryTwoHanded", 2.6, carry_two_handed, loop=True, priority="Action", joints=Lt, gun=(None, "Rifle"))
     Clip("CarryTwoHandedLow", 2.6, carry_two_handed_low, loop=True, priority="Action", joints=Lt, drop=1.8, gun=(None, "Rifle"))
     Clip("CarryTwoHandedCover", 2.6, carry_two_handed_cover, loop=True, priority="Action", joints=Lt, gun=(None, "Rifle"))
+    Clip("CarryTwoHandedCoverLow", 2.6, carry_two_handed_cover_low, loop=True, priority="Action", joints=Lt, drop=1.8, gun=(None, "Rifle"))
     Clip("InjuredArmLeft", 2.2, injured_arm("Left"), loop=True, priority="Action", joints=Lt)
     Clip("InjuredArmRight", 2.2, injured_arm("Right"), loop=True, priority="Action", joints=R)
     Clip("AimPistol", 3.0, aim_pistol, loop=True, priority="Action2", joints=R, gun=("Pistol", None))

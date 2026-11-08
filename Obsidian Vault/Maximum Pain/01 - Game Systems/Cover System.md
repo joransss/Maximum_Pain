@@ -1,22 +1,20 @@
 # Cover System
 
-Contextual cover on a dedicated key: high and low cover, moving along walls, corners, popping out to aim, blind fire, and how the shoulder camera works with it. Built 2026-10-31.
+Contextual cover on a dedicated key: high and low cover, moving along walls, corners, popping out to aim, blind fire, and how the shoulder camera works with it. Built 2026-10-31; side-on poses since 2026-11-07.
 Related: [[Movement State Machine]] · [[Weapons and Recoil]] · [[Test Arena]] · [[Max Payne 3 Mechanics Reference]] · [[Max Payne 3 Animation Reference]]
 
 ## Taking cover
 - **E** (gamepad L1) takes the nearest wall in front of the camera. A HUD prompt shows when there is one: TAKE COVER HIGH or TAKE COVER LOW.
 - A wall counts when it is near-vertical, within 3.5 studs of the character's centre, and at least **3 studs** tall. Characters, dummies and dropped guns never count.
-- **High cover** reaches 5.2 studs above the floor and hides a standing character. **Low cover** is shorter (crates, low walls), and the character crouches behind it (head top about 3.5 studs, under a 3.6-stud wall).
-- The character faces the wall and keeps what its body needs from it: how far the head, torso and upper arms reach toward the wall, plus 0.05. The upper arms count only below the cover's top, and not while firing, so blind fire and aiming over low cover don't push the body back.
-  - **Low cover:** an R15 leaning over reaches 2.2 to 2.8 studs ahead of its root, depending on the avatar, so the root stays that far back and the head touches the wall. Keeping less pressed the head into the wall and slid the body along it.
-  - **High cover:** at least 1.15. The side idles turn the body about 40° toward the side being worked, which brings the leading shoulder toward the wall, so on JackT6785's avatar the gap is 1.5 (working right, AK carried) to 1.8 (at the east end). At 1.15 the leading upper arm went half a stud into the wall (fixed 2026-11-04).
-- That reach is remembered for each cover stance for as long as the character stays in cover. Ducking back from aiming over the wall uses the hunched reach straight away; measuring the upright pose made the body lunge 0.57 at the wall. It eases back toward what the pose needs (0.5 studs/s) once the character is settled, still and hasn't fired for 1.5 s. A slide leans further, and blind fire straightens the back, which mustn't pull the body in.
-- **Arms and guns stay out of the wall:** the aim layer turns any arm that would go into it at the shoulder, just enough (see [[Animation Hooks]]). Popping up over low cover the gun comes up over the top as the body rises, and ducking back it lifts over the lip before dropping behind it.
+- **High cover** reaches 5.2 studs above the floor and hides a standing character. **Low cover** is shorter (crates, low walls), and the character crouches behind it (head top about 2.8 studs, under even the lowest 3-stud cover).
+- **Side-on, as Max Payne 3** (since 2026-11-07): the back and the inner shoulder are against the wall, the body turned toward the edge being worked, the head looking along the wall to it. Behind low cover the character squats with the back to the wall, folded over the knees to keep the head down. The footage this follows is in [[Max Payne 3 Animation Reference]].
+- The root part faces the wall; the cover clips turn the body round inside it. The game keeps the gap the body's reach toward the wall needs: the head, torso and upper arms below the top, + 0.05, at least 1.15 (`GAP`). The clips lean the body back until that reach is 1.1, so the gap comes out at 1.15 and the back rests on the wall. Avatars differ, so it's measured, not assumed.
+- That reach is remembered for each cover stance for as long as the character stays in cover, so popping up and ducking back don't make the body lunge at the wall. It eases back toward what the pose needs (0.5 studs/s) once the character is settled, still and hasn't fired for 1.5 s.
 - The server repeats the search from its own copy of the character's position and decides high or low itself.
 
 ## Moving along cover
-- A and D (relative to the camera) slide along the wall: 9.6 studs/s behind high cover, 8 behind low.
-- **Ends:** the character stops when the wall doesn't carry on 0.9 studs past its side.
+- A and D (relative to the camera) slide along the wall: 9.6 studs/s behind high cover, 8 behind low. The body runs side-on, facing the way it goes: a hunched jog behind high cover, a crouched run behind low cover with the head under 3 studs.
+- **Ends:** the character stops when the wall doesn't carry on 0.9 studs past its side. The idles sit back along the wall, away from the edge (0.35 high, 0.75 low), so at an end the head is about 0.4 inside it and only the edge-side arm shows past it (about 0.3).
 - **High to low:** sliding from a tall section onto a short one switches to low cover, and back.
 - **Inside corners** (a second wall ahead) turn onto the new wall automatically.
 - **Outside corners:** keep pushing at an end for 0.35 s to swing round it, if the end face is at least about 2.3 studs wide (pillars and crates qualify; ordinary 2-stud walls don't). The way round is checked for obstacles and drops first. The search and the way round are measured from the character's real distance off the wall, so behind low cover the character also keeps its hunched distance off the new face. Until 2026-11-02 they assumed 1.15, so swinging round crates in low cover never happened.
@@ -32,8 +30,8 @@ Press E again, or pull away from the wall for 0.25 s. A sprint can't start in co
 | Aim held (pop out) | Low cover: stand up over it. High cover: only at an end; the character steps out to 1.3 studs past it. The first 0.25 s is **peeking** and is shaky. | 1.5 |
 | Aim settled (CoverAim) | Braced against the cover. | 0.85 |
 
-- Letting go of aim ducks back in (at high cover, the character steps back to where it was). The step out and back walks no faster than reaches the spot by the next frame, so it can't overshoot (it went back and forth at low frame rates until 2026-11-04), and bullet time slows it.
-- Trying to aim in the middle of high cover shows MOVE TO AN EDGE TO AIM, and the gun stays in the cover hold. Until 2026-11-04 the aim clip played anyway and raised the gun into the wall.
+- Letting go of aim ducks back in (at high cover, the character steps back to where it was).
+- Trying to aim in the middle of high cover shows MOVE TO AN EDGE TO AIM.
 - Reloading works in every cover pose.
 - Recoil: ×1.3 blind firing, ×0.8 braced.
 
@@ -45,20 +43,22 @@ Tested: blind fire from the middle of the high wall hit the wall face; from its 
 ## Animations
 | What | Clips |
 |---|---|
-| Hidden, idle | CoverHighLeft/Right, CoverLowLeft/Right (the side being worked) |
-| Sliding | CoverHighMoveLeft/Right (9.6 studs/s), CoverLowMoveLeft/Right (8) |
-| Outside corners | CoverCornerHighLeft/Right, CoverCornerLowLeft/Right. They start and end on the cover idle and hold their last frame while blending back into it. |
-| Gun while hidden | High: CoverHoldHighOne/Two/Dual, the gun up close to the chest. Low: CoverHoldLowOne (pistol by the right knee), CoverHoldLowDual, and CoverHoldLowTwoLeft/Right (the rifle low across the front, one per side because the body turns 24° each way). |
-| Carried rifle | CarryTwoHandedCover beside the left leg behind high cover, CarryTwoHandedLow behind low cover |
-| Blind fire | BlindFireHighLeft/Right (right arm only, round the end), BlindFireLowLeft/Right (right arm and waist, up over the top) |
-| Popped out | CoverAim, AimPistol/AimRifle/AimDual |
+| Hidden, idle | CoverHighLeft/Right (back and inner shoulder on the wall, turned 150° toward the edge), CoverLowLeft/Right (squatting, back to the wall, folded over the knees, head along the wall to the edge). One per side worked. |
+| Sliding | CoverHighMoveLeft/Right (a side-on jog, 9.6 studs/s), CoverLowMoveLeft/Right (a crouched side-on run, 8) |
+| Outside corners | CoverCornerHighLeft/Right, CoverCornerLowLeft/Right: a side-on stride round the corner. They start and end on the cover idle and hold their last frame while blending back into it. |
+| Gun while hidden | High: CoverHoldHighOne (the pistol low in front of the belly, muzzle down), CoverHoldHighTwo (the rifle upright across the chest), CoverHoldHighDual (both pistols up in front of the chest). Low: CoverHoldLowOne and CoverHoldLowDual (the gun up beside the face), CoverHoldLowTwoLeft/Right (the rifle upright past the face, leaning away from the edge). |
+| Carried rifle | CarryTwoHandedCover (muzzle down in front of the left thigh) behind high cover, CarryTwoHandedCoverLow (by the knee, muzzle forward and down) behind low cover |
+| Blind fire | BlindFireHighLeft/Right (the gun arm out along the wall and round the end; working right the arm reaches across, the chest leaning out), BlindFireLowLeft/Right (the chest twists the gun shoulder to the wall and the arm goes straight up, the gun over the top, the head ducked). Both key the waist and neck too. |
+| Popping up and ducking back (low) | CoverPopUpLeft/Right (0.25 s): the body rises, leaves the wall and turns round toward the edge to face over it, the feet stepping round. CoverDuckLeft/Right (0.3 s): it turns and folds over first, and goes down once the feet are round. The gun comes up 0.15 s into a pop-up. |
+| Popped out | CoverAim (the back heel up), AimPistol/AimRifle/AimDual |
 
-Max Payne 3 holds the gun low in cover, and an R15's chest lies on its thighs when hunched, so the low holds are a crouched low ready. A raised gun beside the face isn't possible. An R15 arm only reaches the top of a wall about 3.7 studs tall from the crouch. Blind fire over a 3.6 wall clears the top by 0.26 to 0.30; over anything taller the gun stays below the top.
+Max Payne 3 holds the gun low or upright in front while hidden, back to the wall. An R15's head and torso are long for its legs, so behind low cover it has to fold far over its knees to get its head under the top. Folded, its shoulders are 2 studs out from the wall, too far to blind fire over the top with the back to the wall, so low blind fire twists the chest round instead. That clears a 3.6 wall by 0.39 on the default R15 (0.11 on a slim avatar) with the head 0.3 under it.
 
 ## Camera
 - The shoulder follows the side being worked: moving left puts the camera on the left shoulder; popping out at an edge puts it on that edge's side.
 - **Q** still swaps shoulders at any time.
 - When the hips drop (crouch, low cover), the camera only drops a quarter as far, so it can see over low cover.
+- While hidden, the head doesn't look where the camera aims (the aim is past the wall, behind the turned head); it keeps the clip's look along the wall, and eases back onto the aim when popping out.
 
 ## Server checks
 - Entering: the server finds the cover itself; no cover, no stance.
@@ -68,26 +68,24 @@ Max Payne 3 holds the gun low in cover, and an R15's chest lies on its thighs wh
 
 ## Numbers
 - `CoverRules`: REACH 3.5 · GAP 1.15 · LOW_PROBE 3 · HIGH_PROBE 5.2 · EDGE_MARGIN 0.9 · PEEK_CLEAR 1.3 · CORNER_HOLD 0.35.
-- `CoverController`: the gap is the body's reach toward the wall (head, torso, and the upper arms below the top when not firing) + 0.05, at least GAP, with a 0.08 deadband. The reach eases back at REACH_RELAX 0.5 studs/s once settled for REACH_SETTLE 0.4 s and not fired for FIRED_HOLD 1.5 s. Stepping out of high cover: STEP_SPEED 10, done within STEP_DONE 0.05.
+- `CoverController`: the gap is GAP or the body's reach toward the wall + 0.05, whichever is more, with a 0.08 deadband. The reach eases back at REACH_RELAX 0.5 studs/s once settled for REACH_SETTLE 0.4 s and not fired for FIRED_HOLD 1.5 s.
+- The cover clips (`mp_stances.py`): HIGH_TURN 150° · LOW_TURN 180° · BACK_REACH 1.1 · HIGH_BACK 0.35 · LOW_BACK 0.75. The low cover turns: POP_TIME 0.25 · DUCK_TIME 0.3 · TURN_SWAY 0.6 · KNEE_FOLLOWS_FOOT 0.75 · DUCK_DROP 0.2–1 · DUCK_FOLD 0–0.7 · LEG_REACH 1.15.
+- `AnimationController`: TURN_FADE 25 (the turns take the body over) · POP_AIM 0.15 s (the gun stays in the low hold).
 - The pop-out settle time (0.25 s) is in `StanceService` and `CharacterController`.
 - Space in low cover vaults over the wall ([[Movement State Machine]], Vaulting).
 
-## Tested (2026-11-02)
-- **Low wall:** sliding stops 0.74 to 0.85 from each end. Popping up doesn't move the root, and ducking back holds the gap (2.54). After a slide the head eases back to within 0.13 of the wall, with nothing more than 0.05 into it.
-- **Crate:** pushing at its end swings round two corners in a row, without touching it.
-- **High wall:** blind fire from the end leaves from round the corner. Popping out carrying the AK keeps the AK at least 1.29 off the wall. Details in [[Animation and MP3 Systems - Progress and To Do]].
-
-## Tested (2026-11-04)
-- **Low wall:** popping up and ducking back, nothing goes more than 0.05 into the wall (the gun went 0.73 and 0.56 in before). The gap stays 2.52.
-- **High wall:**
-  - At rest on either side, nothing is in the wall (the leading arm went up to 0.55 in before).
-  - Aim held mid-wall keeps the cover hold.
-  - Stepping out round the east end is clear. Stepping back, a 0.1 s brush (0.20).
-- Details in [[Animation and MP3 Systems - Progress and To Do]] (session 4).
-
-## Decided
-- **Low cover pose:** keep the hunched pose facing the wall (JackT6785, 2026-11-04). Side-on like Max Payne 3 would have meant remaking 12 clips and the wall-end logic.
+## Tested (2026-11-07, side-on, 83tg's avatar)
+- **Low wall:** head top 2.77, 0.83 under the top; root 1.21 off the wall; nothing in the wall or floor. At the ends the head is 0.47 inside and the edge-side arm 0.33 past. Blind fire: the gun 0.11 over the top, the head 0.34 under it, the gap held.
+- **High wall:** at the ends the head is 0.39 inside and the arm 0.29 past. Blind fire working left puts the gun 1.07 past the end; working right, at the corner (0.33 past).
+- **Crate:** the outer corner swings stay out of it.
+- **Popping up and ducking back** (2026-11-08), both sides: no leg in the wall, a shin 0.08 under the floor for one frame at most, the gun 0.05 in the wall's face while it comes up. Sliding along the low wall, the feet stay on the floor (the foot guard runs in cover).
+- Details in [[Animation and MP3 Systems - Progress and To Do]] (sessions 4 and 5). The 2026-11-02 tests of the old wall-facing pose are there too (session 3).
 
 ## Not done
-- **Tall low cover:** blind fire over low cover taller than about 3.7 can't reach the top.
-- **High cover, stepping back to the edge:** for about 0.2 s, while the edge idle blends back in, the leading upper arm reaches up to 0.43 into the wall before settling.
+- **Vaulting out of low cover** turns the body round in the vault's blend, and a foot dips into the wall for a frame (to-do 4.15).
+- **The low run's legs:** the trailing knee comes down to 0.19 over the floor, and the shin's and thigh's boxes (and a holstered gun) go up to a third of a stud under it, as in the crouch walk (4.20).
+- **Blind fire while sliding along low cover:** the chest turns the wrong way and the gun points back along the wall until the slide stops. Either stop the slide while blind firing or add blind fire clips made on the run (4.19, a gameplay call).
+- **Inside corners:** the root turns in one frame, and the running body swings with it (4.16).
+- **Blind fire working right** only reaches the corner (4.17).
+- **Past the ends:** the edge-side arm shows about 0.3 past a wall's end (4.18).
+- **Tall low cover:** blind fire can't reach over low cover taller than about 3.7 to 4, depending on the avatar (4.9).

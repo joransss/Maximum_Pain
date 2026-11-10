@@ -1,25 +1,126 @@
 # Animation and MP3 Systems: Progress and To Do
 
-Work log and work queue for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations, cover). Picks up where the [[Changelog]] entries of 2026-11-01 leave off; session 5 (2026-11-08, the low cover turns) is the newest. The [[#To do (in order)|to-do list]] was updated on 2026-11-09.
+Work log and work queue for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations, cover). Picks up where the [[Changelog]] entries of 2026-11-01 leave off; session 6 (2026-11-09 to 10: blind fire on the low and high cover runs, carried guns over vaults, running vaults, bullet time checked) is the newest. The [[#To do (in order)|to-do list]] was updated on 2026-11-09.
 
 > [!note] Two "session 4"s
 > Two sessions ran in parallel from session 3's notes, on different PCs, and both called themselves session 4: **2026-11-04** (JackT6785's PC, the polish pass) and **2026-11-07** (this PC, side-on cover). They were merged on 2026-11-08 (`85d5b61`) and the notes reconciled on 2026-11-09. Each is named by its date below. The 2026-11-04 pass's open polish items were 4.14 to 4.17 in its own list; they are now **4.21 to 4.24**, since the 2026-11-07 list had used 4.14 to 4.20.
 
 > [!warning] Save the place
-> The game's scripts and the 98 imported clips live in the Team Create place ("Untitled Experience", place 70765307359272). Save it (File > Save to Roblox) after each session. If Studio's Drafts window lists scripts, commit them first. The Blender scripts, the clips' keyframes and the `.blend` are in the repo.
+> The game's scripts and the 102 imported clips live in the Team Create place ("Untitled Experience", place 70765307359272). Save it (File > Save to Roblox) after each session. If Studio's Drafts window lists scripts, commit them first. The Blender scripts, the clips' keyframes and the `.blend` are in the repo.
 > **The game's code isn't in git, on purpose** (decided 2026-11-07: the repo is public). The repo's `Maximum-Pain.rbxl` is the 80 KB file from the first commit (2026-10-29, before the restart), so the place is the only copy of the code.
 
 Related: [[Architecture]] · [[Animation Hooks]] · [[Movement State Machine]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Loadout and Dual Wielding]] · [[Test Arena]] · [[Euphoria-style Reactions and Ragdolls]] · [[Max Payne 3 Kill Cam]]
 
-## Where things stand (2026-11-09)
+## Where things stand (2026-11-10)
 | Item | State | Who | Next step |
 |---|---|---|---|
-| **Place** | The 2026-11-04 session changed 9 scripts and added the test harness; the 2026-11-07 session changed 5 scripts and 25 clips (24 remade, 1 new); session 5 changed 3 scripts and 5 clips (4 new). Not saved since | Whoever opens Studio next | Commit any drafts, save ([[#1. Save and push]]) |
-| **Repo** | Everything is pushed: sessions 4 (2026-11-07) and 5 in `35c5e2d`, merged with the 2026-11-04 session's `48ee647` in `85d5b61`. The merge left conflict markers in this note and dropped the 2026-11-04 entry from the [[Changelog]]; both fixed 2026-11-09 | — | — |
+| **Place** | The 2026-11-04 session changed 9 scripts and added the test harness; the 2026-11-07 session changed 5 scripts and 25 clips (24 remade, 1 new); session 5 changed 3 scripts and 5 clips (4 new); session 6 changed 6 scripts and added 4 clips. Not saved since | Whoever opens Studio next | Commit any drafts, save ([[#1. Save and push]]) |
+| **Repo** | Pushed up to `d6c9401` (2026-11-09: the notes fixed after the merge `85d5b61`). Session 6's `mp_hands.py`, export, `.blend` and notes are changed, not committed | JordanSaa | Commit and push ([[#1. Save and push]]) |
 | **Play tests** | Every single-player test passes, the new cover included (sessions 4 and 5); the two-client test hasn't been run | Anyone, in Studio | [[#2. Play tests]] |
 | **Cover pose** | Decided: side-on for high and low cover, as Max Payne 3 (2026-11-07). Done in session 4; the low cover turns in session 5 | — | Polish 4.15 to 4.20 |
-| **Polish** | Done: 4.1 to 4.4, 4.13, 4.14. Open: 4.5 to 4.12, 4.15 to 4.20 (2026-11-07 and 11-08) and 4.21 to 4.24 (2026-11-04). None blocks anything | Anyone | [[#4. Polish]] |
-| **Animations** | All 98 clips play in Studio. None of the 105 slots has a published id, so live servers play Roblox's default animations | JordanSaa (the place's owner) | [[#5. Publish and document]] |
+| **Polish** | Done: 4.1 to 4.4, 4.13, 4.14, 4.19, 4.23 to 4.25, 4.27. Open: 4.5 to 4.12, 4.15 to 4.18, 4.20, 4.21, 4.22 (2026-11-04), and 4.26 (new in session 6). None blocks anything | Anyone | [[#4. Polish]] |
+| **Animations** | All 102 clips play in Studio. None of the 109 slots has a published id, so live servers play Roblox's default animations | JordanSaa (the place's owner) | [[#5. Publish and document]] |
+
+---
+
+## Session 6 (2026-11-09 to 10): blind fire on the low and high cover runs (4.19, 4.25), carried guns over vaults (4.23), running vaults, bullet time checked
+- **When and who:** 2026-11-09, on this PC (jorda), Studio signed in as 83tg, Claude Code driving Blender 5.2.3 (headless) and Studio. JordanSaa decided 4.19 the same day: keep the slide and make new clips (its second option).
+- **The fault:** `BlindFireLowLeft/Right` twist the waist for the still body's hips, which face out from the wall. On the run the hips face the way it goes, so the chest turned the wrong way and the gun swung 2.7 out from the wall, pointing back along it. Measured again in Blender: on the run the head's top rose to 3.25 over the floor, and going left the free hand went 0.19 into the wall.
+
+### 1. The clips (`mp_hands.blind_fire_move`, `RUN_FIRE`)
+| Clip | What it does |
+|---|---|
+| `BlindFireLowMoveLeft` | Going left the gun arm is on the wall side. The chest comes partly out of the run's fold (about 50° from upright; the run's is 85°) and turns toward the wall, lifting the gun shoulder. The arm goes straight up and the gun points across the wall, as high as `BlindFireLow` holds it (`LOW_TOP + 0.7`). The head stays ducked under the raised arm, looking down ahead along the wall |
+| `BlindFireLowMoveRight` | Going right the gun arm is on the open side: the chest rolls onto its left side, gun shoulder on top, facing out from the wall, and the arm goes straight up from it |
+
+- Both key the right arm, the waist and the neck, as `BlindFireLow` does, loop at 0.5 s with the same firing judder, and are made on the run's body at the start of its cycle (Action2).
+- **Found by a search, then checked:** the poses were searched for in Blender (waist angles, where the head looks, the grip, the elbow's way, the gun's cant), each candidate scored on the run's whole cycle and on the blends into it, then rounded and checked again on the shipped code. On the default R15, over the run's cycle and with the judder:
+  - the gun's box 0.37 (left) and 0.38 (right) over a 3.6 top, pointing across the wall;
+  - the head's box at most 3.32 and 3.31 over the floor, as high as `BlindFireLow`'s (3.31; the run's own is 2.98);
+  - nothing of the gun arm or gun in the wall, and the torso no nearer the wall than the run's upper arms, so the game's gap holds;
+  - dual pistols (the second gun from `CoverHoldLowDual`), the carried AK (`CarryTwoHandedCoverLow`) and a rifle in the right hand also out of the wall.
+- **Head height, measured honestly:** these notes' "head top" has been the centre of the head's top face. With the head tilted forward the box's back corner rises higher: 3.49 for a first version of the left clip. The new clips are checked on the box's highest corner.
+- **Self-check** in `mp_hands.register` (`check_run_fire`): each clip on 16 points of the run's cycle, the gun's box 0.3 over the top, the head's box under 3.35, the gun arm and gun out of the wall (sampled through each box), the torso's reach under `BACK_REACH`. The export stops if not.
+
+### 2. How Roblox blends, and why going right can't cross-fade
+- **Measured in Studio** (two tracks on one joint of a cloned rig with no scripts): tracks of the same priority blend joint by joint, weight-normalised, by normalised linear interpolation of the rotations, the short way round. 110° and −110° at weights 0.68 and 0.32 gave 151.7°, exactly that; 100° and −100° at 0.5 each gave 180°. A higher priority overrides the lower ones by its total weight: one track at 0.5 over the rest pose gave half its turn.
+- **Going right the chest turns about 150°** between the still clip (chest facing away from the right edge, gun shoulder at the wall) and the run (hips the way it goes, gun arm on the open side). The waist changes only 63° (the hips take the rest), but the gun arm has to turn as far as the chest to keep the gun pointing across: the shoulder ended 169.5° from the still clip's.
+- **Near a half turn the way round flipped** with the firing judder (a few degrees). At the start and end of a slide right the gun swung round to point back along the wall for about 0.1 s (barrel −0.66 to −0.95 across), and on a reversal the head (0.62) and the carried AK (0.82) went into the wall. A cloned rig playing only the clips at the game's weights did the same, and so did Blender with Roblox's blending; the first simulation had sampled the clips at slightly different times and shown a clean blend. A search for a pose that keeps the gun pointing across through those blends found none: the joints can be kept under 135° apart, but the gun still swings.
+- **The fix, in `AnimationController`:** `BlindFireLowMoveRight` (`DIP_CLIP`, now `DIP_ANY`) never cross-fades with another blind fire clip. The clip being left goes down into the cover hold at `DIP_FADE` (50 per second: under 0.05 in 0.06 s, before a reversal's hips have swung round), then the new one comes up at the usual rate. Going left, the still and run clips cross-fade: checked at many weight mixes and clip times, the gun keeps pointing across.
+
+### 3. Scripts changed in session 6
+| Script | Where | Change |
+|---|---|---|
+| `AnimationController` | client | `cover()` records the way the body runs along cover each frame (`rig.sliding`); hidden in cover and sliding, blind fire plays `BlindFire<Low/High>Move<way>` (the still clip if it's missing), picked the same frame as the run; `DIP_ANY` (first `DIP_CLIP`), `DIP_FADE`, `dipFor` (first `blindFireShowing`), `rig.dropping`: the low run going right never cross-fades with another blind fire clip, nor the two high runs with each other (part 8) |
+| `AnimationConfig` | shared | `BlindFireLowMoveLeft/Right`, `BlindFireHighMoveLeft/Right` (109 slots) |
+| `AimLayer` | client | `guardArm` tests where the body will be drawn (`ahead`: the root's velocity × `math.max(physicsDt, renderDt)`); `renderDt` from `PreRender`; `update` gets `physicsDt` |
+| `VaultRules` | shared | `SERVER_SLACK` 2.5 → 7.5 (the server's copy of a running character lags) |
+| `BulletTimeRules` | shared | `ACTIVATOR_SCALE` 0.6, and a self-check that it's between `VICTIM_SCALE` and 1 (part 9) |
+| `BulletTimeService` | server | `refresh` slows a character with its own session to `ACTIVATOR_SCALE`, except in a Last Stand (part 9) |
+
+### 4. In game (83tg's avatar, the LowWall; M9 in hand, Uzi holstered, AK carried)
+- **Sliding while firing, both ways** (held with `LastShot`, and with real shots through `FireWeapon`): the run's clip plays exactly while its run plays; the muzzle 0.52 to 0.72 over the top, pointing across (0.95 to 0.99); the head's box 0.32 to 0.45 under the top; nothing in the wall; the gap unchanged.
+- **Starting to fire mid-slide, both ways:** the gun comes up muzzle first and points across in 0.12 to 0.25 s; nothing in the wall.
+- **Starting, stopping and five reversals while firing:** nothing in the wall; the gun never points back along the wall (on the right-hand switches it dips and comes up again, muzzle up); the head under the top.
+- **Dual pistols** (M9 and Uzi): the Uzi rests on the wall's face (0.05, the arm guard's slack) going right. **A rifle** (FAL, from the gun table): rests on the top (0.05), held upright through the dips.
+- Output log clean.
+- **Found:** high cover has the same fault while sliding (4.25, done in part 8), and a rifle goes into the wall in high cover blind fire (4.26).
+
+### 5. The arm guard checks where the body will be drawn (to-do 4.23)
+- **The fault:** the carried AK went 0.29 to 0.33 into the wall's top edge for 7 to 9 frames at every vault's take-off (default loadout: M9 in hand, AK carried in the left hand). The vault leans the body onto its left hand over the top, so a gun carried in that hand rides down into it.
+- **Why the guard missed it:** `ProceduralLayer` applies on `PreSimulation`, before physics. `guardArm` cleared the arm for where the root stood then, and the physics step moved the body on by its velocity before the frame was drawn: 0.3 at the take-off's 14 to 20 studs/s. Redone by hand on a recorded frame, a 15° lift (well inside its 60° limit) would have cleared it.
+- **Fix (`AimLayer`):** the guard tests against where the body will be when the next frame is drawn: obstacles are queried round `pivot + ahead` and moved back by `ahead`, the root's velocity times `math.max(physicsDt, renderDt)`. Physics moves a walking body by its velocity over the physics step; a vault (or a dive's mover) places the root by the render step's time, whatever the physics step took (0.013 against 0.016 left one frame at 0.11). `renderDt` comes from `PreRender`; `update` gets the real, uncapped step as `physicsDt` (its own `dt` is capped at 1/20 for the springs).
+- **Tried and dropped:** a vault carry clip (the rifle held up behind the shoulder or upright at the side) cleared every obstacle in Blender, but no one pose blends cleanly from the four carries a vault can start from (they differ by up to 162°): the rifle swept 0.5 to 0.8 through the body, and from low cover the joints were a half turn apart. A wider guard limit (110° while vaulting) changed nothing, which led to the timing above.
+- **Result** (83tg's avatar, the LowWall, AK carried): the AK rests on the top edge, 0.05 (the guard's slack), drawn and after physics, standing, running and sprinting. Out of low cover: nothing drawn; 0.20 for one frame after physics in the take-off turn (4.15's frame).
+
+### 6. Running vaults refused by the server (new)
+- **Found:** a vault started while running (16 studs/s, 3 studs out) played for 3 frames, then the server answered `Rejected … NoVault`: the client let go (`Freefall`), the body dropped onto the top of the wall with the legs through it (up to 1.58), and ran off along the top.
+- **Why:** the server checks the vault from its own copy of the character (`VaultRules.find` with `SERVER_SLACK`). That copy lagged about 0.25 s: when the client vaulted 3.2 from the wall, 0.26 s into the run, the server's copy was still 6.9 from it and not yet moving, past `REACH` + 2.5. From the client's place the server's check passes.
+- **Fix (`VaultRules`):** `SERVER_SLACK` 2.5 → 7.5, a sprint's lag (24 studs/s × 0.3 s) with some room. The client itself never vaults from further than `REACH` (3.6), and the server still checks the obstacle's height, depth, far side and landing room.
+- **Result:** running (16) and sprinting (24) vaults accepted and completed; nothing in the wall but the AK resting on the top (0.05). A sprint vault pressed late (1.4 from the face) touched the face with the sprinting stride for one frame before the take-off (the holstered Uzi 0.19): 4.5's close take-off.
+
+### 7. High cover, stepping out and back (to-do 4.24)
+- Re-measured at both ends of the HighWall (83tg's avatar, AK carried): stepping out, the gun forearm 0.09 for 9 frames working left, everything else at or under 0.08; stepping back, the M9 0.05 for 2 frames. No upper arm in the wall: the 0.43 of 2026-11-04 was the old pose facing the wall, before cover went side-on.
+
+### 8. Blind fire on the high cover run (to-do 4.25, 2026-11-10)
+- **The fault:** on `CoverHighMove` the still `BlindFireHigh` clip twists the chest for the idle's body, and the gun turned back along the wall. The still clip reaches round a wall's end; mid-wall there's no end to reach round.
+- **The clips** (`RUN_FIRE` `HighLeft` and `HighRight`, made by the same `blind_fire_move` as the low ones):
+
+| Clip | What it does |
+|---|---|
+| `BlindFireHighMoveRight` | Going right the gun arm is on the open side. It points straight out ahead along the wall, a little above the shoulder, the barrel level; the waist as the run's, the head looking ahead along the wall |
+| `BlindFireHighMoveLeft` | Going left the gun arm is on the wall side. The chest turns 27° from the run's so the gun shoulder leads, and the arm points ahead with the gun in front of the chest, the head looking along it |
+
+- **Searched and checked as the low ones, with one more rule:** the gun arm and gun clear of the head and torso. The first left pose put the forearm 0.6 into the head's box (the gun across the face); the search had only checked the wall. On the default R15, over the run's cycle and with the judder: nothing in the wall, the barrel within 8° of the way the body runs, the forearm at most 0.10 into the torso's box (the boxes are crude: the cover hold's own is 0.79), nothing in the head.
+- **Self-check** (`check_run_fire`, now per height): each high clip on 16 points of the run's cycle, the gun arm and gun out of the wall, the barrel within 14° of straight ahead, the torso's reach under `BACK_REACH`. All four run clips are now also checked for the forearm, hand and gun out of the head; it rejects the first left pose.
+- **Blends,** simulated in Blender with Roblox's blending and `AnimationController`'s fades for every switch: starting and stopping a slide (also from the other side), and raising or lowering the gun mid-slide, cross-fade cleanly with the pistol, a rifle and dual pistols. The joints stay within 135° of the still clips and the holds, apart from two at 137° and 138° (the dual and rifle holds), which blend cleanly.
+- **A reversal can't cross-fade.** The two runs' gun arms are on opposite sides (the wrist 146° apart), and with the velocity flipping in under 0.05 s the gun swept up to 1.0 into the wall. So they dip on a reversal (`dipFor`), as the low run going right does: nothing in the wall at any reversal speed with the pistol or dual pistols. A rifle still sweeps 0.5 to 0.9 in for an instant reversal in the simulation, less than the still clips' own (4.26).
+- **`dipFor`** replaces `blindFireShowing`: it looks for any blind fire clip still showing that the new one mustn't cross-fade with. `blindFireShowing` took the first showing clip it found, so a dip could be missed with two showing (a reversal can pass through the still clip for a frame).
+- **In game** (83tg's avatar, the HighWall; the M9, then the AK-47 in hand, then dual M9 and Uzi; blind fire held with `LastShot`):
+  - Sliding both ways: the barrel 0.99 to 1.00 along the wall the way the body runs; nothing in the wall; the new clips' arm and gun 0.00 to 0.02 into the head's box. The still `BlindFireHighRight`'s own is 0.39: its forearm passes beside the head, under the hood in a screenshot.
+  - Reversals: Roblox flips the slide's velocity in one physics frame (9.6 to −8.3 to −9.6). The old clip dips into the hold (the pistol's muzzle down, the rifle's up) and the new one comes up. Nothing in the wall.
+  - Starting and stopping, also from the other side: cross-fades; nothing in the wall; the arm and gun at most 0.09 into the head's box mid-blend.
+  - The AK rests on the wall (0.05) in the still clips, held off by the arm guard, and is clear while sliding. Dual pistols: the left gun and arm clear too.
+  - Output log clean.
+
+### 9. Bullet time checked against [[Last Stand and Bullet Time]] (2026-11-10)
+- **Why:** in a play test the player moved freely, with no penalty, in their own bullet time.
+- **What the note says:** everyone the activator can see slows to 0.3, lower-level victims also aim at 0.35, and the activator keeps full speed unless someone else's bullet time sees them. `BulletTimeService` does exactly that.
+- **In game** (83tg's avatar, the TargetOpen dummy about 20 studs away):
+  - The player triggering it with a full meter (X): level 3 for 5 s, the meter drained to 0. The dummy went to 0.3; the player stayed at 1 and walked at 16 studs/s. The player's screen showed the BULLET TIME label and the drained colour.
+  - The dummy triggering it on the player (`DebugBulletTime`): the player at 0.3, walking at 4.8, `AimPenalty` 0.35; back to 1 after 5 s.
+  - The player counter-activating at the same level: the penalty cleared at once; both at 0.3 while they could see each other; both back to 1 with the pillar between them.
+- **So it worked as the note said: moving freely in your own bullet time was the rule.** Max Payne 3 differs: there the user is slowed too, less than their victims, and the slow-down chains through the victims' sight ([[Max Payne 3 Mechanics Reference]]).
+- **Changed the same day (to-do 4.27, JordanSaa's decision): the activator slows to 0.6.** `BulletTimeRules.ACTIVATOR_SCALE` (a self-check keeps it between the victims' 0.3 and 1); `BulletTimeService.refresh` applies it to a character with its own session. A Last Stand is left out: its bubble keeps the downed player at full speed, and a bullet time started before the killing blow would otherwise slow them through the stand. Everything that reads `TimeScale` follows (walking, sprinting, fire rate, reloads, dives, vaults, the clips); the aim isn't slowed.
+  - Triggered mid-sprint with a full meter: 0.6 at once, sprinting at 14.4, walking at 9.6, back to 1 after 5 s; the dummy in view at 0.3; no movement-check strike; output log clean.
+  - A Last Stand during it (the gunman's hit on a torso set to 10): 0.6 until the killing blow, then 1 for the whole stand while the player's own bullet time ran on; the gunman at 0.3 in the stand's bubble.
+  - Not done: the chain through the victims' sight.
+- Not checked here: one or two levels (1.67 s each; `BulletTimeRules`' self-check covers the maths), and two real players (the two-client test).
+
+### Repo changes in session 6 (not committed yet)
+- `mp_hands.py`: `RUN_FIRE` (low and high), `blind_fire_move`, `check_run_fire` and its limits, the four clips registered with the self-check, the module's opening note.
+- `Exports/keyframes.json` (102 clips) and `MaximumPain_Animations.blend`. Only the four new clips differ from session 5's export.
+- This note, the [[Changelog]], [[Cover System]], [[Animation Hooks]], [[Architecture]], [[Test Arena]] and the README.
 
 ---
 
@@ -594,7 +695,8 @@ All in the Team Create place (client controllers in `StarterPlayer.StarterPlayer
 - [ ] **Save the place in Studio again.**
   - **Who:** whoever opens Studio next.
   - **How:** if the Drafts window (View > Drafts) lists scripts, commit them; then File > Save to Roblox.
-  - **Why:** the 2026-11-04 session changed 9 scripts and added `ServerStorage.Tools.TestHarness`; the 2026-11-07 session changed 5 scripts, replaced 24 clips and added one; session 5 changed 3 scripts and added 4 clips (see [[#Scripts changed in session 4]], [[#4. Scripts changed in session 4]] and [[#2. Scripts changed in session 5]]). The place is the only copy of the game's code.
+  - **Why:** the 2026-11-04 session changed 9 scripts and added `ServerStorage.Tools.TestHarness`; the 2026-11-07 session changed 5 scripts, replaced 24 clips and added one; session 5 changed 3 scripts and added 4 clips; session 6 changed 6 scripts and added 4 clips (see [[#Scripts changed in session 4]], [[#4. Scripts changed in session 4]], [[#2. Scripts changed in session 5]] and [[#3. Scripts changed in session 6]]). The place is the only copy of the game's code.
+- [ ] **Commit and push session 6** (JordanSaa): `mp_hands.py`, `Exports/keyframes.json`, `MaximumPain_Animations.blend` and the notes (see [[#Repo changes in session 6 (not committed yet)]]).
 - [x] **Push the 2026-11-04 session** (JackT6785): `48ee647`, on `origin/main`.
 - [x] **Commit and push sessions 4 (2026-11-07) and 5** (JordanSaa): `35c5e2d`, merged with `48ee647` in `85d5b61` (2026-11-08), on `origin/main`.
 - [x] **Fix the merge** (2026-11-09): this note had conflict markers in six places, and the [[Changelog]] had lost its 2026-11-04 entry. Both reconciled. [[Cover System]], [[Animation Hooks]], [[Architecture]] and [[Test Arena]] kept the 2026-11-07 version, which was written from what the 2026-11-04 session had left in the place, so their facts are current; the 2026-11-04 wording is in `48ee647`.
@@ -664,6 +766,11 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
   - At the higher arc the left hand no longer touches the top from standing (it still rests on it from low cover).
   - A vault from a run starts on a running stride; a standing vault could start from idle.
   - The take-off camera step at 15 fps is 1.2 to 1.7 (about 0.4 at 60), because the path's climb is steepest at its start. A gentler start to the climb, or more camera lag at take-off, would soften it.
+  - **Measured again in session 6** (83tg's avatar, the LowWall, about 60 fps, the M9 with the left hand free):
+    - From 2.4 and 2.1 back: no leg in the wall.
+    - The left hand: in the clip it reaches the near face early (9 to 18% of the clip, 0.5 to 0.9 below the top, on the game's path replayed in Blender), and the arm guard holds it off: 0.07 to 0.11 above the top in game. A clip can't fit every obstacle and start, so planting it properly would be procedural: `AimLayer` placing a free left hand on the top under the body while it passes over (`VaultController` knows the top and where the faces are).
+    - The camera's vertical lag works: it held back up to 0.77 of the rise and eased in, and the take-off step was 0.39. A 62 ms frame on the session's first vault made the view jump +1.25, −0.71, +0.81 over three frames.
+    - A sprint vault pressed late (1.4 from the face) touched the face with the sprinting stride for one frame before the take-off (the holstered Uzi 0.19, the shin 0.05).
 - [ ] **4.6 `CarryTwoHandedLow` points the rifle out to the left.** That was so it cleared low walls. Low cover has its own carry now (`CarryTwoHandedCoverLow`, session 4), so `CarryTwoHandedLow` only plays crouching in the open and getting up, and could point forward-down, more like Max Payne 3.
 - [ ] **4.7 The carried gun against walls.** Done in part (session 4): the arm guard keeps the carried gun and its arm out of walls whenever the shoulder has room. Examples: behind high cover the AK's upper arm went from 0.32 in to clear.
   - **Still open:** walking flush along a wall in the open (the root about 1.4 from it) or into an inside corner, the shoulder is closer to the wall than the upper arm's half-thickness. No turn at the shoulder can clear that, and the left arm and the AK clip by 0.5 to 0.9; walking into a corner also presses the legs, head and torso in.
@@ -689,7 +796,7 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
     - On the first frame the aim clip's arm pointed through the top, 1.2 deep, while the body was still low.
     - The same in reverse when ducking back (a shin 0.48 in on the last frame).
   - **Left over:** ducking back working right, the holstered gun is 0.14 in the wall for 2 frames while the clip blends in over the aim.
-- [ ] **4.15 Vaulting out of low cover: one frame of a foot in the wall** (session 4). The body turns from facing out to the vault in the vault's 0.1 s blend, and on the frame the hips rise, a foot is 0.74 inside the wall. The same turn clip idea, or start the vault's blend from a pose facing the wall.
+- [ ] **4.15 Vaulting out of low cover: one frame of a foot in the wall** (session 4). The body turns from facing out to the vault in the vault's 0.1 s blend, and on the frame the hips rise, a foot is 0.74 inside the wall. The same turn clip idea, or start the vault's blend from a pose facing the wall. Session 6: the right foot 0.64 and the legs up to 0.35 for 1 to 2 frames, the carried AK 0.20 for one frame after physics; the camera step 0.95 at 60 fps.
 - [ ] **4.16 The inside-corner snap** (session 4).
   - At an inside corner `CoverController` turns the root to the new wall in one frame, and the body turns with it about the root.
   - The low run's body sits up to 1.8 behind the root (to keep the head from leading past wall ends), so it swings round. Sliding along CrateA's north face into the crate next to it, the hips and legs went up to 1.1 into CrateA for about 3 frames.
@@ -697,13 +804,10 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
   - **Ideas:** ease the root's turn over 0.2 s at inside corners, or hold the body's yaw and ease it out in `AimLayer` (like the height hold).
 - [ ] **4.17 Blind fire working right reaches only just past the corner** (session 4). With the back to the wall the gun arm is the one away from the edge; the chest leans out and the arm reaches across, and the gun ends 0.33 past the end, at the corner (working left it's 1.07 past). A full-body clip that turns the body to the corner would reach further, but its legs would freeze if the player slid while firing.
 - [ ] **4.18 What still shows past a wall's end** (session 4). Settled at an end, the edge-side upper arm shows 0.29 to 0.33 past it, the legs 0.15, a holstered gun on the thigh up to 0.47. The head is 0.4 inside. Sitting the idles further back stops the right-edge blind fire reaching; a wider `CoverRules.EDGE_MARGIN` (1.4, with `PEEK_STEP` 3.2) would hide it but moves where peeking and blind fire work.
-- [ ] **4.19 Firing while sliding along low cover** (session 4; tested in session 5: it's wrong).
+- [x] **4.19 Firing while sliding along low cover.** Done in session 6 (JordanSaa, 2026-11-09: keep the slide, new clips): `BlindFireLowMoveLeft/Right`, made on the run that goes that way and picked with it; the run going right dips into the cover hold instead of cross-fading with another blind fire clip. In game, both ways and through every switch: the gun over the top and pointing across, nothing in the wall, the head under the top, the gap held.
   - **Seen** (blind fire held, sliding along the LowWall at 8 studs/s): nothing goes in the wall, but on the run the gun is 2.7 out from the wall's face and 2.5 to the side, pointing back along the wall, 0.7 to 0.8 over the top's height. Settled, it's over the top (0.42) with the muzzle over the wall. The shots themselves leave from the server's virtual muzzle, so only the look is wrong.
   - **Why:** `BlindFireLowLeft/Right` key the waist for the idle's hips, which face out from the wall. The run's hips face along it, so the same twist turns the chest a quarter turn the wrong way. Firing doesn't stop a slide (`CoverController` only reads the last shot to hold the reach).
-  - **Decide (gameplay):**
-    1. Stop sliding while blind firing (until `READY_TIME` after the last shot), as many cover shooters do. Small, and no new clips.
-    2. Or keep the slide: a blind fire made on the run for each way (`BlindFireLowMoveLeft/Right`), the gun arm up over the head without the waist twist (working one way the gun arm is on the wall side, the other way on the open side, so a twist can't serve both), picked while the run plays.
-  - **Check:** `mp.over(LowWall)` for the gun through a slide with `LastShot` held, both ways.
+  - **Decided:** keep the slide and make blind fire clips on the run (the other option was to stop the slide while blind firing).
 - [ ] **4.20 The crouch walk and the low cover run fold the trailing leg into the floor** (session 5).
   - **Seen:** in the second half of each step the planted foot goes back 1.25 behind the low hips, and the knee comes down to 0.19 over the floor, almost kneeling, until the foot has swung forward under the body. On the default R15's boxes the shin goes 0.44 to 0.47 under the floor, the thigh 0.24 to 0.26 and a gun holstered on the thigh 0.28 to 0.37. In game on 83tg's avatar, sliding along the LowWall: shins, thighs and the Uzi 0.33 under. The feet stay on the floor. The crouch walk's numbers are unchanged since they were committed on 2026-11-01; it wasn't caught because the checks looked at the feet.
   - **Tried in Blender** (`mp_locomotion.CROUCH_WALK`; the low run is made from it): raising the heel at push-off (18° to 45°) changed nothing; turning the knees out, 0.35 at best and worse sideways; shorter, quicker steps (cycle 0.55 to 0.4) with the feet further forward, 0.35 (0.23 at the shortest); the hips 0.2 to 0.3 higher with short steps, 0.16 to 0.3, but the head comes up 0.2 to 0.33.
@@ -711,8 +815,11 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
   - **Check:** the shins, thighs and holstered gun over the floor through the crouch walk in all four directions and the low run both ways, in Blender and with `mp.floor()` in game.
 - [ ] **4.21 Standing up: the feet go 0.10 into the floor for one physics step** (the first after the root rises). It isn't drawn at 15 fps but would be at 60. The foot guard measures the posed feet before physics, and the first step still moves them. (2026-11-04)
 - [ ] **4.22 The dive's landing ease (optional).** The body now settles onto the floor quickly and smoothly. A fall-shaped ease (carrying on the flight's downward speed, ending on the floor) would land harder, more like Max Payne 3, if this reads as soft. (2026-11-04)
-- [ ] **4.23 The carried AK brushes the top in a vault** for 7 to 9 physics frames in mid-vault (0.28 to 0.34). Both the floor lift and the arm guard act on it but don't fully clear it there. Check its pose in the Vault clip, or let the guard turn further during a vault. (2026-11-04)
-- [ ] **4.24 High cover, stepping back to the edge:** while the edge idle blends back in (about 0.2 s), the leading upper arm reaches up to 0.43 into the wall before the gap and the guard settle it to 0.05. (2026-11-04)
+- [x] **4.23 The carried AK brushes the top in a vault** for 7 to 9 physics frames in mid-vault (0.28 to 0.34). (2026-11-04) Done in session 6: the arm guard cleared the arm for where the body stood before the physics step, not where it would be drawn; it now tests the place the body will be (session 6, part 5). The AK rests on the top edge (0.05) standing, running and sprinting.
+- [x] **4.24 High cover, stepping back to the edge:** while the edge idle blends back in (about 0.2 s), the leading upper arm reaches up to 0.43 into the wall before the gap and the guard settle it to 0.05. (2026-11-04) Re-measured in session 6 with the side-on pose: no upper arm in the wall at either end; the gun forearm 0.09 for 9 frames stepping out, the M9 0.05 stepping back (session 6, part 7).
+- [x] **4.25 Blind fire while sliding along high cover** (session 6). 4.19's fault on high cover: on `CoverHighMove` the still `BlindFireHigh` clip twists the chest for the idle's body and turns the gun back along the wall (barrel 0.9 along it, away from the way the body runs). Mid-wall the shots hit the wall anyway (blind fire works round an end), so it's the look. Fix as 4.19: clips made on the high run (check the switches with Roblox's blending), or keep the cover hold while sliding mid-wall. Done in session 6 (part 8, 2026-11-10): `BlindFireHighMoveLeft/Right`, made on the high run, the gun arm straight out ahead along the wall; the two runs dip into the hold on a reversal.
+- [ ] **4.26 Rifles in high cover blind fire** (session 6). With a rifle (the FAL) the high blind fire clips put it 1.9 into the HighWall, still and sliding, and the support hand up to 0.49 in: the clips were made with a pistol and point the gun along the wall. A rifle needs its own pose (round the end, the support hand on it), or the hold while hidden mid-wall.
+- [x] **4.27 Bullet time: slow the player who triggers it too?** (a decision, session 6). They keep full speed, as [[Last Stand and Bullet Time]] says (checked in session 6, part 9). In Max Payne 3 the user is slowed too, less than their victims, and the slow-down chains through the victims' sight ([[Max Payne 3 Mechanics Reference]]). Following it means a scale between 0.3 and 1 for the activator in `BulletTimeService` (and sight checks from the victims for the chain). **Decided by JordanSaa and done on 2026-11-10** (session 6, part 9): the activator slows to 0.6 (`ACTIVATOR_SCALE`), except in a Last Stand. The chain isn't done.
 - Accepted as it is: the gun-arm pump lags the opposite leg by about 0.1 of a cycle.
 
 ### 5. Publish and document
@@ -722,8 +829,8 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
   - **Until then:** live servers play none of the clips. `AnimationConfig.resolve` only plays a KeyframeSequence directly in Studio, so `AnimationController` keeps Roblox's default `Animate` script, and the gun parts don't move on reloads.
   - **Steps:**
     1. Open the place in Studio as JordanSaa.
-    2. Publish each of the 98 KeyframeSequences in `ReplicatedStorage.Assets.Animations` as an animation owned by JordanSaa (or the group, if the game moves to one).
-    3. Paste each `rbxassetid://<id>` into the matching slot's `Id` in `AnimationConfig`. There are 105 slots for 98 clips: `ReloadPistol` serves 4 slots (Desert Eagle, M9, Glock 18, Uzi) and `ReloadRifle` 5 (AK-47, FAL, M4, MP5, SPAS-15), so those slots share an id.
+    2. Publish each of the 102 KeyframeSequences in `ReplicatedStorage.Assets.Animations` as an animation owned by JordanSaa (or the group, if the game moves to one).
+    3. Paste each `rbxassetid://<id>` into the matching slot's `Id` in `AnimationConfig`. There are 109 slots for 102 clips: `ReloadPistol` serves 4 slots (Desert Eagle, M9, Glock 18, Uzi) and `ReloadRifle` 5 (AK-47, FAL, M4, MP5, SPAS-15), so those slots share an id.
     4. Publish the place and test in a live server: locomotion, cover, dives, vaults, Last Stand, every reload and its markers.
     5. When a clip changes later in Blender, re-export and re-import it, publish it again, and update its slot's `Id`.
   - Scripted publishing isn't an option for now: `AssetService:CreateAssetAsync` returned "not available yet", even from a plugin, when it was tried for the weapon kit (2026-10-30).
@@ -738,7 +845,7 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
 ---
 
 ## How to resume (tools and tricks)
-- **Blender:** `sys.path.insert(0, r"…\Assets\Blender\Animation")`, `import mp_lib as L, mp_locomotion as M, mp_arms as A, mp_stances as S, mp_hands as H`, `L.build_rig()`, `L.CLIPS.clear()`, then `M.register(); A.register(); S.register(); H.register()` (98 clips). `L.export()` (or `L.export(["Name"])`), `import mp_serve; mp_serve.start()`. In Studio **Edit mode**: `require(game.ServerStorage.Tools.AnimationImporter:Clone())()`.
+- **Blender:** `sys.path.insert(0, r"…\Assets\Blender\Animation")`, `import mp_lib as L, mp_locomotion as M, mp_arms as A, mp_stances as S, mp_hands as H`, `L.build_rig()`, `L.CLIPS.clear()`, then `M.register(); A.register(); S.register(); H.register()` (102 clips). `L.export()` (or `L.export(["Name"])`), `import mp_serve; mp_serve.start()`. In Studio **Edit mode**: `require(game.ServerStorage.Tools.AnimationImporter:Clone())()`.
 - **Checks used:** `L.validate(clip, speed, dir)`; `L.render_sheet(clip, path, frames, views)` / `L.render_grid`.
 - **Arm clips are chest-relative.** Author with IK on the body they'll play on, then check by FK on every body that plays them (rifle box vs floor, wall, body).
 - **Studio testing:**
@@ -775,7 +882,7 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
   - **Importing clips from the MCP:** `execute_luau` can't reach `127.0.0.1` (the Assistant's HTTP allowlist), so `AnimationImporter` can't fetch from `mp_serve`. Instead, embed the clips' JSON in the Luau code with the importer's `build` function, in batches of about 60 KB. Run it in **Edit** mode (play-mode changes are thrown away), then compare a fingerprint of every KeyframeSequence (pose count and a weighted sum of the CFrames) with `keyframes.json`.
   - **Keyboard and mouse tools:** `user_keyboard_input` needs `datamodel_type: "Client"` and `wait_time_ms` for waits. `user_mouse_input` needs a `moveTo` in each call before clicks, or the clicks don't register. Right button held = aim, left click = fire.
   - **Holding blind fire for a screenshot:** set the character's `LastShot` attribute on the client to `os.clock() + 25`. `AnimationController` keeps the blind fire up for 1.2 s after it; it isn't replicated.
-  - **Blender** on this PC is `D:\blender.exe` (5.2.3). All 98 clips export in about 35 s with the FBX copies.
+  - **Blender** on this PC is `D:\blender.exe` (5.2.3). All 102 clips export in under a minute with the FBX copies.
   - **Walking to the arena:** a block (`Workspace.Part`, x 30–34, z 38–56) stands north of the spawn. Go round it by (38, 38) and (38, 77), then west along z 78 or 80.
   - **Cover checks in Blender:** measure each pose against a wall placed where the game keeps it. Use the gap from the head, torso and upper arms' reach + 0.05, at least 1.15, then check the head top over the floor, boxes in the wall or floor, the reach toward the edge, and the gun over the top or past the end. Put a face marker on the head in contact sheets to see where it looks.
   - **Folded bodies:** a neck yaw on a chest folded over the knees rolls the head instead of turning it; aim it with a look-at (`mp_stances.look`). Place guns in a part's frame but aim them in the body's facing frame (`mp_arms.placed`, `by_part`).
@@ -785,6 +892,17 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
   - **Knees in IK:** a fixed knee direction bends them backward once the feet have turned round. Turn the knee with the foot, from the start pose's bend to the end pose's.
   - **Working the left side without sliding:** press Q before E; the cover side starts on the camera's shoulder.
   - **Re-importing a few clips:** build the import batch from `keyframes.json` with just those clips (about 33 KB for four), run it in Edit mode, and check their fingerprints; the rest of the place's clips stay as they are.
+- **Learned in session 6:**
+  - **How Roblox blends tracks** (measured on a cloned rig, 2026-11-09): tracks of the same priority blend joint by joint, weight-normalised, by normalised linear interpolation, the short way round; a higher priority overrides the lower ones by its total weight (at most 1). A Blender check of a blend must do the same, at several clip times and weight mixes: near a half turn the way round depends on small differences.
+  - **Clips that blend into each other:** keep every joint well short of a half turn from its partner's (under about 135°). Where the body turns a long way under a held pose (blind fire going right), don't cross-fade: drop the old clip into a pose both sides blend with, then bring the new one up.
+  - **Searching for a pose:** a scored random search over a handful of numbers (waist angles, where the head looks, the grip, the elbow's way, the gun's cant), scoring each candidate on the body's whole cycle and on its blends, found poses that hand-tuning didn't. Round the result and check it again on the shipped code.
+  - **Head height:** use the head box's highest corner, not its top face's centre; tilted forward, the corner is up to half a stud higher.
+  - **Firing in a test:** `Remotes.FireWeapon:FireServer(point, "Right")` in a loop runs the whole chain (the server's shot, `WeaponFired`, the client's blind fire). `LastShot = os.clock() + 60` holds blind fire without spending ammo.
+  - **A rifle in the right hand:** dual wield (4) drops the carried AK, so pick a rifle up from the gun table (F; the prompt nearest the crosshair) and press 3.
+  - **Import batches** use a `[==[ … ]==]` string: the clips' JSON holds `]]`.
+  - **The procedural layer runs before physics** (`PreSimulation`). Anything it checks against the world must use where the body will be when the frame is drawn: the root's velocity × the larger of the physics and render steps (a mover such as the vault's places the root by the render step).
+  - **The server's copy of a character the client moves lags it** by about 0.25 s in Studio (0.26 s into a run it hadn't started moving). Server checks of a place must reach that much further, or check from the client's place within limits.
+  - **Testing vaults on the run:** go round the dummy behind the LowWall (x −10, z 92) and the pillar (x 0, z 100): through the gap at x 1. Hold W from 7 studs out and press Space 0.26 s in (16 studs/s, the vault starts about 3 out); for a sprint, hold LeftShift too and press at 0.42 s from 11 out. Log `Remotes.StanceResult` on the client to see the server's answer.
 - **No weak-keyed tables keyed by instances** (`__mode = "k"`) for anything that must survive: entries vanish while the instance still exists. Keep the state on the instance (attributes) or in a plain table cleared when the instance leaves.
 - **Learned in session 4:**
   - **The test harness** is `ServerStorage.Tools.TestHarness` in the place and `Tools/TestHarness.luau` in the repo (the same script; it never reaches players). Install it each play session:
@@ -834,6 +952,29 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
 | Dive get-up | feet ≥ −0.05; camera 0.15 |
 | First reload of a life | stretched from its first frame (was unstretched until the clip loaded) |
 | Others' reloads (one client) | a reload this client didn't start moved the gunman's AK magazine and bolt; one cut short brought the magazine back |
+| Output log | clean |
+
+## Test log (session 6, 2026-11-09 to 10, Studio play mode, 83tg's avatar)
+| Test | Result |
+|---|---|
+| Low cover, blind fire while sliding, both ways (held, and real shots) | the run's clip plays with its run; the muzzle 0.52 to 0.72 over the top, pointing across (0.95 to 0.99); the head's box 0.32 to 0.45 under the top; nothing in the wall; the gap unchanged |
+| Starting to fire mid-slide, both ways | muzzle up, across in 0.12 to 0.25 s; nothing in the wall |
+| Starting and stopping a slide while firing, both ways | going left: a cross-fade, the gun across throughout; going right, before the dip: the gun pointed back along the wall for about 0.1 s (−0.66 to −0.95); with the dip: never |
+| Five reversals while firing | before `DIP_FADE` 50 (at 30): head 0.64 and carried AK 0.95 in the wall for 4 to 5 frames; at 50: nothing in the wall |
+| Dual pistols; a rifle (FAL) | the Uzi rests 0.05 on the wall's face going right; the rifle rests 0.05 on the top |
+| High cover, blind fire while sliding (FAL), before 4.25 | the gun turns back along the wall on the run (4.25); the rifle 1.9 into the wall still and sliding, the support hand 0.49 (4.26) |
+| Vaults with the AK carried, before the guard fix | standing: AK 0.29 to 0.33 into the top for 7 to 9 frames at take-off |
+| … after (2026-11-10) | standing, running (16), sprinting (24): AK 0.05 on the top edge; out of low cover: nothing drawn, 0.20 one frame after physics |
+| Running vault, before `SERVER_SLACK` 7.5 | refused (`NoVault`) after 3 frames; the body dropped onto the top, legs 1.58 in |
+| … after | running and sprinting vaults accepted and completed |
+| Low cover blind fire slides after the guard fix (regression) | nothing in the wall, 216 frames, both ways and a reversal |
+| High cover, stepping out and back at both ends (4.24) | no upper arm in the wall; forearm 0.09 (9 frames), everything else ≤ 0.08 |
+| High cover, blind fire while sliding, after 4.25 (2026-11-10): M9, AK-47, dual M9 and Uzi | nothing in the wall; the barrel 0.99 to 1.00 ahead along the wall; the new clips' arm and gun ≤ 0.02 into the head's box (0.09 mid-blend) |
+| … reversals, starting, stopping | the velocity flips in one physics frame and the old clip dips into the hold; starts and stops cross-fade; nothing in the wall |
+| Bullet time, the player's own (full meter) | 5 s, the meter drained; the dummy at 0.3; the player at full speed (the rule) |
+| … after `ACTIVATOR_SCALE` 0.6, triggered mid-sprint | the player at 0.6: sprinting 14.4, walking 9.6, back to 1 after 5 s; no movement-check strike |
+| … a Last Stand during it | 0.6 until the killing blow, then 1 through the stand; the gunman at 0.3 |
+| Bullet time, a dummy's on the player; a counter-activation | the player at 0.3, walking 4.8, aim 0.35; the counter-activation cleared the penalty; both back to 1 behind the pillar |
 | Output log | clean |
 
 ## Test log (session 5, 2026-11-08, Studio play mode, 83tg's avatar)

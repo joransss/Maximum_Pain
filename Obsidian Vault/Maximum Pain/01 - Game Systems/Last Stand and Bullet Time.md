@@ -42,7 +42,7 @@ Two things slow characters, and the lowest scale wins:
   - It spends every full level of the meter. There are three levels in a full meter, worth 5 s in all, so one level lasts 1.67 s.
   - Everyone the activator can see is slowed to 0.3 until the time runs out or the sight breaks. "See" means on the activator's screen, with a clear ray from their eye to the target's head, chest or hips; walls block it, glass and other characters don't. It's checked 10 times a second.
   - A slowed player whose own active level is lower than the activator's also turns their aim at 0.35 speed, until they activate a level at least as high.
-  - The activator keeps full speed unless someone else's bullet time sees them.
+  - The activator is slowed too, to 0.6 (`BulletTimeRules.ACTIVATOR_SCALE`): less than everyone they slow, as Max Payne 3 slows the user less than their victims. Someone else's bullet time seeing them slows them to 0.3. In a Last Stand they keep full speed, even while their own bullet time runs. (Until 2026-11-10 the activator kept full speed.)
 
 Gravity isn't slowed, so jumps and falls run at normal speed. Studio test hook: a `DebugBulletTime` attribute set to true on any character activates its bullet time (with `Adrenaline` 1 and, for a dummy, an `Aim` attribute pointing at the target).
 
@@ -62,6 +62,14 @@ The slim white bar beside the HUD figure is the adrenaline meter (0 to 1). Every
 - **Bullet time** (a dummy's, on the player): a vault took 1.40 s in the air at 0.3 (0.45 s normally); crouching and standing stayed smooth.
 - **Still open:** the wake-up clip plants the right hand while it holds the pistol, and the pistol's box touches the floor (0.2). See [[Animation and MP3 Systems - Progress and To Do]].
 
+## Tested (2026-11-10)
+Checked after a play test where the player moved freely in their own bullet time (83tg's avatar, the TargetOpen dummy about 20 studs away). It worked as this note then said, the activator at full speed. JordanSaa decided the same day to slow the activator to 0.6, and it was retested:
+- **The player triggering it** with a full meter (X): level 3 for 5 s, the meter drained to 0, the dummy in view at 0.3. Before the change the player stayed at 1 (16 studs/s). After it, 0.6: sprinting at 14.4, walking at 9.6, back to 1 after 5 s. Triggered mid-sprint, the server's movement check stayed quiet. The player's screen shows the BULLET TIME label and the drained colour.
+- **The dummy triggering it on the player:** the player at 0.3, walking at 4.8, `AimPenalty` 0.35; back to 1 after 5 s.
+- **A counter-activation** at the same level: the penalty cleared at once; both stayed at 0.3 while they could see each other, and both went back to 1 with the pillar between them.
+- **A Last Stand during the player's own bullet time:** at 0.6 until the gunman's killing blow, then 1 for the whole stand while their own bullet time ran on; the gunman at 0.3 in the stand's bubble.
+
 ## Not done
+- Max Payne 3's slow-down also chains through the victims' sight ([[Max Payne 3 Mechanics Reference]]); here it doesn't.
 - The line-of-sight failure (the killer hides) wasn't tested in play. It ends the stand the same way as the timer running out.
 - No slow-motion sound.

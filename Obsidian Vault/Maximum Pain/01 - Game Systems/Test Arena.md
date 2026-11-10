@@ -85,6 +85,25 @@ To work the left side without moving along the wall (the move's floor dips would
 ## Not tested yet
 Two real players, network lag, phones and tablets (there are no touch controls), the angled wall, the ledge dive, the line-of-sight failure in Last Stand, and Studio's Script Analysis (type warnings).
 
+## Test log (2026-11-09, Studio play mode, 83tg's avatar)
+| Feature | Result |
+|---|---|
+| Low wall: blind fire while sliding, both ways (held, and real shots) | The run's own blind fire clip: the gun over the top and pointing across, the head under it, nothing in the wall |
+| Low wall: starting, stopping, reversing while firing | Clean; going right the gun dips into the hold and comes up again |
+| Low wall: dual pistols, a rifle | The Uzi and the rifle rest on the wall (0.05) |
+| High wall: blind fire while sliding, with a rifle | The gun turns back along the wall on the run (to-do 4.25); the rifle goes 1.9 into the wall (to-do 4.26) |
+| Output | Clean |
+
+## Test log (2026-11-10, Studio play mode, 83tg's avatar)
+| Feature | Result |
+|---|---|
+| Vaults with the AK carried: standing, running, sprinting | The AK rests on the top edge (0.05); before the arm guard fix it went 0.33 into it |
+| Running vaults | Accepted by the server (refused before `SERVER_SLACK` 7.5, and the body dropped onto the wall) |
+| High cover, stepping out and back at both ends | No upper arm in the wall; forearm 0.09 |
+| High wall: blind fire while sliding, both ways and reversing (M9, AK-47, dual) | The run's own clip, the gun straight out ahead along the wall; nothing in the wall; on a reversal the gun dips into the hold |
+| Bullet time near TargetOpen: the player's own, the dummy's (`DebugBulletTime`), a counter-activation | As [[Last Stand and Bullet Time]] said: the activator at full speed, those in sight at 0.3, the aim penalty cleared by an equal level, free behind the pillar. After the change the same day, the activator at 0.6 (back to full speed in a Last Stand) |
+| Output | Clean |
+
 ## Tips
 - In Studio only, a Vector2 `DebugLook` attribute on your player (yaw and pitch in radians) points the camera. Set it from the command bar to aim precisely; it only applies when the value changes.
 - **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it (5 s per activation).

@@ -14,7 +14,7 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Last Stand and Bullet Time]]: Last Stand, localized bullet time and the adrenaline meter.
 - [[Limb Health]]: per-limb health, the limping, crawling, one-arm and disarmed rules, painkillers.
 - [[HUD Layout]]: blueprint of the HUD (Max Payne 3 style health figure and gun list, boxed keybinds and prompts).
-- [[Animation Hooks]]: how the 98 animations are made in Blender, imported, layered, chosen and published.
+- [[Animation Hooks]]: how the 102 animations are made in Blender, imported, layered, chosen and published.
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
 - [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.

@@ -48,7 +48,7 @@ Tested: blind fire from the middle of the high wall hit the wall face; from its 
 | Outside corners | CoverCornerHighLeft/Right, CoverCornerLowLeft/Right: a side-on stride round the corner. They start and end on the cover idle and hold their last frame while blending back into it. |
 | Gun while hidden | High: CoverHoldHighOne (the pistol low in front of the belly, muzzle down), CoverHoldHighTwo (the rifle upright across the chest), CoverHoldHighDual (both pistols up in front of the chest). Low: CoverHoldLowOne and CoverHoldLowDual (the gun up beside the face), CoverHoldLowTwoLeft/Right (the rifle upright past the face, leaning away from the edge). |
 | Carried rifle | CarryTwoHandedCover (muzzle down in front of the left thigh) behind high cover, CarryTwoHandedCoverLow (by the knee, muzzle forward and down) behind low cover |
-| Blind fire | BlindFireHighLeft/Right (the gun arm out along the wall and round the end; working right the arm reaches across, the chest leaning out), BlindFireLowLeft/Right (the chest twists the gun shoulder to the wall and the arm goes straight up, the gun over the top, the head ducked). Both key the waist and neck too. |
+| Blind fire | BlindFireHighLeft/Right (the gun arm out along the wall and round the end; working right the arm reaches across, the chest leaning out), BlindFireLowLeft/Right (the chest twists the gun shoulder to the wall and the arm goes straight up, the gun over the top, the head ducked). Sliding along low cover: BlindFireLowMoveLeft/Right, made on the run (the chest leans the gun shoulder up, the arm goes straight up, the gun across the wall); going right it never cross-fades with another blind fire clip, it dips into the hold first. Sliding along high cover: BlindFireHighMoveLeft/Right, made on the run (the gun arm straight out ahead along the wall, the barrel level); the two dip into the hold on a reversal. All key the waist and neck too. |
 | Popping up and ducking back (low) | CoverPopUpLeft/Right (0.25 s): the body rises, leaves the wall and turns round toward the edge to face over it, the feet stepping round. CoverDuckLeft/Right (0.3 s): it turns and folds over first, and goes down once the feet are round. The gun comes up 0.15 s into a pop-up. |
 | Popped out | CoverAim (the back heel up), AimPistol/AimRifle/AimDual |
 
@@ -70,7 +70,7 @@ Max Payne 3 holds the gun low or upright in front while hidden, back to the wall
 - `CoverRules`: REACH 3.5 · GAP 1.15 · LOW_PROBE 3 · HIGH_PROBE 5.2 · EDGE_MARGIN 0.9 · PEEK_CLEAR 1.3 · CORNER_HOLD 0.35.
 - `CoverController`: the gap is GAP or the body's reach toward the wall + 0.05, whichever is more, with a 0.08 deadband. The reach eases back at REACH_RELAX 0.5 studs/s once settled for REACH_SETTLE 0.4 s and not fired for FIRED_HOLD 1.5 s.
 - The cover clips (`mp_stances.py`): HIGH_TURN 150° · LOW_TURN 180° · BACK_REACH 1.1 · HIGH_BACK 0.35 · LOW_BACK 0.75. The low cover turns: POP_TIME 0.25 · DUCK_TIME 0.3 · TURN_SWAY 0.6 · KNEE_FOLLOWS_FOOT 0.75 · DUCK_DROP 0.2–1 · DUCK_FOLD 0–0.7 · LEG_REACH 1.15.
-- `AnimationController`: TURN_FADE 25 (the turns take the body over) · POP_AIM 0.15 s (the gun stays in the low hold).
+- `AnimationController`: TURN_FADE 25 (the turns take the body over) · POP_AIM 0.15 s (the gun stays in the low hold) · DIP_FADE 50 (blind fire on the run going right goes down into the hold before another blind fire clip comes up).
 - The pop-out settle time (0.25 s) is in `StanceService` and `CharacterController`.
 - Space in low cover vaults over the wall ([[Movement State Machine]], Vaulting).
 
@@ -79,12 +79,13 @@ Max Payne 3 holds the gun low or upright in front while hidden, back to the wall
 - **High wall:** at the ends the head is 0.39 inside and the arm 0.29 past. Blind fire working left puts the gun 1.07 past the end; working right, at the corner (0.33 past).
 - **Crate:** the outer corner swings stay out of it.
 - **Popping up and ducking back** (2026-11-08), both sides: no leg in the wall, a shin 0.08 under the floor for one frame at most, the gun 0.05 in the wall's face while it comes up. Sliding along the low wall, the feet stay on the floor (the foot guard runs in cover).
-- Details in [[Animation and MP3 Systems - Progress and To Do]] (sessions 4 and 5). The 2026-11-02 tests of the old wall-facing pose are there too (session 3).
+- **Blind fire while sliding along low cover** (2026-11-09), both ways, starting, stopping and reversing: the gun over the top and pointing across, nothing in the wall, the head under the top, the gap held.
+- Details in [[Animation and MP3 Systems - Progress and To Do]] (sessions 4 to 6). The 2026-11-02 tests of the old wall-facing pose are there too (session 3).
 
 ## Not done
 - **Vaulting out of low cover** turns the body round in the vault's blend, and a foot dips into the wall for a frame (to-do 4.15).
 - **The low run's legs:** the trailing knee comes down to 0.19 over the floor, and the shin's and thigh's boxes (and a holstered gun) go up to a third of a stud under it, as in the crouch walk (4.20).
-- **Blind fire while sliding along low cover:** the chest turns the wrong way and the gun points back along the wall until the slide stops. Either stop the slide while blind firing or add blind fire clips made on the run (4.19, a gameplay call).
+- **Rifles in high cover blind fire:** the clips were made with a pistol, and the FAL went 1.9 into the wall (4.26). The AK-47 rests on it (0.05) in the still clips, held off by the arm guard, and is clear while sliding (2026-11-10).
 - **Inside corners:** the root turns in one frame, and the running body swings with it (4.16).
 - **Blind fire working right** only reaches the corner (4.17).
 - **Past the ends:** the edge-side arm shows about 0.3 past a wall's end (4.18).

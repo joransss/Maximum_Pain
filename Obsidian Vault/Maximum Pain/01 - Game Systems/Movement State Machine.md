@@ -72,6 +72,7 @@ Reloading and switching guns run alongside the stance, in the character attribut
 3. If it disagrees it sends **Rejected** with its own stance and a reason, which the HUD shows (for example NO ROOM TO STAND). The client takes the server's stance.
 4. When the server changes a stance on its own (Last Stand, death, cover that stopped being valid, a dive held too long) it sends **Forced** and the client follows.
 5. Safety net: if the two disagree for 0.75 s, the client takes the server's stance.
+6. The server's copy of a moving character lags the client (about 0.25 s in Studio), so its checks of where the character is reach further than the client's: a vault's obstacle is looked for `VaultRules.SERVER_SLACK` (7.5) further. With 2.5, running vaults were refused (2026-11-10).
 
 ## Sprint
 - Hold Shift while moving forward (within about 60° of where the camera looks). Sprint speed 24.

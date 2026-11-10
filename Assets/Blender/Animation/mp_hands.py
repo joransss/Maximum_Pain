@@ -1,6 +1,6 @@
-"""Maximum Pain - arm actions: holds while hidden in cover, blind fire, draws, picking up, painkillers,
-dropping a gun, and the reloads. They key only the arms (pickup and painkiller also bend the waist or
-tilt the head), so they ride on any body clip.
+"""Maximum Pain - arm actions: holds while hidden in cover, blind fire (still and on the cover runs),
+draws, picking up, painkillers, dropping a gun, and the reloads. They key only the arms (blind fire also
+turns the waist and neck, pickup bends the waist, painkiller tilts the head), so they ride on any body clip.
 
 Guns are placed first (grip frames, as in mp_arms), then the hands put on them with arm IK. Reload
 markers move the gun's parts in the game (AnimationController.MARKERS): the server's timer, not a
@@ -162,6 +162,98 @@ def blind_fire(kind):
         right = A.gun_frame((target[0], target[1] + jolt, target[2]), yaw, pitch, 0.0)
         return arms(right=right, right_elbow=elbow, body=body)
     return pose
+
+
+# Blind fire while sliding along low cover (CoverLowMove{Left,Right}: side-on, the hips facing the way the
+# body runs, folded nearly flat to keep the head under 3 studs). BlindFireLow's waist twist is made for the
+# still body's hips, which face out from the wall: on the run it turned the chest a quarter turn the wrong
+# way and the gun ended 2.7 out from the wall pointing back along it (2026-11-08, to-do 4.19). Folded that
+# flat the shoulders are barely above the hips, so the chest comes partly out of the fold and leans the gun
+# shoulder up; the arm goes straight up from it and the gun points over the top as high as BlindFireLow
+# holds it. The head stays ducked under the raised arm, looking down ahead along the wall.
+#   Left   the gun arm is on the wall side: the chest turns toward the wall, lifting the shoulder.
+#   Right  it is on the open side: the chest rolls onto its left side, gun shoulder on top, facing out.
+# Made on the run's body at the start of its cycle and checked on the whole cycle (register). The numbers
+# were also chosen for the blends (Roblox blends each joint on its own, the short way round): raising the
+# gun from the cover hold mid-slide comes up muzzle first, never down through the wall's face; and going
+# left, starting or stopping a slide while firing keeps the gun over the top and pointing across while
+# the hips turn under it. Going right the chest is turned about 150 degrees from BlindFireLow's, so its
+# gun arm is too: the shoulder ended 170 degrees from the still clip's, the blend's way round flipped with
+# the firing judder, and the gun swung back along the wall. The game doesn't cross-fade the two
+# (AnimationController.DIP_ANY): the old clip goes down into the cover hold, then the new one comes up.
+# Blind fire while sliding along high cover (CoverHighMove: a hunched jog, side-on): BlindFireHigh reaches
+# round a wall's end from the still body, and on the run its chest twist turned the gun back along the
+# wall (to-do 4.25). Mid-wall there's no end to reach round, so the gun arm points out ahead the way the
+# body runs, about shoulder height, the barrel level and the head looking along it, the waist near the
+# run's. Going right the gun arm is on the open side; going left it's on the wall side, the gun in front
+# of the chest, the shoulder leading so the forearm passes beside the head (a first version crossed the
+# face). Chosen like the low ones for the blends with BlindFireHigh and the cover holds. The two runs'
+# gun arms are on opposite sides, so a reversal doesn't cross-fade either (AnimationController.dipFor).
+RUN_FIRE = {
+    # waist (pitch, yaw, roll), where the head looks, the grip (x from the shoulder, then y and z), the
+    # gun's yaw and pitch, the elbow's way
+    "LowLeft": ((-23.0, -73.0, 32.0), V(-0.55, -1.0, 0.0), (0.14, LOW_TOP + 0.7, -0.4), (0.0, -8.0), V(-0.88, -0.44, -0.18)),
+    "LowRight": ((6.0, -54.0, 44.0), V(0.55, -1.0, 0.0), (0.25, LOW_TOP + 0.7, -0.09), (0.0, -8.0), V(-0.94, -0.08, 0.32)),
+    "HighLeft": ((-8.2, 40.0, -3.3), V(-1.0, 0.23, -0.11), (-1.71, 0.33, 1.05), (84.1, -4.9), V(0.73, -0.14, 1.1)),
+    "HighRight": ((-11.9, -7.5, -0.5), V(1.0, -0.34, 0.15), (1.71, 0.63, 2.52), (-97.3, 2.8), V(-0.53, -0.64, 0.74)),
+}
+
+
+def blind_fire_move(kind):
+    """BlindFire{Low,High}Move{Right,Left}: blind fire on the cover run that goes that way (see RUN_FIRE)."""
+    height = "Low" if kind.startswith("Low") else "High"
+    run, _ = S.cover_move(height, kind[len(height):])
+    waist, look, (along, y, z), (yaw, pitch), elbow = RUN_FIRE[kind]
+    body = run(0.0)
+    body.set("Waist", *waist)
+    S.look(body, look)
+    x = L.pivot(L.solve(body), "RightShoulder").x + along
+
+    def pose(t):
+        jolt = 0.04 * A.breathing(t, 0.5, 1.0)[0] / 0.018
+        right = A.gun_frame((x, y + jolt, z), yaw, pitch, 0.0)
+        return arms(right=right, right_elbow=elbow, body=body)
+    return pose
+
+
+GUN_CLEAR = 0.3  # studs the gun's box stays over LOW_TOP (default R15; a slimmer avatar's arm is ~0.28 lower)
+# The head box's highest corner over the floor: no higher than BlindFireLow's (3.31 on the default R15).
+# Blind firing, the chest comes up and the head with it, past the run's 2.98 and the lowest cover's 3.
+HEAD_TOP = 3.35
+WALL_GAP = 1.15  # CoverRules.GAP: the least the game keeps the root part off the wall
+
+
+def check_run_fire(clip, height, side, samples=16):
+    """Self-check on the run's whole cycle: the gun arm and gun out of the wall and the forearm, hand and gun
+    out of the head (sampled through each box), the torso no nearer the wall than the run's upper arms (so
+    the game's gap holds). Low: the gun over the top, the head as low as the still blind fire's. High: the
+    barrel within 14 degrees of straight ahead."""
+    run, g = S.cover_move(height, side)
+    top = LOW_TOP if height == "Low" else 99.0  # the HighWall is over the head
+    ahead = V(1 if side == "Right" else -1, 0, 0)
+    gun_size, gun_centre = (V(*v) for v in L.GUNS["Pistol"][:2])
+    for i in range(samples):
+        t = g["cycle"] * i / samples
+        p = run(t)
+        p.update(clip.sample(t % clip.length))
+        world = L.solve(p)
+        boxes = [(world[part], V(), V(*L.PARTS[part][0])) for part in ("RightUpperArm", "RightLowerArm", "RightHand")]
+        boxes.append((L.grip(world), gun_centre, gun_size))
+        points = [[m @ (c + V(x * s.x, y * s.y, z * s.z) / 2) for x in (-1, 0, 1) for y in (-1, 0, 1) for z in (-1, 0, 1)]
+                  for m, c, s in boxes]
+        where = "%s at %.2f s" % (clip.name, t)
+        if height == "Low":
+            over = min(q.y for q in points[-1]) - LOW_TOP
+            size = V(*L.PARTS["Head"][0])
+            head = max((world["Head"] @ (V(x * size.x, y * size.y, z * size.z) / 2)).y for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)) - S.LOW
+            assert over > GUN_CLEAR, "%s: the gun only %.2f over the top" % (where, over)
+            assert head < HEAD_TOP, "%s: the head top %.2f over the floor" % (where, head)
+        else:
+            assert (L.grip(world).to_3x3() @ V(0, 0, -1)).dot(ahead) > 0.97, where + ": the gun not pointing ahead"
+        assert not any(q.z < -WALL_GAP and q.y < top for box in points for q in box), where + ": in the wall"
+        head, half = world["Head"].inverted(), V(*L.PARTS["Head"][0]) / 2
+        assert not any(all(abs(c) < h for c, h in zip(head @ q, half)) for box in points[1:] for q in box), where + ": in the head"
+        assert S.reach(p, S.TORSO) < S.BACK_REACH, where + ": the torso reaches the wall"
 
 
 # --- Draws (stretched to the gun's DrawTime) ----------------------------------------------------------
@@ -401,6 +493,10 @@ def register():
         Clip("CoverHoldLowTwo" + side, 3.0, cover_hold_low("Two", side), loop=True, priority="Action", joints=B, drop=1.8, gun=("Rifle", None))
         Clip("BlindFireLow" + side, 0.5, blind_fire("Low" + side), loop=True, priority="Action2", joints=R | {"Waist", "Neck"}, drop=1.8, gun=("Pistol", None))
         Clip("BlindFireHigh" + side, 0.5, blind_fire("High" + side), loop=True, priority="Action2", joints=R | {"Waist", "Neck"}, gun=("Pistol", None))
+        for height, drop in (("Low", 1.8), ("High", 0.0)):
+            move = Clip("BlindFire%sMove%s" % (height, side), 0.5, blind_fire_move(height + side), loop=True, priority="Action2",
+                        joints=R | {"Waist", "Neck"}, drop=drop, gun=("Pistol", None), note="over Cover%sMove%s" % (height, side))
+            check_run_fire(move, height, side)
     Clip("DrawOneHanded", 0.3, draw_one, priority="Action3", joints=R, gun=("Pistol", None))
     Clip("DrawDual", 0.3, draw_dual, priority="Action3", joints=B, gun=("Pistol", "Pistol"))
     Clip("DrawTwoHanded", 0.55, draw_two, priority="Action3", joints=B, gun=("Rifle", None))

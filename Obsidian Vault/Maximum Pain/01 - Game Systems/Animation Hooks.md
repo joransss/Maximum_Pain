@@ -1,6 +1,6 @@
 # Animation Hooks
 
-How the game's animations are made, named, played and published. The slots were built empty on 2026-10-31; since 2026-11-01 every slot plays a clip made in Blender (98 clips in 105 slots since 2026-11-08: the cover clips went side-on on 2026-11-07, and low cover got its turns).
+How the game's animations are made, named, played and published. The slots were built empty on 2026-10-31; since 2026-11-01 every slot plays a clip made in Blender (102 clips in 109 slots since 2026-11-10: the cover clips went side-on on 2026-11-07, low cover got its turns on 2026-11-08, and blind fire got clips for the low and high runs on 2026-11-09 and 10).
 Related: [[Animation and MP3 Systems - Progress and To Do]] · [[Animation References]] · [[Max Payne 3 Animation Reference]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]]
 
 ## From Blender to the game
@@ -32,6 +32,7 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
 - **Markers are cosmetic.** MagOut, MagGrab, MagIn, BoltBack, BoltForward, ShellIn, Pump, CylinderOut, CylinderIn, BreakOpen and BreakClose move the parts of the gun being reloaded through its own Motor6Ds: the right-hand gun, or both pistols for ReloadDual. A gun part's resting pose is kept on its motor (`RestC0`).
 - **Bullet time:** locomotion follows the slowed velocity, and everything else plays at the character's `TimeScale`. The blends run in real time.
 - **Animator only**, never the old `Humanoid:LoadAnimation`. Roblox's `Animate` script is switched off for the character once the clips can play.
+- **Roblox blends tracks joint by joint** (same priority: weight-normalised, the short way round; a higher priority overrides by its total weight). Clips that blend into each other need every joint well short of a half turn from its partner's, or the way round flips with small changes (measured 2026-11-09).
 - **Arm clips are chest-relative.** Author them with IK on the body they'll play on, then check them by FK on every body that plays them (rifle box against the floor, the wall and the body).
 
 ## Slots (`ReplicatedStorage.Modules.AnimationConfig`)
@@ -44,7 +45,7 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
 | Vault | Vault (a speed vault, paced by the way over) |
 | Last Stand | LastStandFall, LastStand, LastStandWakeup |
 | Holds | Hold + Pistol/Revolver/SMG/SawnOff/Rifle/Shotgun/Sniper/Dual (the gun's `AnimSet`), CarryTwoHanded, CarryTwoHandedLow, CarryTwoHandedCover, CarryTwoHandedCoverLow, CoverHoldHighOne/Two/Dual, CoverHoldLowOne/Dual, CoverHoldLowTwoLeft/Right, InjuredArmLeft/Right |
-| Aim and blind fire | AimPistol, AimRifle, AimDual, BlindFireHigh/Low + Left/Right |
+| Aim and blind fire | AimPistol, AimRifle, AimDual, BlindFireHigh/Low + Left/Right, BlindFireLowMove/HighMove + Left/Right |
 | Actions | DrawOneHanded, DrawTwoHanded, DrawDual, Pickup, Painkiller, DropGun |
 | Reloads | Reload_<gun> for all 13 guns, sharing ReloadPistol, ReloadRevolver, ReloadRifle, ReloadSniper, ReloadPump and ReloadSawnOff; ReloadDual |
 
@@ -58,7 +59,7 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
 - **The vault:** the clip's playback chases the way over the obstacle. The legs are tucked (25% of the clip) when the leading knee reaches the near face (1.3 studs ahead of the root), and stay up (72%) until the trailing foot passes the far face (0.9 behind). The playback speed (at most 6) replicates to other players.
 - **Cover:** side-on (back and inner shoulder to the wall, turned to the edge). The root part keeps facing the wall, so the cover clips turn the body round inside it. The idle follows the side being worked, the move clips (side-on, facing the way it goes) run at the speed along the wall, and the corner clips play while swinging round. The holds are made on the cover bodies: each gun is placed in a body part's frame and aimed in the body's facing frame, so one clip fits both sides.
 - **Popping up out of low cover and ducking back:** `CoverPopUp<side>` plays on the change to `CoverPeek` (bound to it, 0.25 s) and `CoverDuck<side>` on the way back (0.3 s). The body turns toward the edge being worked, the feet stepping round. For the first 0.15 s of a pop-up the gun stays in the low hold, then the aim takes it. Other players' characters use the right-hand clips.
-- **Blind fire:** the gun arm, the waist and the neck, one clip per side. High cover: the arm out round the end (the left hand keeps the carried rifle). Low cover: the chest twists the gun shoulder to the wall and the arm goes straight up over the top, the head ducked.
+- **Blind fire:** the gun arm, the waist and the neck, one clip per side. High cover: the arm out round the end (the left hand keeps the carried rifle). Low cover: the chest twists the gun shoulder to the wall and the arm goes straight up over the top, the head ducked. Sliding along cover: the run's own clip (`BlindFireLowMove<way>`, `BlindFireHighMove<way>`), picked the same frame as the run. Some never cross-fade: the low run going right with any other blind fire clip, and the two high runs with each other (a reversal). The old one goes down into the hold first (`DIP_FADE`).
 
 ## Not done
 - Publishing for live servers (the place's owner). See the to-do note.

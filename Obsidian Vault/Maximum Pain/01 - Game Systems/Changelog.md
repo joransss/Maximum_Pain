@@ -3,6 +3,105 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-10: Blind fire while sliding along high cover, and bullet time slows its activator
+Later in session 6 (this PC, Studio signed in as 83tg). It did to-do 4.25, and checked bullet time against [[Last Stand and Bullet Time]] after a play test where the player moved freely in their own bullet time.
+- Two new clips (102 clips now). Four scripts changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 6, parts 8 and 9).
+
+**Added: blind fire on the high cover run** (`mp_hands.blind_fire_move`, `RUN_FIRE`; to-do 4.25)
+- `BlindFireHighMoveLeft/Right`, made on the high cover run that goes that way. The gun arm points straight out ahead along the wall, about shoulder height, the barrel level, the head looking along it. Going right the arm is on the open side; going left it's on the wall side, the chest turned a little so the gun shoulder leads, the gun in front of the chest.
+- Found by a search in Blender and checked like the low ones, with one more rule: the gun arm and gun clear of the head (the first left pose put the forearm 0.6 into it). On the default R15, over the run's cycle: nothing in the wall, the barrel within 8° of the way the body runs. The self-check in `register()` now covers both heights, and the forearm, hand and gun out of the head.
+
+**Changed: the game** (Team Create place)
+- `AnimationController`: blind fire while sliding plays the run's own clip in high cover too. The two high runs never cross-fade with each other: Roblox flips a slide's velocity in one physics frame, and cross-faded, a reversal swept the gun up to a stud into the wall (in Blender, with Roblox's blending). The old clip dips into the hold first, as the low run going right does with any other (`DIP_ANY`, `dipFor`). The dip now checks every blind fire clip still showing, not only the first it finds.
+- `AnimationConfig`: the two slots (109 slots now).
+
+**Checked: bullet time works as [[Last Stand and Bullet Time]] says**
+- Whoever triggers it keeps full speed. That's the stated rule ("the activator keeps full speed unless someone else's bullet time sees them"), so moving freely in your own bullet time is expected. Everyone they can see slows to 0.3 (walking at 4.8 instead of 16), and aims at 0.35 if their own level is lower.
+- Max Payne 3 differs: there the user is slowed too, less than their victims, and the slow-down chains through the victims' sight ([[Max Payne 3 Mechanics Reference]]).
+
+**Changed: bullet time slows the player who triggers it, to 0.6** (`BulletTimeRules`, `BulletTimeService`; to-do 4.27, decided by JordanSaa the same day)
+- `ACTIVATOR_SCALE` 0.6: less than the 0.3 of everyone they slow, as in Max Payne 3. A self-check keeps it between the two. Everything that reads `TimeScale` follows (walking, sprinting, fire rate, reloads, dives, vaults, the clips); the aim isn't slowed.
+- Not in a Last Stand: its bubble keeps the downed player at full speed, and a bullet time started before the killing blow would otherwise slow them through the stand.
+
+**Tested** (Studio play mode, 83tg's avatar, the HighWall and the TargetOpen dummy)
+| Test | Result |
+|---|---|
+| High cover, sliding both ways while firing: M9, AK-47, dual M9 and Uzi | nothing in the wall; the barrel 0.99 to 1.00 along the wall the way the body runs; the new clips' arm and gun at most 0.02 into the head's box (0.09 mid-blend) |
+| Reversals while firing | the velocity flips in one physics frame; the old clip dips into the hold and the new one comes up; nothing in the wall |
+| Starting and stopping a slide, also from the other side | cross-fades; nothing in the wall |
+| Bullet time, the player triggering it (full meter) | 5 s, the meter drained; the dummy at 0.3; the player at full speed |
+| … after the change, triggered mid-sprint | the player at 0.6: sprinting 14.4, walking 9.6, back to 1 after 5 s; no movement-check strike |
+| … a Last Stand during it | 0.6 until the killing blow, then 1 through the stand; the gunman at 0.3 |
+| Bullet time, a dummy triggering it on the player | the player at 0.3, walking at 4.8, aim penalty 0.35; over after 5 s |
+| … the player counter-activating at the same level | the aim penalty cleared; both at 0.3 while in sight of each other; both back to 1 behind the pillar |
+| Output log | clean |
+
+**Not fixed**
+- Bullet time doesn't chain through the victims' sight, as Max Payne 3's does.
+- 4.26 (rifles in high cover blind fire) is open. The AK-47 rests on the wall (0.05) in the still clips, held off by the arm guard, and is clear while sliding.
+
+## 2026-11-10: Carried guns over vaults, and vaults on the run
+Session 6 went on into 2026-11-10 (this PC, Studio signed in as 83tg). It did to-do 4.23, found and fixed running vaults being refused, and re-measured 4.24, 4.5 and 4.15. Two scripts changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 6, parts 5 to 7).
+
+**Fixed: the arm guard checks where the body will be drawn** (`AimLayer`; to-do 4.23)
+- The carried AK went 0.29 to 0.33 into the wall's top edge at every vault's take-off. The guard runs before the physics step and cleared the arm for where the body stood, then physics moved the body on by its velocity (0.3 at take-off speed) before the frame was drawn.
+- It now tests against where the body will be: the root's velocity times the larger of the physics step and the render step (a vault places the root by the render step).
+- The AK now rests on the top edge (0.05, the guard's slack) through standing, running and sprinting vaults. A vault carry clip was tried in Blender and dropped: no one pose blends cleanly from the four carries a vault can start from.
+
+**Fixed: running vaults refused by the server** (`VaultRules`)
+- A vault started at a run was refused (`NoVault`) after 3 frames, and the body dropped onto the top of the wall. The server checks from its own copy of the character, which lagged about 0.25 s: still 6.9 from the wall and not yet moving.
+- `SERVER_SLACK` 2.5 → 7.5 (a sprint's lag). The client never vaults from further than `REACH` (3.6); the server still checks the obstacle's height, depth, far side and landing room.
+
+**Tested** (Studio play mode, 83tg's avatar, the LowWall and the HighWall, AK carried)
+| Test | Result |
+|---|---|
+| Standing, running (16), sprinting (24) vaults | accepted; the AK 0.05 on the top edge |
+| Vault out of low cover | the AK clear when drawn; 0.20 for one frame after physics in the take-off turn (4.15) |
+| Low cover blind fire slides (regression) | nothing in the wall |
+| High cover, stepping out and back, both ends (4.24) | no upper arm in the wall (it went 0.43 in with the old pose); forearm 0.09, everything else ≤ 0.08 |
+| Output log | clean |
+
+**Not fixed**
+- The vault's free left hand stops 0.07 to 0.11 short of the top (4.5); a sprint vault pressed late touches the face with the stride for one frame (4.5); vaulting out of low cover still puts a foot 0.64 in the wall for 1 to 2 frames (4.15).
+
+## 2026-11-09: Blind fire while sliding along low cover
+Session 6 ran on this PC (Studio signed in as 83tg), 2026-11-09, with Claude Code driving Blender headless and Studio. It did to-do 4.19, which JordanSaa decided the same day (keep the slide, make new clips), and found two faults on the way (4.25, 4.26).
+- Blind firing while sliding along low cover played the still clips, whose waist twist is made for hips facing out from the wall. On the run the hips face the way it goes, so the chest turned the wrong way and the gun swung 2.7 out from the wall, pointing back along it.
+- Two new clips (100 clips now). Two scripts changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 6).
+
+**Added: blind fire on the run** (`mp_hands.blind_fire_move`, `RUN_FIRE`)
+- `BlindFireLowMoveLeft/Right`, made on the low cover run that goes that way. The chest comes partly out of the run's fold and leans the gun shoulder up, the arm goes straight up, and the gun points across the wall as high as the still clip holds it. The head stays ducked under the raised arm, looking down ahead along the wall.
+  - Going left the gun arm is on the wall side: the chest turns toward the wall.
+  - Going right it is on the open side: the chest rolls onto its left side, gun shoulder on top, facing out.
+- Found by a search in Blender, scored on the run's whole cycle and on the blends into the clips. On the default R15: the gun 0.37 to 0.38 over a 3.6 top, the head's box no higher than the still clip's (3.31 over the floor), nothing in the wall, the gap held; dual pistols, the carried AK and a rifle out of the wall too. A self-check in `register()` stops the export otherwise.
+
+**Changed: the game** (Team Create place)
+- `AnimationController`:
+  - The body layer records which way the body runs along cover each frame. Hidden in low cover and sliding, blind fire plays the run's own clip, picked the same frame as the run, so the two blend in step.
+  - The run going right never cross-fades with another blind fire clip (`DIP_CLIP`): the clip being left goes down into the cover hold at `DIP_FADE` (50 per second), then the new one comes up.
+- `AnimationConfig`: the two slots (107 slots now).
+
+**Why the dip**
+- Roblox blends tracks joint by joint, weight-normalised, the short way round (measured in Studio).
+- Going right, the chest is turned about 150° from the still clip's, so the gun arm is too: the shoulder ended 170° from the still clip's. Near a half turn the way round flipped with the firing judder, and the gun swung round to point back along the wall for about 0.1 s at the start and end of a slide; on a reversal the head and the carried AK went into the wall. No pose keeps the gun pointing across through that blend, so the game doesn't cross-fade it. Going left the cross-fade is clean.
+
+**Tested** (Studio play mode, 83tg's avatar, the LowWall)
+| Test | Result |
+|---|---|
+| Sliding both ways while firing (held, and real shots) | the gun 0.52 to 0.72 over the top, pointing across; the head 0.32 to 0.45 under it; nothing in the wall; the gap unchanged |
+| Starting to fire mid-slide | the gun comes up muzzle first, across in 0.12 to 0.25 s |
+| Starting, stopping and five reversals while firing | nothing in the wall; the gun never points back along the wall; the head under the top |
+| Dual pistols, a rifle (FAL) | the Uzi rests 0.05 on the face, the rifle 0.05 on the top (the arm guard's slack) |
+| Output log | clean |
+
+**Not fixed**
+- **New, 4.25:** blind firing while sliding along high cover has 4.19's fault: the still clip turns the gun back along the wall.
+- **New, 4.26:** with a rifle, high cover blind fire puts it 1.9 into the wall (the clips were made with a pistol), the support hand 0.49.
+- The holstered Uzi still goes 0.35 under the floor on the low run (4.20).
+
 ## 2026-11-08: Popping up and ducking back in low cover turn the body round
 Session 5 ran on this PC (Studio signed in as 83tg), 2026-11-08, with Claude Code driving Blender headless and Studio. It did to-do 4.14, ran 4.19's first test, and found two new faults on the way (the cover slide's feet, fixed, and 4.20).
 - Side-on, the low cover idle faces out from the wall and the aim faces over it. Popping up and ducking back used to turn the body about 166° in the body layer's 0.2 s blend, and the feet swept through the wall's base.

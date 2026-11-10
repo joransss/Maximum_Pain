@@ -37,6 +37,8 @@ Use references to make specific design or implementation decisions. Link the rel
 - [[Max Payne 3 Gunplay - Accuracy and Recoil]] — first-shot accuracy, spread while firing fast, recoil and recovery.
 
 ## Game design case studies
+- [[Max Payne 3 Game Modes - Roblox Engagement]] — every MP3 mode (base game and DLC) ranked for Roblox engagement.
+- [[Gun Skin Ideas]] — skin systems in RIVALS, CS2, Call of Duty and Valorant, and original skin ideas.
 - [[Reference Games]]
 - [Max Payne 3 — Rockstar screenshots](https://www.rockstargames.com/newswire/article/25o241181oo49k/new-max-payne-3-screenshots.html) — visual and combat reference.
 - [Max Payne 3 — dual-wielding screenshots](https://www.rockstargames.com/newswire/article/25o241181ok413/new-max-payne-3-screenshots-the-art-of-dual-wielding.html)

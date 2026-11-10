@@ -18,6 +18,7 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
 - [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.
+- [[Menus, Loadout, Progression and Shop - To Do]]: plan (not built yet) for the main menu and its Max Payne 3 look, Blender-made UI art, loadouts, items, skills (Bursts), levels/titles/cash, the Roblox-compliant skin shop, server-side economy, and settings.
 
 ## Max Payne 3 (primary reference)
 - [[Max Payne 3 Mechanics Reference]] — every mechanic found: single player and multiplayer.
@@ -28,6 +29,8 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Euphoria-style Reactions and Ragdolls]]: Euphoria in Max Payne 3, Roblox's physical avatar joints, and how this game's flinches and ragdolls work.
 
 ## Other references
+- [[Max Payne 3 Game Modes - Roblox Engagement]] — every Max Payne 3 mode and which ones to build first for Roblox.
+- [[Gun Skin Ideas]] — original weapon skin lines, the skin system, and how to build skins in Roblox.
 - [[Reference Games]] — other games and Roblox games worth studying.
 - [[Reference Videos]] — video sources, with timestamps.
 - [[Reference Images]] — image sources.
@@ -35,5 +38,5 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 
 ## Rules for references
 - Study the design; build original content. Don't copy Max Payne 3's characters, names, story, maps, UI art, audio or assets.
-- The GitHub repo is public. Images are **linked**, not stored. Screenshots you paste into Obsidian stay on your PC (`.gitignore`).
+- The GitHub repo is public. Images are **linked**, not stored. Screenshots you paste into Obsidian stay on your PC (`.gitignore`). Exception: reference screenshots that collaborators need are saved with a proper name under `Attachments/` and committed (e.g. `Attachments/Menus/Max Payne 3/`).
 - Write down the source and timestamp for every observation, and say whether it was seen in footage or only read about.

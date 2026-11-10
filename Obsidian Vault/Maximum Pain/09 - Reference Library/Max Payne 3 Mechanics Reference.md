@@ -55,7 +55,7 @@ Related: [[Max Payne 3 Gunplay - Accuracy and Recoil]] · [[Max Payne 3 Animatio
   - Deathmatch, Team Deathmatch, and a Hardcore variant: free aim only, no regen, friendly fire on, no minimap. 📰
   - **Payne Killer:** two players are Max and Passos and everyone else hunts them. 📰
   - **Gang Wars:** five rounds of objectives that change based on who won the last round. 📰
-  - DLC modes: Dead Men Walking, Run and Stun, Marked Man, Time Attack. ✅
+  - DLC modes (Deathmatch Made in Heaven, Jan 2013): Dead Men Walking, Run and Stun, Marked Man, Time Attack. ✅ Rules and a Roblox ranking: [[Max Payne 3 Game Modes - Roblox Engagement]].
 - **Adrenaline and bursts:** adrenaline builds through kills, other actions and looting, and fills three tiers. Full tiers survive death; partial progress is lost. Each burst has three levels. ✅📰
 - **Burst list:**
 

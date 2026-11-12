@@ -589,6 +589,26 @@ def hinge_angle(q):
     return angle if axis_x >= 0 else -angle
 
 
+def box_depth(a, a_size, b, b_size):
+    """How deep box `a` is in box `b` (4x4 centre frames and sizes): the shortest move that separates them,
+    0 when apart. Separating axes, exact, as the game's test harness and AimLayer measure."""
+    aa = [a.to_3x3().col[i].normalized() for i in range(3)]
+    ba = [b.to_3x3().col[i].normalized() for i in range(3)]
+    ha, hb = V(*a_size) / 2, V(*b_size) / 2
+    offset = a.translation - b.translation
+    best = math.inf
+    for axis in ba + aa + [u.cross(v) for u in aa for v in ba]:
+        if axis.length < 1e-6:
+            continue
+        axis = axis.normalized()
+        amount = (sum(abs(aa[i].dot(axis)) * ha[i] for i in range(3)) + sum(abs(ba[i].dot(axis)) * hb[i] for i in range(3))
+                  - abs(offset.dot(axis)))
+        if amount <= 0:
+            return 0.0
+        best = min(best, amount)
+    return best
+
+
 def validate(clip, speed=0.0, direction=None, contact=0.02):
     """Numbers that say whether a clip is physically sound:
     sink    - deepest any sole goes below the floor (studs)
@@ -830,6 +850,77 @@ GUNS = {
 
 def gun_support(kind):
     return V(*GUNS[kind][4])
+
+
+# The place's two-handed guns as they are (GUNS above are only the preview props), in their Grip attachment's
+# frame (barrel -Z, top +Y), read from Studio on 2026-11-10: the box round all their parts (centre, size), the
+# Support and Muzzle attachments.
+LONG_GUNS = {
+    "AK47": ((0.035, -0.132, -0.426), (0.213, 1.031, 3.2), (0, 0.16, -0.919), (0, 0.255, -1.997)),
+    "FAL": ((-0.025, 0.133, -0.452), (0.206, 0.813, 3.8), (0, 0.174, -1.136), (0, 0.284, -2.352)),
+    "M4": ((0, 0.017, -0.297), (0.171, 1.179, 3.0), (0, 0.238, -0.798), (0, 0.318, -1.797)),
+    "MP5": ((-0.023, -0.055, -0.044), (0.203, 0.995, 2.3), (0, 0.193, -0.789), (0, 0.285, -1.194)),
+    "M500": ((0, -0.115, -0.615), (0.167, 0.654, 3.6), (0, -0.075, -1.425), (0, 0.108, -2.415)),
+    "SPAS15": ((0.034, 0.12, -0.454), (0.265, 0.991, 3.4), (0, 0.198, -1.09), (0, 0.354, -2.154)),
+    "M107": ((0.046, 0.334, -0.946), (0.302, 1.09, 5.0), (0, 0.313, -1.02), (0, 0.429, -3.446)),
+}
+LONG_SETS = {"Rifle": ("AK47", "FAL", "M4", "MP5"), "Shotgun": ("M500", "SPAS15"), "Sniper": ("M107",)}
+HOLD_POLE = V(-1, -0.8, 0.1)  # AimLayer: the support hand's elbow, in the root part's space
+HOLD_ROLL = 75.0  # AimLayer: the support hand wraps round the handguard
+
+
+def long_gun_box(world, gun, side="Right", carried=False):
+    """A long gun's box (matrix, size) in a hand: held by its grip, or carried by its middle."""
+    centre, size, _, _ = LONG_GUNS[gun]
+    frame = carry_grip(world, gun) if carried else grip(world, side)
+    return frame @ Matrix.Translation(V(*centre)), size
+
+
+def place_support(pose, gun):
+    """AimLayer's support hand on a long gun held in the right hand: on its own Support point, wrapped round the
+    handguard, the elbow toward HOLD_POLE in the root part's space. Returns how far the hand ends from it."""
+    frame = grip(solve(pose))
+    point = frame @ V(*LONG_GUNS[gun][2])
+    hand = Matrix.Translation(point) @ (frame.to_quaternion() @ rot(0, 0, HOLD_ROLL)).to_matrix().to_4x4() @ GRIP.inverted()
+    place_hand(pose, "Left", hand, HOLD_POLE)
+    return (solve(pose)["LeftHand"].translation - hand.translation).length
+
+
+# A two-handed gun carried in the left hand is held by its middle, like a bag's handle (LoadoutService, since
+# 2026-11-11): the gun's length runs front to back through the fist, its top up the arm, the fist at the middle of
+# its length, at the handguard's height. Held by the pistol grip it hung from the end like a stick.
+CARRY_TURN = Matrix.Rotation(math.radians(90), 4, "X")
+
+
+def carry_point(gun):
+    """Where the fist holds a carried gun, in its Grip frame: the middle of its length, at the Support's height."""
+    centre, _, support, _ = LONG_GUNS[gun]
+    return V(0, support[1], centre[2])
+
+
+def carry_grip(world, gun):
+    """The Grip frame of a gun carried by its middle in the left hand."""
+    return grip(world, "Left") @ CARRY_TURN @ Matrix.Translation(-carry_point(gun))
+
+
+def hand_for_carry(grip_frame, gun):
+    """The left hand's world matrix that carries a gun whose Grip frame is `grip_frame`."""
+    return hand_for_grip(grip_frame @ Matrix.Translation(carry_point(gun)) @ CARRY_TURN.inverted())
+
+
+def part_box(world, part):
+    return world[part], PARTS[part][0]
+
+
+def box_lowest(box):
+    """The lowest corner's height of a box (matrix, size)."""
+    m, size = box
+    return min((m @ V(x * size[0] / 2, y * size[1] / 2, z * size[2] / 2)).y for x in (-1, 1) for y in (-1, 1) for z in (-1, 1))
+
+
+def deepest(boxes, others):
+    """The deepest any of `boxes` goes into any of `others` (box_depth), 0 when none touch."""
+    return max((box_depth(a[0], a[1], b[0], b[1]) for a in boxes for b in others), default=0.0)
 
 
 def show_gun(side, kind):

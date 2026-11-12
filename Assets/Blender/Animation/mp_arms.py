@@ -108,46 +108,181 @@ def dual_hold(t):
     return arms_pose(0.0, right=right, left=left, right_elbow=V(0.6, -0.3, 1.0), left_elbow=V(-0.6, -0.3, 1.0))
 
 
+# The two-handed gun carried in the left hand while a one-handed gun is out. Since 2026-11-11 it is held by its
+# middle (LoadoutService; mp_lib.carry_grip): the fist round the middle of its length at the handguard's height,
+# the gun's length front to back through it, like a bag's handle. Held by its pistol grip it hung from one end like
+# a stick, and the carries pushed it into the body: crouched 0.66 into the legs and 0.56 into the torso (pointing
+# out to the side), behind high cover 0.7 into the legs, and 0.47 into them running.
+# Behind low cover the carry plays on the squat and on the run along the wall, folded nearly flat, so it is a
+# compromise: on the squat the fist is by the left knee and the gun tipped up about 30 degrees, butt toward the
+# floor, as if resting it; folded on the run the same arm brings it about level. Level on the squat, the gun went
+# up to 0.86 into the floor on the run.
+# Each carry puts the fist somewhere and points the gun, then puts the arm on it with IK. Found by a scored search
+# with every long gun (each hangs from the fist at its own middle) on every body the carry plays over, the arm swing
+# AimLayer adds on the run included; checked again by check_carry.
+CARRIES = {
+    # the fist (in the root part's space; behind cover in the body's facing frame), the gun's yaw (from the way the
+    # body faces), pitch and cant, the elbow's way (like the fist)
+    "Stand": ((-1.75, -0.88, 0.22), -4.1, -12.0, 19.0, (-0.7, 0.14, 0.23)),
+    "Crouch": ((-1.77, 0.22, 0.26), -0.8, -7.3, 25.2, (-0.63, -0.61, 0.22)),
+    "High": ((-0.93, -0.14, -1.52), 11.9, -12.0, 5.5, (-0.07, -0.47, 0.96)),
+    "Low": ((-1.007, 0.58, -1.577), 4.17, 32.97, 27.49, (-0.732, -0.561, -1.163)),
+}
+
+
+def carried(body, kind, swing=0.0):
+    """`body` with its left arm carrying the gun as CARRIES[kind] says, swinging lightly by `swing` (-1 to 1)."""
+    (fx, fy, fz), yaw, pitch, roll, elbow = CARRIES[kind]
+    turned = kind in ("High", "Low")
+    face_yaw, turn = facing(body) if turned else (0.0, rot(0, 0, 0))
+    fist = turn @ V(fx, fy + 0.01 * swing, fz + 0.02 * swing)
+    gun = gun_frame(tuple(fist), yaw + face_yaw, pitch + 1.5 * swing, roll)
+    L.place_hand(body, "Left", L.hand_for_grip(gun @ L.CARRY_TURN.inverted()), turn @ V(*elbow))
+    return body
+
+
 def carry_two_handed(t):
-    """The two-handed gun riding in the left hand while a one-handed gun is out: held by its grip with
-    the arm hanging beside the thigh, a little out from it so strafing legs don't cross it, muzzle
-    forward and down 28 degrees (clear of the floor running and sprinting), swinging lightly. For
-    upright bodies; crouched and hidden behind high cover have their own carries, and the game's aim
-    layer lifts the gun clear of the floor in any other pose (dives, rolls, lying down)."""
-    swing = math.sin(TAU * t / 2.6)
-    gun = gun_frame((-1.55, -0.9 + 0.01 * swing, -0.05 + 0.02 * swing), 4.0, -28.0 + 2.0 * swing, -6.0)
-    return arms_pose(0.0, left=gun, left_elbow=V(-0.4, 0.0, 1.0))
+    """Upright bodies (standing, walking, running, sprinting): the arm hangs at the side, bent a little, the gun
+    held by its middle beside the thigh, pointing ahead and a little down. The game's aim layer lifts it clear of
+    the floor in any other pose (dives, rolls, lying down) and keeps it out of walls."""
+    return carried(M.idle_pose(0.0), "Stand", math.sin(TAU * t / 2.6))
 
 
 def carry_two_handed_low(t):
-    """The carried gun while crouched (crouching, low cover, getting up). Made on the crouched body:
-    the hunched chest would point the standing carry straight into the floor. Held at the left side,
-    muzzle out to the left and a little forward, level, so it clears the floor and a low wall ahead."""
-    swing = math.sin(TAU * t / 2.6)
-    body = M.crouch_idle_pose(0.0)
-    gun = gun_frame((-1.55, 0.05 + 0.01 * swing, 0.15), 70.0, -10.0 + 1.5 * swing, -30.0)
-    L.place_hand(body, "Left", L.hand_for_grip(gun), V(-0.6, 0.0, 0.8))
-    return body
+    """Crouched (crouching, the crouch walk, getting up): the gun beside the left knee, pointing ahead. Made on the
+    crouched body."""
+    return carried(M.crouch_idle_pose(0.0), "Crouch", math.sin(TAU * t / 2.6))
 
 
 def carry_two_handed_cover(t):
-    """The carried gun hidden behind high cover, back to the wall: hanging muzzle down in front of the
-    left thigh, off the wall on either side (the left side is the one against the wall working right)."""
-    body = S.cover_high("Right")(0.0)
-    swing = math.sin(TAU * t / 2.6)
-    gun = placed(body, "LowerTorso", (-0.62, -0.35 + 0.01 * swing, -0.8), 6.0, -80.0 + 1.5 * swing, 0.0)
-    L.place_hand(body, "Left", L.hand_for_grip(gun), pole(body, -0.6, 0.0, 0.8))
-    return body
+    """Hidden behind high cover, back to the wall: the gun in front of the left hip, pointing ahead of the body, the
+    elbow down by the side, clear of the wall either side and on the run along it."""
+    return carried(S.cover_high("Right")(0.0), "High", math.sin(TAU * t / 2.6))
+
+
+LEGS = ("LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot")
+TRUNK = ("UpperTorso", "LowerTorso")
+
+
+def _gait_bodies(base, samples=8):
+    out = []
+    for direction in M.DIRECTIONS.values():
+        g = dict(base)
+        g["direction"] = direction
+        out += [(M.gait(g["cycle"] * i / samples, g), i / samples) for i in range(samples)]
+    return out
+
+
+def carry_bodies(kind):
+    """(pose, run phase or None) pairs a carry plays over, and the floor (root part's space)."""
+    if kind == "Stand":
+        sprint = dict(M.SPRINT)
+        bodies = [(M.idle_pose(0.0), None), (M.idle_pose(2.0), None)] + _gait_bodies(M.JOG) + _gait_bodies(M.RUN)
+        bodies += [(M.gait(sprint["cycle"] * i / 8, sprint), i / 8) for i in range(8)]
+        return bodies, L.FLOOR
+    if kind == "Crouch":  # AimLayer swings the carrying arm with the crouch walk's stride too
+        return [(M.crouch_idle_pose(0.0), None)] + _gait_bodies(M.CROUCH_WALK), L.FLOOR + 1.8
+    height = "Low" if kind == "Low" else "High"
+    idle = S.cover_low if kind == "Low" else S.cover_high
+    bodies = []
+    for side in ("Right", "Left"):
+        run, g = S.cover_move(height, side)
+        bodies += [(idle(side)(0.0), None)] + [(run(g["cycle"] * i / 8), None) for i in range(8)]
+    return bodies, (S.LOW if kind == "Low" else L.FLOOR)
+
+
+# Carry limits: no deeper into the legs' boxes than this anywhere the carry plays (the default R15's legs are a stud
+# thick; the M107 is five studs long), out of the torso, head and floor, behind high cover out of the wall.
+CARRY_LEGS = {"Stand": (0.16, 0.18), "Crouch": (0.17, 0.15), "High": (0.07, 0.03), "Low": (0.11, 0.23)}
+
+
+def check_carry(clip, kind):
+    """Self-check with every long gun carried by its middle, on every body the carry plays over (the run's arm swing
+    from AimLayer, -12 degrees, included)."""
+    bodies, floor = carry_bodies(kind)
+    # CoverRules.GAP off the root; behind low cover the test arena's LowWall (3.6 high), the gun may go over it
+    height = 3.6 if kind == "Low" else 8.0
+    wall = (Matrix.Translation(V(0, floor + height / 2, -1.15 - 1.0)), (100.0, height, 2.0))
+    for n, (body, phase) in enumerate(bodies):
+        arm = clip.sample((n * 0.37) % clip.length)
+        for j in clip.joints:
+            body[j] = arm[j]
+        if phase is not None:
+            body.turn("LeftShoulder", rot(-12.0 * math.cos(TAU * (phase - 0.04)), 0, 0))
+        world = L.solve(body)
+        legs = [L.part_box(world, p) for p in LEGS]
+        trunk = [L.part_box(world, p) for p in TRUNK]
+        arms = [L.part_box(world, p) for p in ("LeftUpperArm", "LeftLowerArm", "LeftHand")]
+        for gun in L.LONG_GUNS:
+            box = L.long_gun_box(world, gun, carried=True)
+            where = "%s, body %d, %s" % (clip.name, n, gun)
+            limit = CARRY_LEGS[kind][1 if gun == "M107" else 0]
+            assert L.deepest([box], legs) < limit, "%s: %.2f in a leg" % (where, L.deepest([box], legs))
+            assert L.deepest([box], trunk) < 0.07, "%s: %.2f in the torso" % (where, L.deepest([box], trunk))
+            assert L.deepest([box], [L.part_box(world, "Head")]) == 0.0, where + ": in the head"
+            assert L.box_lowest(box) > floor + 0.04, "%s: %.2f over the floor" % (where, L.box_lowest(box) - floor)
+            if kind in ("High", "Low"):
+                assert L.deepest([box] + arms, [wall]) < 0.03, where + ": in the wall"
+
+
+# Two-handed guns held while crouched (crouching, the crouch walk). The standing low ready made on an upright chest
+# pointed into the floor and through the thighs on the crouched one (2026-11-11: the gun up to 0.78 into the legs and
+# 1.3 into the floor, the forearms 0.9 into the thighs, the right arm folded into the chest). Made on the crouch idle:
+# the gun across the front of the body, muzzle to the front-left and down, both hands on it, the elbows down. Found by
+# a search with every gun of the set on the crouch idle and the whole crouch walk, the support hand placed as
+# AimLayer places it; checked again by check_low_hold.
+LOW_HOLDS = {
+    # the grip (root part's space, on the crouch idle), the gun's yaw, pitch and cant, the right elbow's way
+    "Rifle": ((0.3, 0.26, -2.03), 68.1, -24.6, 8.4, (1.24, -1.3, -0.43)),
+    "Shotgun": ((0.68, 0.43, -1.8), 69.1, -24.3, 11.3, (1.21, -2.16, -1.07)),
+    "Sniper": ((0.5, 0.26, -1.84), 63.4, -21.4, 14.2, (1.68, -1.56, -0.17)),
+}
+
+
+def two_handed_hold_low(kind, period=3.4):
+    (x, y, z), yaw, pitch, roll, elbow = LOW_HOLDS[kind]
+
+    def pose(t):
+        rise, tilt = breathing(t, period)
+        body = M.crouch_idle_pose(0.0)
+        gun = gun_frame((x, y + rise, z), yaw, pitch + tilt, roll)
+        L.place_hand(body, "Right", L.hand_for_grip(gun), V(*elbow))
+        L.place_hand(body, "Left", L.hand_for_grip(support_frame(gun, kind)), L.HOLD_POLE)
+        return body
+    return pose
+
+
+def check_low_hold(clip, kind):
+    """Self-check on the crouch idle and the crouch walk (every direction, 8 points of its cycle) with every gun of
+    the set, the support hand placed as AimLayer places it: the gun over the floor and out of the legs and head, the
+    forearms and hands out of the head and no deeper in the legs than resting on them, the support hand on the gun."""
+    bodies, floor = carry_bodies("Crouch")
+    for n, (body, _) in enumerate(bodies):
+        arm = clip.sample((n * 0.37) % clip.length)
+        for j in clip.joints:
+            body[j] = arm[j]
+        for gun in L.LONG_SETS[kind]:
+            p = body.copy()
+            miss = L.place_support(p, gun)
+            world = L.solve(p)
+            where = "%s, body %d, %s" % (clip.name, n, gun)
+            box = L.long_gun_box(world, gun)
+            legs = [L.part_box(world, q) for q in LEGS]
+            head = [L.part_box(world, "Head")]
+            fore = [L.part_box(world, q) for q in ("RightLowerArm", "RightHand", "LeftLowerArm", "LeftHand")]
+            # 0.06: the M500's pump is the furthest support point, 1.43 ahead of its grip; at the bottom of a breath on
+            # one stride it is 0.05 out of reach
+            assert miss < 0.06, "%s: the support hand %.2f off the gun" % (where, miss)
+            assert L.box_lowest(box) > floor + 0.05, "%s: %.2f over the floor" % (where, L.box_lowest(box) - floor)
+            assert L.deepest([box], legs) < 0.1, "%s: %.2f in a leg" % (where, L.deepest([box], legs))
+            assert L.deepest([box] + fore, head) < 0.02, where + ": in the head"
+            assert L.deepest(fore, legs) < 0.35, "%s: an arm %.2f in a leg" % (where, L.deepest(fore, legs))
 
 
 def carry_two_handed_cover_low(t):
-    """The carried gun behind low cover, folded over the knees with the back to the wall: held by the
-    grip in front of the knees, muzzle forward and down to the floor ahead, away from the wall."""
-    body = S.cover_low("Right")(0.0)
-    swing = math.sin(TAU * t / 2.6)
-    gun = by_part(body, "LeftLowerLeg", -0.25, 0.75 + 0.01 * swing, 0.35, 12.0, -22.0 + 1.5 * swing, -10.0)
-    L.place_hand(body, "Left", L.hand_for_grip(gun), pole(body, -0.6, -0.6, 0.3))
-    return body
+    """Behind low cover, squatting with the back to the wall: the fist by the left knee, the gun held by its middle,
+    tipped up and pointing out from the wall, its butt toward the floor (CARRIES). Made on the squat."""
+    return carried(S.cover_low("Right")(0.0), "Low", 0.4 * math.sin(TAU * t / 2.6))  # squatting, it barely sways
 
 
 def injured_arm(side):
@@ -203,10 +338,15 @@ def register():
     Clip("HoldShotgun", 3.4, two_handed_hold("Shotgun", (0.3, -0.3, -0.1), 55.0, -10.0), loop=True, priority="Action", joints=B, gun=("Shotgun", None))
     Clip("HoldSniper", 3.6, two_handed_hold("Sniper", (0.45, -0.45, -0.2), 40.0, -15.0), loop=True, priority="Action", joints=B, gun=("Sniper", None))
     Clip("HoldDual", 3.0, dual_hold, loop=True, priority="Action", joints=B, gun=("Pistol", "Pistol"))
-    Clip("CarryTwoHanded", 2.6, carry_two_handed, loop=True, priority="Action", joints=Lt, gun=(None, "Rifle"))
-    Clip("CarryTwoHandedLow", 2.6, carry_two_handed_low, loop=True, priority="Action", joints=Lt, drop=1.8, gun=(None, "Rifle"))
-    Clip("CarryTwoHandedCover", 2.6, carry_two_handed_cover, loop=True, priority="Action", joints=Lt, gun=(None, "Rifle"))
-    Clip("CarryTwoHandedCoverLow", 2.6, carry_two_handed_cover_low, loop=True, priority="Action", joints=Lt, drop=1.8, gun=(None, "Rifle"))
+    # crouched: the two-handed guns across the front of the body (LOW_HOLDS)
+    for kind in ("Rifle", "Shotgun", "Sniper"):
+        low = Clip("Hold%sLow" % kind, 3.4, two_handed_hold_low(kind), loop=True, priority="Action", joints=B, drop=1.8, gun=(kind, None))
+        check_low_hold(low, kind)
+    # the carried gun, held by its middle (CARRIES)
+    for name, made, kind, drop in (("CarryTwoHanded", carry_two_handed, "Stand", 0.0), ("CarryTwoHandedLow", carry_two_handed_low, "Crouch", 1.8),
+                                   ("CarryTwoHandedCover", carry_two_handed_cover, "High", 0.0),
+                                   ("CarryTwoHandedCoverLow", carry_two_handed_cover_low, "Low", 1.8)):
+        check_carry(Clip(name, 2.6, made, loop=True, priority="Action", joints=Lt, drop=drop, gun=(None, "Rifle")), kind)
     Clip("InjuredArmLeft", 2.2, injured_arm("Left"), loop=True, priority="Action", joints=Lt)
     Clip("InjuredArmRight", 2.2, injured_arm("Right"), loop=True, priority="Action", joints=R)
     Clip("AimPistol", 3.0, aim_pistol, loop=True, priority="Action2", joints=R, gun=("Pistol", None))

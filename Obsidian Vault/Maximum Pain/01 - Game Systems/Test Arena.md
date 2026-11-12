@@ -104,8 +104,14 @@ Two real players, network lag, phones and tablets (there are no touch controls),
 | Bullet time near TargetOpen: the player's own, the dummy's (`DebugBulletTime`), a counter-activation | As [[Last Stand and Bullet Time]] said: the activator at full speed, those in sight at 0.3, the aim penalty cleared by an equal level, free behind the pillar. After the change the same day, the activator at 0.6 (back to full speed in a Last Stand) |
 | Output | Clean |
 
+## Test log (2026-11-10, late, Studio play mode, 83tg's avatar)
+| Feature | Result |
+|---|---|
+| High wall: blind fire with a long gun (AK-47, FAL, M107), mid-wall, at both ends, sliding, reversing | The two-handed clips: both hands on the gun throughout, nothing in the wall (0.05 for 2 physics frames on a reversal), the muzzle 1.9 past the ends. Before: the arm swung about 50° round mid-wall, the support arm 0.44 into the end's corner, the support hand off the gun working left and sliding |
+| Output | Clean |
+
 ## Tips
 - In Studio only, a Vector2 `DebugLook` attribute on your player (yaw and pitch in radians) points the camera. Set it from the command bar to aim precisely; it only applies when the value changes.
 - **Getting slowed by bullet time:** give a dummy `Adrenaline = 1` and an `Aim` facing you, then set `DebugBulletTime = true` on it (5 s per activation).
-- **Picking up a gun:** the F prompt is the one nearest the crosshair, so point the camera at the gun you want.
+- **Picking up a gun:** the F prompt is the one nearest the crosshair, so point the camera at the gun you want (aim from the camera's own position: the shoulder camera is off to one side).
 - **Moving around:** don't teleport the character, since the server's speed check moves it back; walk instead. The walls at z 85 to 87 have gaps at x −23 to −17 and −3 to 4, and the gun table blocks x −28 to 28 at z 70.

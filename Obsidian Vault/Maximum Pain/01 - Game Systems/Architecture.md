@@ -23,7 +23,7 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | `BulletTimeRules` | The adrenaline meter's levels, how long each lasts, who counts as seen, the time scales (0.3 for those seen, 0.6 for the activator), the aim penalty. |
 | `VaultRules` | What can be vaulted, the path over it (its apex rises with the avatar's legs), and the timing. The server only uses `find`, reaching `SERVER_SLACK` further for its lagging copy of a running character. |
 | `RagdollRules` | The Euphoria-style death: muscles that pull toward a collapse and fade (see [[Euphoria-style Reactions and Ragdolls]]). |
-| `AnimationConfig` | Every animation slot and the clip it plays (109 slots, 102 clips made in Blender). In Studio an unpublished slot plays its KeyframeSequence directly. |
+| `AnimationConfig` | Every animation slot and the clip it plays (113 slots, 106 clips made in Blender). In Studio an unpublished slot plays its KeyframeSequence directly. |
 | `WeaponConfig`, `WeaponMath`, `LimbRules` | Gun numbers, spread and recoil maths, limb health rules (from the first milestone). |
 
 ### Server (ServerScriptService)
@@ -58,7 +58,7 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | `HitReactions` | Euphoria-style flinches on every character, and the recent-hit log the death push and kill cam read. |
 | `RagdollController` | This player's own death: the body goes physical here at once, pushed by the killing shot. |
 | `KillCamController` | This player's kill cam: the bullet, the impact in slow motion, the comic-style panel ([[Max Payne 3 Kill Cam]]). |
-| `AnimationController` | Plays the clips in layers (body, hold, aim, one-off arm actions), stretched to the server's timers, slowed by bullet time; moves gun parts on reload markers. Plays one-off body clips on stance changes, the turns popping up out of low cover and ducking back among them. Sliding along cover, blind fire plays the run's own clips; the low run going right, and the two high runs on a reversal, drop into the hold rather than cross-fading. |
+| `AnimationController` | Plays the clips in layers (body, hold, aim, one-off arm actions), stretched to the server's timers, slowed by bullet time; moves gun parts on reload markers. Plays one-off body clips on stance changes, the turns popping up out of low cover and ducking back among them. Sliding along cover, blind fire plays the run's own clips; the low run going right, and the high runs on a reversal, drop into the hold rather than cross-fading. A two-handed gun behind high cover has blind fire clips of its own (the one-handed ones stand in where those can't load). |
 | `Hud` | Draws everything; holds no rules. |
 
 **Rule:** no weak-keyed tables keyed by instances (`__mode = "k"`) for state that must survive. The engine can drop an instance's Lua handle while the instance still exists, and the entry vanishes with it; this left slides racked back after reloads until 2026-11-02. Keep such state on the instance (attributes) or in a plain table cleared when the instance leaves. AimLayer's gun-box cache is the one weak table left, on purpose.

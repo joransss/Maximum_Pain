@@ -1,6 +1,6 @@
 # Animation Hooks
 
-How the game's animations are made, named, played and published. The slots were built empty on 2026-10-31; since 2026-11-01 every slot plays a clip made in Blender (102 clips in 109 slots since 2026-11-10: the cover clips went side-on on 2026-11-07, low cover got its turns on 2026-11-08, and blind fire got clips for the low and high runs on 2026-11-09 and 10).
+How the game's animations are made, named, played and published. The slots were built empty on 2026-10-31; since 2026-11-01 every slot plays a clip made in Blender (106 clips in 113 slots since 2026-11-10: the cover clips went side-on on 2026-11-07, low cover got its turns on 2026-11-08, blind fire got clips for the low and high runs on 2026-11-09 and 10, and two-handed blind fire behind high cover late on 2026-11-10).
 Related: [[Animation and MP3 Systems - Progress and To Do]] · [[Animation References]] · [[Max Payne 3 Animation Reference]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]]
 
 ## From Blender to the game
@@ -45,7 +45,7 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
 | Vault | Vault (a speed vault, paced by the way over) |
 | Last Stand | LastStandFall, LastStand, LastStandWakeup |
 | Holds | Hold + Pistol/Revolver/SMG/SawnOff/Rifle/Shotgun/Sniper/Dual (the gun's `AnimSet`), CarryTwoHanded, CarryTwoHandedLow, CarryTwoHandedCover, CarryTwoHandedCoverLow, CoverHoldHighOne/Two/Dual, CoverHoldLowOne/Dual, CoverHoldLowTwoLeft/Right, InjuredArmLeft/Right |
-| Aim and blind fire | AimPistol, AimRifle, AimDual, BlindFireHigh/Low + Left/Right, BlindFireLowMove/HighMove + Left/Right |
+| Aim and blind fire | AimPistol, AimRifle, AimDual, BlindFireHigh/Low + Left/Right, BlindFireLowMove/HighMove + Left/Right, BlindFireHighTwo/HighMoveTwo + Left/Right (a two-handed gun) |
 | Actions | DrawOneHanded, DrawTwoHanded, DrawDual, Pickup, Painkiller, DropGun |
 | Reloads | Reload_<gun> for all 13 guns, sharing ReloadPistol, ReloadRevolver, ReloadRifle, ReloadSniper, ReloadPump and ReloadSawnOff; ReloadDual |
 
@@ -59,8 +59,9 @@ On top of the clips, every frame, the procedural layers bend the joints (`Proced
 - **The vault:** the clip's playback chases the way over the obstacle. The legs are tucked (25% of the clip) when the leading knee reaches the near face (1.3 studs ahead of the root), and stay up (72%) until the trailing foot passes the far face (0.9 behind). The playback speed (at most 6) replicates to other players.
 - **Cover:** side-on (back and inner shoulder to the wall, turned to the edge). The root part keeps facing the wall, so the cover clips turn the body round inside it. The idle follows the side being worked, the move clips (side-on, facing the way it goes) run at the speed along the wall, and the corner clips play while swinging round. The holds are made on the cover bodies: each gun is placed in a body part's frame and aimed in the body's facing frame, so one clip fits both sides.
 - **Popping up out of low cover and ducking back:** `CoverPopUp<side>` plays on the change to `CoverPeek` (bound to it, 0.25 s) and `CoverDuck<side>` on the way back (0.3 s). The body turns toward the edge being worked, the feet stepping round. For the first 0.15 s of a pop-up the gun stays in the low hold, then the aim takes it. Other players' characters use the right-hand clips.
-- **Blind fire:** the gun arm, the waist and the neck, one clip per side. High cover: the arm out round the end (the left hand keeps the carried rifle). Low cover: the chest twists the gun shoulder to the wall and the arm goes straight up over the top, the head ducked. Sliding along cover: the run's own clip (`BlindFireLowMove<way>`, `BlindFireHighMove<way>`), picked the same frame as the run. Some never cross-fade: the low run going right with any other blind fire clip, and the two high runs with each other (a reversal). The old one goes down into the hold first (`DIP_FADE`).
+- **Blind fire:** the gun arm, the waist and the neck, one clip per side. High cover: the arm out round the end (the left hand keeps the carried rifle). Low cover: the chest twists the gun shoulder to the wall and the arm goes straight up over the top, the head ducked. Sliding along cover: the run's own clip (`BlindFireLowMove<way>`, `BlindFireHighMove<way>`), picked the same frame as the run. Some never cross-fade: the low run going right with any other blind fire clip, and the high runs with each other (a reversal). The old one goes down into the hold first (`DIP_FADE`).
+- **Blind fire with a two-handed gun behind high cover:** clips of its own, both hands on the gun across the body (the support hand is AimLayer's, on each gun's own Support point): still, `BlindFireHighTwo<side>` points it toward the edge worked and round it; sliding, `BlindFireHighMoveTwo<way>` points it ahead along the wall. Where they can't load (not published yet, on a live server) the one-handed clips play.
 
 ## Not done
-- Publishing for live servers (the place's owner). See the to-do note.
+- Publishing for live servers (the place's owner): the four two-handed blind fire clips (2026-11-10), and the place itself. See the to-do note.
 - Compare each clip with [[Max Payne 3 Animation Reference]] again after publishing.

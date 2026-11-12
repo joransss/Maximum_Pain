@@ -8,3 +8,5 @@ Pasted image *
 __pycache__/
 # FBX copies of every clip: rebuilt in seconds by mp_lib.export(fbx=True), about 15 MB each time
 Assets/Blender/Animation/Exports/FBX/
+# The clips as Roblox model files for publishing: rebuilt by publish_animations.ps1 -Build, about 11 MB
+Assets/Blender/Animation/Exports/rbxmx/

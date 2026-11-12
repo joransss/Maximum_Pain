@@ -94,8 +94,8 @@ local function attribute(instance: Instance, name: string): string
     return if value == nil then "" else tostring(value)
 end
 
--- Every clip in Assets.Animations by its Studio id (a hash of its content, so it is the id the game
--- registered too).
+-- Every clip by the id the game plays it with: its published id (AnimationConfig), or for a clip not
+-- published yet its KeyframeSequence's Studio id (a hash of its content, so the id the game registered too).
 local function registerClips(): number
     local assets = ReplicatedStorage:FindFirstChild("Assets")
     local folder = assets and assets:FindFirstChild("Animations")
@@ -108,6 +108,19 @@ local function registerClips(): number
             if ok then
                 clipNames[id] = sequence.Name
                 count += 1
+            end
+        end
+    end
+    local modules = ReplicatedStorage:FindFirstChild("Modules")
+    local config = modules and modules:FindFirstChild("AnimationConfig")
+    if config and config:IsA("ModuleScript") then
+        local ok, loaded = pcall(require, config)
+        local slots = if ok and type(loaded) == "table" then (loaded :: any).Slots else nil
+        if type(slots) == "table" then
+            for _, slot in slots do
+                if slot.Id ~= "" then
+                    clipNames[slot.Id] = slot.Clip
+                end
             end
         end
     end

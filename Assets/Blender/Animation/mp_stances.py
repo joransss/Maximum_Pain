@@ -432,11 +432,23 @@ def cover_high(side):
     return pose
 
 
+# The low cover squat (2026-11-11). It used to fold the body over the knees (the pelvis tipped 30 degrees, the
+# waist 46 more, 76 from upright) on the balls of the feet: the body read as falling into itself, the chest 0.95
+# into the thighs' boxes. Now a deep squat as a person sits on their heels: the pelvis upright, the lean from the
+# waist alone (47 degrees from upright), the feet wide and turned out, heels down, the knees over the toes, the
+# chest between the knees. Found by a search that kept the head's box under 3 studs over the floor (the lowest
+# low cover; 2.99 on the default R15) and the body out of the floor.
+LOW_ROOT = (-3.1, -2.1, -0.12)  # pitch, yaw (toward the edge), height
+LOW_WAIST = (-43.8, -2.7)  # pitch, yaw
+LOW_FEET = {  # (sideways out, forward, toes turned out, heel up) in the turned body's frame
+    "lead": (0.95, -0.6, 33.1, 1.0),
+    "trail": (1.34, -0.36, 23.7, 2.9),
+}
+
+
 def cover_low(side):
-    """Low cover (hips 1.8 lower): down on the balls of the feet with the back against the wall, folded
-    over the knees to keep the head top under 3 studs (the lowest cover), the head turned along the wall
-    to the edge. An R15's head and torso are long for its legs, so only a deep fold gets the head that
-    low; folded straight out from the wall, the head stays behind the wall's end."""
+    """Low cover (hips 1.8 lower): squatting on the heels with the back to the wall, the knees wide and the chest
+    leaning out over them, the head turned along the wall to the edge (LOW_ROOT, LOW_WAIST, LOW_FEET)."""
     s = 1.0 if side == "Right" else -1.0
     yaw = facing(side, LOW_TURN)
     lead, trail = ("Left", "Right") if s > 0 else ("Right", "Left")
@@ -446,14 +458,17 @@ def cover_low(side):
         shift = math.sin(TAU * t / 5.2)
         p = Pose()
         x = -s * LOW_BACK + s * 0.02 * shift  # back along the wall, away from the edge
-        p.set("Root", -30.0, yaw, s * 1.5 * shift, move=(x, 0.4 + 0.01 * breath, 0))
-        p.set("Waist", -46.0 - breath, s * 8.0, 0)
-        look(p, V(s * 0.93, -0.12, 0.34))  # along the wall to the edge
+        p.set("Root", LOW_ROOT[0], yaw + s * LOW_ROOT[1], s * 1.5 * shift, move=(x, LOW_ROOT[2] + 0.01 * breath, 0))
+        p.set("Waist", LOW_WAIST[0] - breath, s * LOW_WAIST[1], 0)
+        look(p, V(s * 0.93, 0.0, 0.34))  # along the wall to the edge
         z = onto_wall(p, TORSO)  # the legs and arms aren't placed yet
 
         def feet():
-            plant_turned(p, lead, yaw, -s * 0.58, -0.55, LOW, s * 12.0, 0, 20.0, (x, z))
-            plant_turned(p, trail, yaw, s * 0.6, -0.4, LOW, -s * 8.0, 0, 14.0, (x, z))
+            for leg, (out, ahead, toes, heel) in ((lead, LOW_FEET["lead"]), (trail, LOW_FEET["trail"])):
+                sx = -s if leg == lead else s
+                px, pz = turned(yaw, sx * out, ahead, (x, z))
+                sole, r = L.foot_on_floor(px, pz, LOW, yaw + sx * toes, 0.0, heel)
+                L.leg_ik(p, leg, sole, r, rot(0, yaw + sx * toes, 0) @ V(0, 0, -1))  # the knee over the toes
         feet()
         # squatting, the backs of the thighs come out behind the hips: off the wall too
         extra = reach(p, TORSO + ("LeftUpperLeg", "RightUpperLeg")) - BACK_REACH
@@ -561,8 +576,8 @@ POP_TIME = 0.25  # the CoverPeek stance (PEEK_TIME), bound to it
 DUCK_TIME = 0.3
 HEIGHT_EASE = 10.0  # AimLayer's rate, per second
 LOW_DROP = 1.8  # low cover's hip drop (StanceRules)
-LOW_PITCH = -30.0  # cover_low's Root
-LOW_FEET_HEEL = (20.0, 14.0)  # cover_low's heels: lead, trail
+LOW_PITCH = LOW_ROOT[0]  # cover_low's Root
+LOW_FEET_HEEL = (LOW_FEET["lead"][3], LOW_FEET["trail"][3])  # cover_low's heels: lead, trail
 TURN_SWAY = 0.6  # studs the hips sway out from the wall at the middle of the turn
 KNEE_FOLLOWS_FOOT = 0.75  # how much of its turn a knee takes with its foot's step; the rest with the hips
 DUCK_DROP = (0.2, 1.0)  # the share of the duck the hips go down over: the feet start round first

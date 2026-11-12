@@ -616,15 +616,16 @@ Saved in the server profile (`Settings`), applied on the client. Defaults chosen
 ---
 
 ## Suggested build order
-1. [ ] Decisions in section 0.
+Reordered 2026-11-10. Starts after the animation work's blockers ([[Animation and MP3 Systems - Progress and To Do#To do (in order)|its to-do]]: save, publish, two-client test). Each decision is taken when the step that needs it starts, not all up front.
+1. [ ] **Decisions that block the first steps** (section 0): the join flow (menu over the live match, Play to spawn), how many saved loadouts, the level cap. The rest wait: prestige reset until prestige (step 11), crate currency until the shop (step 10), the weight allowance until the loadout screen (step 6).
 2. [ ] Server profile + DataStore safety (section 9). Nothing else should save data on its own.
 3. [ ] Menu shell with live match camera and the section 2 look (main menu only, Play works).
 4. [ ] Blender UI pipeline and first assets (logo, overlays, weapon icons) (section 3).
-5. [ ] Settings: audio sliders + keybind rebinding + the accessibility toggles that need no new systems.
-6. [ ] Loadout screen with the existing guns, three loadouts, weight classes (needs stamina/regen rules).
-7. [ ] XP, levels, titles, cash multiplier, name tags and scoreboard (section 8).
-8. [ ] Adrenaline as three segments; skills framework; first-wave skills.
-9. [ ] Items: first wave.
+5. [ ] **Stamina and health regeneration** (new step): the weight classes change regen, stamina and aiming speed (section 5), and neither system is built yet ([[Movement State Machine]], [[Limb Health]]).
+6. [ ] Loadout screen with the existing guns, three loadouts, weight classes.
+7. [ ] Settings: audio sliders + keybind rebinding + the accessibility toggles that need no new systems. Moved after the loadout screen: nothing waits on it.
+8. [ ] XP, levels, titles, cash multiplier, name tags and scoreboard (section 8).
+9. [ ] Adrenaline as three segments; skills framework; first-wave skills; then items, first wave.
 10. [ ] Shop: direct-purchase skins, then crates with odds and `PolicyService` checks.
 11. [ ] Challenges; prestige; the items and skills that need minimap/looting/grenades.
 

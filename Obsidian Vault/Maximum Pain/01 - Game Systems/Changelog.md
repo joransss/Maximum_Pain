@@ -3,6 +3,125 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-12: Switching between the carried rifle and a one-handed gun
+Session 8 went on into 2026-11-12 (this PC, Studio signed in as 83tg). JordanSaa asked for polish only, so it took the most visible fault left by the 2026-11-11 changes; the notes waited until after.
+- Two clips (one re-made, one new; 113 clips, 123 slots), not published. Five scripts changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 8, part 7).
+
+**Fixed: the rifle jumped between the hands on a switch** (`mp_hands.HANDOVER`, `draw_two`, `swap_to_one`, `check_switch`)
+- The server re-hung the gun as a switch began. Drawing the carried rifle (3), it jumped 2.4 studs and turned 50° in one frame; putting it back for a one-handed gun (1, 2), it snapped round 90° to 112°.
+- The clips now bring both hands onto the gun partway through, in one pose (`HANDOVER`): the right hand on the grip, the left round the middle, the gun across the front of the body pointing left. Found by a scored search on the idle.
+  - `DrawTwoHanded` (0.55 s, re-made): the left hand lifts the rifle out of the carry by its middle, the right hand takes it 40% of the way through, then both port it across the chest and up to the ready hold. On the way up the left arm passes a waypoint with the gun level beside the hip; going straight there, the stock swept 0.5 into the left thigh (the M107 0.76).
+  - `SwapToOneHanded` (0.3 s, new): the left hand takes the rifle from the right 33% of the way through and lowers it into the carry; from 53% the right hand draws the one-handed gun from the holster.
+- Checked in `register()` with every long gun (`check_switch`): never in the head; in the left hand at most 0.05 into the legs and torso (the M107 0.1), in the right no deeper than the rifle hold's own + 0.1; more than 0.3 over the floor; and at the handover the gun within 0.03 and 3° of where it was in the other hand.
+
+**Fixed: the hands meet on the gun on any body** (`AimLayer`, `AnimationController`)
+- The clips are made on the default R15. 83tg's avatar has shoulders 0.26 narrower on each side, so at the exact handover frame its hands still missed each other by about 0.4 studs (6° to 20° of turn).
+- A gun that changes hands now starts where the old hand had it and eases into its new grip over 0.12 s (in the character's own time). Further apart than 1.2 it just moves, as a second pistol going to the right hand does.
+- At the arm clips' usual fade-in (`ARM_FADE`), the swap clip was only 73% in at its handover and the hold clips under it pulled the hands apart. The two switch clips now fade in at 40 a second (`SWITCH_FADE`). They start from the hold they replace, so nothing jumps.
+
+**Changed: the game** (Team Create place)
+- `LoadoutRules`: `HANDOVER` (draw 0.4; swap 0.33, then the one-handed draw 0.53) and `handoverTimes`, with self-checks.
+- `LoadoutService`: a gun the switch hands over waits where it is until its share of the switch's time (`handOver`, `record.waiting`). A switch cut short, or replaced by another, puts every gun where it belongs at once.
+- `AnimationController`: plays `SwapToOneHanded` when the rifle is still in the right hand as a switch to a one-handed gun starts (`DrawOneHanded` where it can't load); `SWITCH_FADE`.
+- `AimLayer`: the handover ease (`easeHandovers`, `noteGrips`).
+- `AnimationConfig`: the `SwapToOneHanded` slot; `DrawTwoHanded` added to `STALE` (Studio plays the new clip, live servers the published old one).
+
+**Tested** (Studio play mode, 83tg's avatar)
+| Test | Result |
+|---|---|
+| Imported clips | both match the export (every keyframe's rotation matrix exactly) |
+| Draw (3) and put back (1), the gun on the frame it changes hands | on the frame it moves it's 0.38 off its new grip, where the old hand had it, and on the grip the next frame; no jump beyond the clip's own motion |
+| The clips frozen on a copy of the avatar, front view | lifted by the middle, taken across the chest, ported, ready; putting back, the rifle lowers to the carry as the pistol comes out of the holster |
+| 3 → 1 → 3 within a third of a second | the rifle ends in the right hand, both pistols holstered |
+| 4 during the swap | dual wields; the rifle is dropped |
+| Output log | clean |
+
+**Not done**
+- Publishing `DrawTwoHanded` and `SwapToOneHanded` (83tg). Until then live servers play the old `DrawTwoHanded`, which wasn't made for the later handover, and `DrawOneHanded` instead of the swap.
+- On bodies unlike the default the receiving hand could be placed on the gun with IK near the handover (to-do 4.29); the ease covers it for now.
+
+## 2026-11-11: The low cover squat, guns carried by the middle, crouched rifle holds, one-handed reloads, a longer dive
+Session 8 ran on this PC (Studio signed in as 83tg), 2026-11-11, with Claude Code driving Blender headless and Studio. JordanSaa sent what a play test showed (with a screenshot), asked for the dive's distance and airtime to change, and asked that animations be judged on whether they look natural. Each fix below was looked at on 83tg's avatar in screenshots as well as measured.
+- 24 clips (6 new, 18 re-made; 112 clips, 122 slots), not published. Five scripts changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 8, parts 1 to 6).
+
+**Fixed: the low cover squat folded into itself** (`mp_stances.cover_low`: `LOW_ROOT`, `LOW_WAIST`, `LOW_FEET`)
+- Behind low cover the body folded over the knees on the balls of the feet: the pelvis tipped 30°, the waist 46° more (76° from upright), the chest 0.95 into the thighs' boxes. It read as the body falling into itself.
+- Now a deep squat, the way a person sits on their heels: the pelvis upright, the lean from the waist alone (47°), the feet wide and turned out, heels down, the knees over the toes, the chest between the knees. Found by a search that kept the head's box under 3 studs over the floor (2.99 on the default R15) and the body out of the floor.
+- Everything made on the squat was made again: `CoverLowLeft/Right`, the low cover holds (`CoverHoldLowOne`, `CoverHoldLowDual`, `CoverHoldLowTwoLeft/Right`), `CoverPopUpLeft/Right`, `CoverDuckLeft/Right`, `CoverCornerLowLeft/Right` and the low carry.
+- **Low blind fire** (`mp_hands.LOW_FIRE`): the old clip's 105° chest twist left the gun 0.02 under the top on the squat, and the torso 0.42 in the wall. Now the chest comes up out of the lean and leans off the gun side, the arm goes straight up past the ducked head, and the gun pokes over the top tipped up about 25°. Level, it cleared the top by at most 0.22: with the arm straight up the wrist can't bend back far enough.
+
+**Fixed: two-handed guns carried by the stock** (`mp_arms.CARRIES`, `carried`, `check_carry`; `mp_lib.carry_grip`; `LoadoutService.carryOffset`)
+- The carried gun hung from the left hand by its pistol grip, like a stick held at one end, and the carries pushed it into the body: crouched it stuck out to the side, 0.66 into the legs and 0.56 into the torso; behind high cover 0.7 into the legs; running 0.47.
+- Now the fist is round the middle of the gun's length at the handguard's height, the gun running front to back through it like a bag's handle. `LoadoutService` hangs it that way, worked out from each gun's own parts and Support point (`carryOffset`). Dual pistols are still held by the grip.
+- The four carries were made again for it: at the side standing; beside the left knee pointing ahead crouched (to-do 4.6); in front of the left hip behind high cover; by the left knee behind low cover, tipped up with the butt toward the floor.
+- Found by a search with every long gun, each hanging at its own middle, on every body the carry plays over, AimLayer's arm swing on the run included. `register()` checks it again (`check_carry`).
+
+**Fixed: crouched with a two-handed gun, the gun went through the thighs and the right arm into the chest** (`mp_arms.LOW_HOLDS`, `two_handed_hold_low`, `check_low_hold`)
+- Crouched, the game played the standing low-ready hold, made on an upright chest. On the crouched body the gun went up to 0.78 into the legs and 1.3 into the floor, the forearms 0.9 into the thighs, and the right arm folded into the chest.
+- `HoldRifleLow`, `HoldShotgunLow`, `HoldSniperLow` (new): made on the crouch idle, the gun across the front of the body, muzzle to the front-left and down, both hands on it, the elbows down. Checked with every gun of each set on the crouch idle and the whole crouch walk, the support hand placed as AimLayer places it.
+
+**Fixed: reloading a one-handed gun pulled the carried rifle through it** (`mp_hands.reload_pistol_one`, `reload_revolver_one`, `reload_sawn_off_one`, `check_one_hand_reload`)
+- The reloads were made for a free left hand. With a rifle carried, the left hand brought it over to the gun being reloaded, through that gun.
+- New clips that key the right arm only, the gun reloaded against the belt at the right hip, with the same markers as the two-handed clips: `ReloadPistolOneHand` (the M9, Glock 18, Desert Eagle and Uzi), `ReloadRevolverOneHand` (the SW500), `ReloadSawnOffOneHand`. Checked against the two-handed reloads on the standing, crouched and cover bodies.
+
+**Changed: a longer, lower dive** (`DodgeRules`, `DodgeController`)
+- Launch 26 → 24 studs/s across and 15 → 9 up; gravity in the air 0.25 → 0.1 of the place's.
+- **Fixed on the way: every dive ended at its highest point.** The Humanoid senses the floor from well above standing height, so once the body stopped rising it "landed" in mid-air and pulled the body down to its feet. Retuned without the fix, the dive lasted 0.52 s over 11.5 studs, where the numbers gave 0.76 s and 18. `DodgeController` now switches the Humanoid's Landed, Running and RunningNoPhysics states off while the dive flies (`holdInAir`), and lands it itself.
+- **Fixed: bullet time shortened the dive.** It slowed the dive's speeds but not its fall, so a slowed dive came down far too soon (worked out: about 0.24 s and 3 studs at half speed). The lift now scales with the square of the time scale, so the whole arc slows.
+- Before: about 0.5 s in the air and 17 studs to rest, 1.6 high. Now: 0.78 s in the air over 18.6 studs, 1.4 high, sliding to rest at 20.2.
+
+**Changed: the game** (Team Create place)
+- `LoadoutService`: the carried gun hangs by its middle (`carryOffset`).
+- `AnimationController`: crouched with a two-handed gun it plays `Hold<set>Low` (the standing hold where that can't load); with a two-handed gun carried, a one-handed gun's reload plays `ReloadOneHand_<gun>` (the two-handed reload where that can't load).
+- `AnimationConfig`: the 3 crouched hold slots and 6 one-handed reload slots (122 slots). A `STALE` list of the 18 re-made clips: in Studio they play their new KeyframeSequences, not their published ids, so the new clips can be tested before they're published; live servers play the published ones.
+- `DodgeRules`, `DodgeController`: the dive.
+
+**Tested** (Studio play mode, 83tg's avatar)
+| Test | Result |
+|---|---|
+| The carry, standing, crouched and behind high cover | the AK held by its middle at the side; crouched beside the left knee, about level; the holstered Uzi on the same thigh clear of it; nothing clipping (screenshots) |
+| Crouch walk with the AK in hand | the legs clear; the gun 0.17 over the floor; the right forearm resting on the chest (0.04) |
+| M9 reload with the AK carried | the one-handed clip played (full weight from 0.15 to 1.95 s); the AK moved at most 0.075 against the hips; the spent magazine dropped |
+| Low cover squat, blind fire both sides | from the enemy's side only the hand and pistol show over the top, about 20° up; the head stays hidden; the carried AK never in the head or torso (225 frames) |
+| Aiming over low cover, ducking back | both work on the new squat; the shins 0.22 under the floor while ducking, 0.07 at rest |
+| Dive on a flat floor | 0.78 s in the air, 18.6 studs, 1.4 high; 20.2 to rest; gets up and walks |
+| Dive in bullet time (0.6) | the same arc, slower: 18.8 studs in 1.32 s |
+| Imported clips | all 24 match the export |
+
+**Decided**
+- The crouch walk's legs sinking into the floor (to-do 4.20) stays as it is: JordanSaa called the amount negligible (2026-11-11).
+
+**Not done**
+- Publishing the 6 new clips and the 18 re-made ones again (83tg). Publish the re-made carries before the place: `LoadoutService` now hangs the carried gun by its middle, which the old published carry clips weren't made for.
+- Ducking back into low cover puts the shins 0.22 under the floor (0.07 at rest). Blender's boxes show no deeper dip than the squat's, so it comes from the blend's timing (to-do 4.28).
+
+## 2026-11-10: Two-handed blind fire behind high cover
+Session 7, late on 2026-11-10 (this PC, Studio signed in as 83tg). It did to-do 4.26, the first open polish item; the to-do's first items (saving the place, committing, publishing) wait on JordanSaa and 83tg.
+- Four new clips (106 clips now, not published yet). Two scripts and the test harness changed in the Team Create place.
+- Details and numbers: [[Animation and MP3 Systems - Progress and To Do]] (session 7).
+
+**Fixed: rifles and other long guns blind fired from high cover** (`mp_hands.blind_fire_two`, `TWO_FIRE`; to-do 4.26)
+- The high blind fire clips were made with a pistol. With a long gun the arm guard kept it out of the wall by swinging the arm about 50° round mid-wall; at the end working right the support arm went 0.44 into the wall's corner, and working left and on the runs the support hand couldn't reach the gun.
+- `BlindFireHighTwoLeft/Right` (still) and `BlindFireHighMoveTwoLeft/Right` (on the run) hold it in both hands across the body: still, pointing toward the edge worked and turned round it (41° working right, 17° working left, where the chest turns to the corner); on the run, ahead along the wall.
+- Found by a search in Blender with every long gun in the place and the support hand placed as AimLayer places it, at a wall's end 0.5 to 0.9 past the root and mid-wall, and checked in `register()` the same way. The blends were simulated with Roblox's blending against the same switches with the old clips.
+
+**Changed: the game** (Team Create place)
+- `AnimationController`: behind high cover with a two-handed gun, blind fire plays the two-handed clips. Where they can't load (live servers, until they're published) it plays the one-handed ones, as before. Reversals between the runs still dip into the hold (their names start `BlindFireHighMove`).
+- `AnimationConfig`: the four slots (113 slots now), no published ids yet.
+- `TestHarness` (Studio only, and the repo's copy): names clips by their published ids too.
+
+**Tested** (Studio play mode, 83tg's avatar, the HighWall)
+| Test | Result |
+|---|---|
+| AK-47, FAL and M107: raise and fire mid-wall, slide to each end and hold, reverse, lower | nothing in the wall (0.05, the guard's slack, for 2 physics frames on a reversal); the support hand on the gun throughout; nothing in the head (the M107's 1.09-tall box up to 0.23, its scope under the chin) |
+| The muzzle at the ends | 1.9 past either end |
+| Output log | clean |
+
+**Not done**
+- Publishing the four clips (83tg): until then live servers play the one-handed clips with long guns, as before.
+
 ## 2026-11-10: Blind fire while sliding along high cover, and bullet time slows its activator
 Later in session 6 (this PC, Studio signed in as 83tg). It did to-do 4.25, and checked bullet time against [[Last Stand and Bullet Time]] after a play test where the player moved freely in their own bullet time.
 - Two new clips (102 clips now). Four scripts changed in the Team Create place.
@@ -512,7 +631,7 @@ Session 3 ran on JackT6785's PC, with Claude Code driving Studio: 2026-11-02 20:
 **Not done**
 - Saving the place in Studio after these changes (File > Save to Roblox).
 - A two-player test (Studio's Clients and Servers). Only the server's view was checked.
-- Publishing the 93 animations: JordanSaa has to do it, as the place's owner.
+- Publishing the 93 animations: JordanSaa has to do it, as the place's owner. (Corrected 2026-11-10: the place's owner on Roblox is 83tg; JordanSaa is the GitHub name. The 102 clips were published as 83tg that day.)
 - The low-cover pose decision.
 - 12 polish items, listed in the to-do with ideas for each.
 

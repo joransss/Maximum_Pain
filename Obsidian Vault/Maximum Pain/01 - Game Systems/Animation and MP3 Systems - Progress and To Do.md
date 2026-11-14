@@ -1,6 +1,6 @@
 # Animation and MP3 Systems: Progress and To Do
 
-Work log and work queue for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations, cover). Picks up where the [[Changelog]] entries of 2026-11-01 leave off; session 8 (2026-11-11 to 12: what JordanSaa's play test showed — the low cover squat, guns carried by the middle, crouched rifle holds, one-handed reloads — a longer dive, and the weapon switch's handover) is the newest; before it, session 7 (2026-11-10, late: two-handed blind fire behind high cover, to-do 4.26), session 6 (2026-11-09 to 10: blind fire on the low and high cover runs, carried guns over vaults, running vaults, bullet time checked), and on 2026-11-10 the animations were published ([[#2. Publish and document]]). The [[#To do (in order)|to-do list]] was reordered on 2026-11-10: publish first, then the two-client test, then the polish, most visible first.
+Work log and work queue for the Max Payne 3-style animation and movement pass (bullet time, vaulting, hit reactions, ragdoll, kill cam, Blender animations, cover). Picks up where the [[Changelog]] entries of 2026-11-01 leave off; session 8 (2026-11-11 to 12: what JordanSaa's play test showed — the low cover squat, guns carried by the middle, crouched rifle holds, one-handed reloads — a longer dive, and the weapon switch's handover) is the newest; before it, session 7 (2026-11-10, late: two-handed blind fire behind high cover, to-do 4.26), session 6 (2026-11-09 to 10: blind fire on the low and high cover runs, carried guns over vaults, running vaults, bullet time checked), on 2026-11-10 the animations were published, and on 2026-11-14 sessions 7 and 8's 30 clips, all 113 checked against the place ([[#2. Publish and document]]). The [[#To do (in order)|to-do list]] was reordered on 2026-11-10: publish first, then the two-client test, then the polish, most visible first.
 
 > [!note] Two "session 4"s
 > Two sessions ran in parallel from session 3's notes, on different PCs, and both called themselves session 4: **2026-11-04** (JackT6785's PC, the polish pass) and **2026-11-07** (this PC, side-on cover). They were merged on 2026-11-08 (`85d5b61`) and the notes reconciled on 2026-11-09. Each is named by its date below. The 2026-11-04 pass's open polish items were 4.14 to 4.17 in its own list; they are now **4.21 to 4.24**, since the 2026-11-07 list had used 4.14 to 4.20.
@@ -11,13 +11,13 @@ Work log and work queue for the Max Payne 3-style animation and movement pass (b
 
 Related: [[Architecture]] · [[Animation Hooks]] · [[Movement State Machine]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Loadout and Dual Wielding]] · [[Test Arena]] · [[Euphoria-style Reactions and Ragdolls]] · [[Max Payne 3 Kill Cam]]
 
-## Where things stand (2026-11-12)
+## Where things stand (2026-11-14)
 | Item | State | Who | Next step |
 |---|---|---|---|
-| **Place** | The 2026-11-04 session changed 9 scripts and added the test harness; the 2026-11-07 session changed 5 scripts and 25 clips (24 remade, 1 new); session 5 changed 3 scripts and 5 clips (4 new); session 6 changed 6 scripts and added 4 clips; 2026-11-10 put the published ids in `AnimationConfig`; session 7 changed 2 scripts and the test harness and added 4 clips; session 8 changed 7 scripts and 26 clips (19 re-made, 7 new). Not saved since | Whoever opens Studio next | Commit any drafts, save ([[#1. Save and push]]) |
-| **Repo** | Pushed up to `8b0561c` (session 6) and `9e85d37` (menu notes). Not committed: `publish_animations.ps1` and `animation_ids.json`, session 7's and session 8's clips, export and notes, and session 7's harness ([[#Repo changes in session 7 (not committed yet)]], [[#Repo changes in session 8 (not committed yet)]]) | JordanSaa | Commit and push ([[#1. Save and push]]) |
-| **Animations** | Published 2026-11-10: 102 clips are animations owned by 83tg, checked against the place. Not published: session 7's 4 two-handed blind fire clips, session 8's 7 new clips and the 19 it re-made (listed in `AnimationConfig`'s `STALE`): Studio plays all of them, live servers the fallbacks and old versions. The place isn't published yet | 83tg (the place's owner) | Publish those 30 clips, then save and publish the place, test live ([[#2. Publish and document]]) |
-| **Play tests** | Every single-player test passes, the new cover included (sessions 4 and 5); the two-client test hasn't been run | Anyone, in Studio | [[#3. Play tests]] |
+| **Place** | The 2026-11-04 session changed 9 scripts and added the test harness; the 2026-11-07 session changed 5 scripts and 25 clips (24 remade, 1 new); session 5 changed 3 scripts and 5 clips (4 new); session 6 changed 6 scripts and added 4 clips; 2026-11-10 put the published ids in `AnimationConfig`; session 7 changed 2 scripts and the test harness and added 4 clips; session 8 changed 7 scripts and 26 clips (19 re-made, 7 new); 2026-11-14 put the 30 new published ids in `AnimationConfig` and emptied `STALE`. **Saved:** on 2026-11-14, after the ids went in, Studio reported no unsaved changes and no script with unsaved editor changes. Not published, so live servers still run its last published version | 83tg (the place's owner) | Publish it and test live ([[#2. Publish and document]]) |
+| **Repo** | Pushed up to `5201219` (2026-11-12: sessions 7 and 8, the publishing script, the first 102 ids; GitHub's `main` checked 2026-11-14). Not committed: the 2026-11-14 changes (the 30 new ids in `animation_ids.json`, the notes, the player card mockup) | JordanSaa | Commit and push ([[#1. Save and push]]) |
+| **Animations** | All 113 clips are published animations owned by 83tg: 102 on 2026-11-10; on 2026-11-14 session 7's 4 two-handed blind fire clips, session 8's 7 new clips and the 19 it re-made. All their ids are in `AnimationConfig`'s `IDS` and `STALE` is empty (all 123 slots have an id). Loaded back in Studio on 2026-11-14, each published animation matches the place's clip exactly | — | Nothing until a clip changes; live servers get the ids when the place is published (row above) |
+| **Play tests** | Every single-player test passes, the new cover included (sessions 4 and 5); on 2026-11-14 the new clips played from their published ids in Studio ([[#Test log (2026-11-14, Studio play mode, 83tg's avatar)\|smoke test]]); the two-client test hasn't been run | Anyone, in Studio | [[#3. Play tests]] |
 | **Cover pose** | Decided: side-on for high and low cover, as Max Payne 3 (2026-11-07). Done in session 4; the low cover turns in session 5; the low cover squat re-made in session 8 | — | Polish 4.15 to 4.18, 4.28 |
 | **Polish** | Done: 4.1 to 4.4, 4.6, 4.13, 4.14, 4.19, 4.23 to 4.27. Decided to leave: 4.20 (JordanSaa, 2026-11-11). Open: 4.5, 4.7 to 4.12, 4.15 to 4.18, 4.21, 4.22, 4.28, 4.29. None blocks anything; next, most visible first: 4.15, 4.16, 4.28 | Anyone | [[#4. Polish]] |
 
@@ -99,7 +99,7 @@ Related: [[Architecture]] · [[Animation Hooks]] · [[Movement State Machine]] �
 ### 9. In game
 See [[#Test log (session 8, 2026-11-11 to 12, Studio play mode, 83tg's avatar)]]. The 26 clips were imported by pasting their JSON (session 4's way) and checked against the export track by track: equal to float rounding (one quaternion with w near 0 read differently as an axis and angle, its matrix exact).
 
-### Repo changes in session 8 (not committed yet)
+### Repo changes in session 8 (committed in `5201219`)
 - `mp_stances.py`: the squat (`LOW_ROOT`, `LOW_WAIST`, `LOW_FEET`, `cover_low`); `mp_lib.py`: `CARRY_TURN`, `carry_point`, `carry_grip`, `hand_for_carry`; `mp_arms.py`: `CARRIES`, `carried`, `carry_bodies`, `check_carry`, `LOW_HOLDS`, `two_handed_hold_low`, `check_low_hold`; `mp_hands.py`: `LOW_FIRE` and the low `blind_fire`, the one-handed reloads and `check_one_hand_reload`, the switch clips and `check_switch`.
 - `Exports/keyframes.json` (113 clips) and `MaximumPain_Animations.blend`: against session 7's export only the 26 clips above differ.
 - This note and the [[Changelog]].
@@ -158,7 +158,7 @@ Each gun: mid-wall raising from the hold and firing; sliding to the right end fi
 - The right clip played in every state. The slide stopped 0.47 to 0.67 from the ends (a little closer than the 0.5 checked; still clear). The muzzle ended 1.9 past either end: working right angled 40° round the corner, working left 17°.
 - Output log clean.
 
-### Repo changes in session 7 (not committed yet)
+### Repo changes in session 7 (committed in `5201219`)
 - `mp_hands.py`: `TWO_FIRE`, `LONG_GUNS`, `blind_fire_two`, `check_two_fire` and its helpers, the four clips registered with the self-check, the module's opening note. `mp_lib.py`: `box_depth`.
 - `Exports/keyframes.json` (106 clips) and `MaximumPain_Animations.blend`: only the four new clips differ from session 6's export (compared clip by clip).
 - `Tools/TestHarness.luau`, as the place's.
@@ -261,7 +261,7 @@ Each gun: mid-wall raising from the hold and firing; sliding to the right end fi
   - Not done: the chain through the victims' sight.
 - Not checked here: one or two levels (1.67 s each; `BulletTimeRules`' self-check covers the maths), and two real players (the two-client test).
 
-### Repo changes in session 6 (not committed yet)
+### Repo changes in session 6 (committed in `8b0561c`)
 - `mp_hands.py`: `RUN_FIRE` (low and high), `blind_fire_move`, `check_run_fire` and its limits, the four clips registered with the self-check, the module's opening note.
 - `Exports/keyframes.json` (102 clips) and `MaximumPain_Animations.blend`. Only the four new clips differ from session 5's export.
 - This note, the [[Changelog]], [[Cover System]], [[Animation Hooks]], [[Architecture]], [[Test Arena]] and the README.
@@ -836,11 +836,12 @@ All in the Team Create place (client controllers in `StarterPlayer.StarterPlayer
 ## To do (in order)
 
 ### 1. Save and push
-- [ ] **Save the place in Studio again.**
-  - **Who:** whoever opens Studio next.
-  - **How:** if the Drafts window (View > Drafts) lists scripts, commit them; then File > Save to Roblox.
+- [ ] **Commit and push the 2026-11-14 changes** (JordanSaa): `Assets/Blender/Animation/Exports/animation_ids.json` (the 30 new ids, 113 in all); the notes: this one, the [[Changelog]], [[Animation Hooks]], [[Architecture]], [[Cover System]], [[Loadout and Dual Wielding]], [[Shoot-Dodge]], [[Menus, Loadout, Progression and Shop - To Do]] and the README; and `Attachments/Menus/Mockup - Player Card.png`, which the menu note shows.
+- [x] **Save the place in Studio again.** Done 2026-11-14, after the 30 new ids went into `AnimationConfig`: Studio (signed in as 83tg) reported no unsaved changes, and no script's editor text differed from its `Source` (no unsaved drafts). Checked first: nothing left over from testing in the place, `HttpEnabled` off, all 42 scripts compile and are `--!strict`, and a play test ran with a clean log ([[#Test log (2026-11-14, Studio play mode, 83tg's avatar)]]).
+  - **How, next time:** if the Drafts window (View > Drafts) lists scripts, commit them; then File > Save to Roblox.
   - **Why:** the 2026-11-04 session changed 9 scripts and added `ServerStorage.Tools.TestHarness`; the 2026-11-07 session changed 5 scripts, replaced 24 clips and added one; session 5 changed 3 scripts and added 4 clips; session 6 changed 6 scripts and added 4 clips; on 2026-11-10 `AnimationConfig` got the published ids; session 7 changed 2 scripts and the test harness and added 4 clips; session 8 changed 7 scripts, re-made 19 clips and added 7 (see [[#Scripts changed in session 4]], [[#4. Scripts changed in session 4]], [[#2. Scripts changed in session 5]], [[#3. Scripts changed in session 6]], [[#2. Publish and document]], [[#4. Scripts changed in session 7]] and [[#8. Scripts changed in session 8]]). The place is the only copy of the game's code.
-- [ ] **Commit and push the publishing script and sessions 7 and 8** (JordanSaa): `Assets/Blender/Animation/publish_animations.ps1` and `Exports/animation_ids.json`, then session 7's and session 8's changes ([[#Repo changes in session 7 (not committed yet)]], [[#Repo changes in session 8 (not committed yet)]]). `Exports/rbxmx/` (10.7 MB) is rebuilt by the script and is now in `.gitignore` (session 7).
+- [x] **Commit and push the publishing script and sessions 7 and 8** (JordanSaa): in `5201219` (2026-11-12), on `origin/main` (GitHub's `main` checked 2026-11-14): `Assets/Blender/Animation/publish_animations.ps1` and `Exports/animation_ids.json` (the first 102 ids), then session 7's and session 8's changes (each session's "Repo changes" list above). `Exports/rbxmx/` (10.7 MB) is rebuilt by the script and is in `.gitignore` (session 7).
+- [x] **Repaired this PC's clone** (2026-11-14): `.git/refs/remotes/origin/HEAD` was 30 zero bytes, cut off while being written at the 2026-11-12 push, and `git fetch` failed ("bad object refs/remotes/origin/HEAD"). Restored to `ref: refs/remotes/origin/main`; `git fsck --full` is clean and fetch works.
 - [x] **Commit and push session 6** (JordanSaa): `8b0561c`, on `origin/main`.
 - [x] **Push the 2026-11-04 session** (JackT6785): `48ee647`, on `origin/main`.
 - [x] **Commit and push sessions 4 (2026-11-07) and 5** (JordanSaa): `35c5e2d`, merged with `48ee647` in `85d5b61` (2026-11-08), on `origin/main`.
@@ -858,14 +859,15 @@ Moved before the play tests and polish on 2026-11-10: until the clips were publi
   - **How:** Studio can't publish in bulk (`AssetService:CreateAssetAsync` still answers "not available yet", tried again 2026-11-10), so it goes through Open Cloud. `Assets/Blender/Animation/publish_animations.ps1 -Build` writes `Exports/rbxmx/<clip>.rbxmx` from `Exports/keyframes.json`, built the way `studio_import.luau` builds the place's clips; `-Upload` sends each one with an Open Cloud API key made on 83tg (Assets read and write) in `ROBLOX_API_KEY`, and records the ids in `Exports/animation_ids.json`.
   - **Checked:** the 102 built files matched the place's clips (keyframes, keyed poses, markers, priority, looping, pose sums). Each uploaded animation, loaded back in Studio, matched its clip pose for pose (21,533 poses; at most 0.05° of rotation, float rounding).
   - **`AnimationConfig`:** an `IDS` table by clip name, which every slot reads, so all 109 slots have an id (the slots sharing `ReloadPistol` and `ReloadRifle` share theirs). Studio now plays the published clips too.
-- [ ] **Publish session 7's four clips** (83tg, with the Open Cloud key in `ROBLOX_API_KEY`): `BlindFireHighTwoLeft`, `BlindFireHighTwoRight`, `BlindFireHighMoveTwoLeft`, `BlindFireHighMoveTwoRight`. In `Assets/Blender/Animation`: `publish_animations.ps1 -Build -Only <the four>`, then `-Upload -Only <the four>`; copy their ids from `Exports/animation_ids.json` into `AnimationConfig`'s `IDS`. Until then Studio plays their KeyframeSequences and live servers play the one-handed clips instead.
-- [ ] **Publish session 8's clips** (83tg, the same way; do it with session 7's, 30 clips in all, before publishing the place).
+- [x] **Publish session 7's four clips** (done 2026-11-14 with session 8's, ids in `IDS`) (83tg, with the Open Cloud key in `ROBLOX_API_KEY`): `BlindFireHighTwoLeft`, `BlindFireHighTwoRight`, `BlindFireHighMoveTwoLeft`, `BlindFireHighMoveTwoRight`. In `Assets/Blender/Animation`: `publish_animations.ps1 -Build -Only <the four>`, then `-Upload -Only <the four>`; copy their ids from `Exports/animation_ids.json` into `AnimationConfig`'s `IDS`. Until then Studio plays their KeyframeSequences and live servers play the one-handed clips instead.
+- [x] **Publish session 8's clips** (83tg, the same way; do it with session 7's, 30 clips in all, before publishing the place). **Done 2026-11-14:** the 11 new clips uploaded with `-Upload`, the 19 re-made ones with `-Upload -Force -Only …`; all 30 new ids copied from `Exports/animation_ids.json` into `AnimationConfig`'s `IDS`, `STALE` emptied. Checked in Studio on a copy of the module: all 123 slots have an id and the 30 match the file. The `.rbxmx` files they were uploaded from were all rebuilt from the current `keyframes.json` that day (17:17 UTC), before the uploads. Not committed yet: `animation_ids.json`.
+  - **Checked against the place (2026-11-14):** every id in `IDS`, loaded back in Studio (`KeyframeSequenceProvider:GetKeyframeSequenceAsync`), matches the place's clip of that name exactly: all 113 clips, 13,928 keyed poses (position and rotation matrix equal), the same keyframe times, markers, easing, priority and looping. Each of the place's 113 KeyframeSequences has an id. As a control, three re-made clips compared with their old (2026-11-10) uploads differ by up to 113°, so the check does see a stale upload.
   - **New (7):** `HoldRifleLow`, `HoldShotgunLow`, `HoldSniperLow`, `ReloadPistolOneHand`, `ReloadRevolverOneHand`, `ReloadSawnOffOneHand`, `SwapToOneHanded`. Copy their ids into `IDS`. Until then live servers play the standing holds crouched, the two-handed reloads with a rifle carried, and `DrawOneHanded` for the swap.
   - **Re-made (19), every name in `AnimationConfig`'s `STALE`:** `CoverLowLeft/Right`, `CoverHoldLowOne`, `CoverHoldLowDual`, `CoverHoldLowTwoLeft/Right`, `CoverPopUpLeft/Right`, `CoverDuckLeft/Right`, `CoverCornerLowLeft/Right`, `BlindFireLowLeft/Right`, `CarryTwoHanded`, `CarryTwoHandedLow`, `CarryTwoHandedCover`, `CarryTwoHandedCoverLow`, `DrawTwoHanded`. Upload with `-Force`, copy the new ids into `IDS` and empty `STALE`.
   - **Why before the place:** the place's `LoadoutService` hangs the carried gun by its middle and hands guns over partway through a switch. The published carries and `DrawTwoHanded` were made for a gun hung by its grip and moved at once, so a live server running the new code with the old clips would show the gun in the wrong place.
-- [ ] **Save the place, publish it and test in a live server:** locomotion, cover, dives, vaults, Last Stand, every reload and its markers, blind fire with a rifle behind high cover, the carries, the low cover squat, switching between the rifle and a pistol. Until the place is published, live servers still run the old code without the ids.
+- [ ] **Publish the place and test in a live server** (83tg; saved 2026-11-14, see [[#1. Save and push]]): File > Publish to Roblox, then play it from the website and check locomotion, cover, dives, vaults, Last Stand, every reload and its markers, blind fire with a rifle behind high cover, the carries, the low cover squat, switching between the rifle and a pistol. Until the place is published, live servers still run the old code without the ids.
 - [ ] **When a clip changes later in Blender:** re-export and re-import it as before, and add its name to `AnimationConfig`'s `STALE` so Studio plays the new version (live servers keep the old one). Then `publish_animations.ps1 -Build -Only <clip>` and `-Upload -Only <clip> -Force`, copy its new id into `IDS` and take it off `STALE`.
-- [ ] **Bring the system notes up to date with session 8:** [[Loadout and Dual Wielding]] (the carry by the middle, the handover), [[Shoot-Dodge]] (the dive's numbers and `holdInAir`), [[Cover System]] (the squat, the low blind fire, the carries), [[Animation Hooks]] (the new clips and slots, `STALE`), [[Architecture]].
+- [x] **Bring the system notes up to date with session 8** (done 2026-11-14, each fact checked against the place's scripts): [[Loadout and Dual Wielding]] (the carry by the middle, the handover, the one-handed reloads; adding a gun now names `RELOADS` and `ONE_HAND_RELOADS`, which the note had wrong), [[Shoot-Dodge]] (the dive's numbers, `holdInAir`, bullet time's arc, a 2026-11-11 test table), [[Cover System]] (the squat, the low blind fire, the carries, its not-done list), [[Animation Hooks]] (the new clips and slots, `STALE`, how publishing works now), [[Architecture]], and the README's clip count.
 - [ ] After publishing: compare each clip with [[Max Payne 3 Animation Reference]] again (from [[Animation Hooks]]).
 - [ ] Check the kill cam's death panel against Max Payne 3 multiplayer footage, with timestamps (from [[Max Payne 3 Kill Cam]]'s "Not done").
 - [x] Removed the cover-to-cover wording ([[Changelog]], [[Cover System]]) and the out-of-date "no animations" and "no vaulting" lines.
@@ -1132,6 +1134,21 @@ None of these blocks anything. Numbers are from sessions 2 to 5 on the avatars n
 | First reload of a life | stretched from its first frame (was unstretched until the clip loaded) |
 | Others' reloads (one client) | a reload this client didn't start moved the gunman's AK magazine and bolt; one cut short brought the magazine back |
 | Output log | clean |
+
+## Test log (2026-11-14, Studio play mode, 83tg's avatar)
+A smoke test of the published clips before saving the place: each clip the character played, logged by name from its animation id (`Animator.AnimationPlayed`).
+| Test | Result |
+|---|---|
+| Spawn: M9 in hand, Uzi holstered, AK-47 carried | `Idle`, `HoldPistol`, `CarryTwoHanded` |
+| Crouch (C) | `CrouchIdle`, `CarryTwoHandedLow` |
+| Draw the AK crouched (3) | `DrawTwoHanded`, then `HoldRifleLow` |
+| Stand (C) | `Idle`, `HoldRifle` |
+| Back to the M9 (1) | `SwapToOneHanded`, then `HoldPistol` and `CarryTwoHanded` |
+| Fire twice (`Remotes.FireWeapon`), then reload (R) with the AK carried | `AimPistol`; `ReloadPistolOneHand` |
+| Crouch and stand again | `CrouchIdle` and `CarryTwoHandedLow`; `Idle` and `CarryTwoHanded` |
+| Where the clips came from | every one from its published id in `IDS`, none from a KeyframeSequence |
+| Output log | clean |
+- `AnimationPlayed` fired twice for `DrawTwoHanded` and `ReloadPistolOneHand`, the second time at the clip's end. With Studio in the background (about 15 fps) a one-off clip can pass its end within one frame and stop; `AnimationController.apply` plays it again and puts it straight back on its last frame in the same step, so nothing shows. Expect it when logging clips.
 
 ## Test log (session 8, 2026-11-11 to 12, Studio play mode, 83tg's avatar)
 | Test | Result |

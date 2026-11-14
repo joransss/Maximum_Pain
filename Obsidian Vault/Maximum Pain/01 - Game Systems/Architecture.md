@@ -18,23 +18,30 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | `CoverRules` | Cover geometry: finding walls, high or low, edges, inside and outside corners, headroom. |
 | `DodgeRules` | Shoot-dodge numbers and direction helpers. |
 | `ShotRules` | Where a shot leaves from (the "virtual muzzle"), blind-fire paths over and round cover, and the stance and movement accuracy modifiers. |
-| `LoadoutRules` | Slots, hold modes, the dual-wield drop penalty, pickups and the arm-injury rules, as pure functions that check themselves. |
+| `LoadoutRules` | Slots, hold modes, the dual-wield drop penalty, pickups, the arm-injury rules, and when a switch passes the two-handed gun from hand to hand (`HANDOVER`, `handoverTimes`), as pure functions that check themselves. |
 | `LastStandRules` | Last Stand numbers and who qualifies. |
 | `BulletTimeRules` | The adrenaline meter's levels, how long each lasts, who counts as seen, the time scales (0.3 for those seen, 0.6 for the activator), the aim penalty. |
 | `VaultRules` | What can be vaulted, the path over it (its apex rises with the avatar's legs), and the timing. The server only uses `find`, reaching `SERVER_SLACK` further for its lagging copy of a running character. |
 | `RagdollRules` | The Euphoria-style death: muscles that pull toward a collapse and fade (see [[Euphoria-style Reactions and Ragdolls]]). |
-| `AnimationConfig` | Every animation slot and the clip it plays (113 slots, 106 clips made in Blender). In Studio an unpublished slot plays its KeyframeSequence directly. |
+| `AnimationConfig` | Every animation slot and the clip it plays (123 slots, 113 clips made in Blender), and each clip's published id (`IDS`, all 113 since 2026-11-14). In Studio a slot with no id, or a clip listed in `STALE`, plays its KeyframeSequence directly. Checks that every gun has a reload slot, and a one-handed gun a one-handed one. |
 | `WeaponConfig`, `WeaponMath`, `LimbRules` | Gun numbers, spread and recoil maths, limb health rules (from the first milestone). |
+| `MatchRules` | The match's states and timings (placeholders: 8-minute free-for-all, 15 s between matches, 2 players to start), and `results`: who won and lost, counting only players in the match for half of it. Checks itself. |
+| `ProgressionRules` | The level cap (50) and the highest prestige (5). The level curve, titles and cash multipliers join it when XP and cash are built. |
 
 ### Server (ServerScriptService)
 | Script | Job |
 |---|---|
 | `CharacterServer` | Sets up each character in a fixed order (stance, limbs, loadout), takes stance and painkiller requests, runs the stance checks every frame. Replaces `LimbServer`. |
 | `StanceService` | The server's state machine: checks requests, runs timed steps, re-checks cover, watches movement speed. |
-| `LoadoutService` | Builds guns as models, hangs them on the body, hold modes, dual wield, drop, pickup, switching, reloads. |
+| `LoadoutService` | Builds guns as models, hangs them on the body (a carried two-handed gun by its middle, `carryOffset`), hold modes, dual wield, drop, pickup, switching (the two-handed gun handed over partway through, `handOver`), reloads. |
 | `WeaponServer` | Firing: fire rate, ammo, the gun's path and obstruction, spread with modifiers, hits, damage, adrenaline. Also takes hold, drop, aim and reload requests. |
 | `LimbService` | Limb damage, painkillers, arm effects. Sends killing blows to `LastStandService`. |
-| `LastStandService` | Decides Last Stand or death, runs the window, success and failure. |
+| `LastStandService` | Decides Last Stand or death, runs the window, success and failure. Announces every death it deals with whoever dealt the blow (`Killed`: character, killer), which the match's scores read. |
+| `GameServer` | Starts the two services below. |
+| `ProfileService` | Every player's saved profile (level, XP, cash, prestige, stats), and **the only code that saves data**. Loads and locks the profile when the player joins, saves it every 60 s, on leaving and on shutdown; kicks a player whose profile can't be loaded instead of giving them a fresh one. `get(player)` returns it frozen; `update(player, change)` is the only way to change it (the change is kept whole or not at all, and refused if it breaks a rule); `release(player)` before a teleport; `Loaded` and `Changed` signals. See [[Menus, Loadout, Progression and Shop - To Do#9. Server-side economy and anti-exploit]]. |
+| `ProfileSchema` | The profile's fields and defaults, its `VERSION` and migrations, `validate` (types, ranges, storable as JSON). Checks itself. |
+| `ProfileStorage` | The DataStore side: one key per player, session locking inside `UpdateAsync` (a lock is free after 180 s without a save), retries with backoff. Its lock rules are pure functions that check themselves; it runs against a stand-in DataStore in tests. |
+| `MatchService` | Runs matches on a timer: Waiting (too few players), Intermission, Running. Everyone who spawns while one runs is in it. Counts kills (from `LastStandService.Killed`), deaths and each player's time in the match; at the end `Ended` carries the results (`MatchRules.results`). Pays nothing itself: XP and cash will listen to `Ended`. |
 | `BulletTimeService` | `TimeScale` on every character: Last Stand bubbles and player-triggered bullet time (sight checks 10 times a second, the aim penalty), and the adrenaline meter. |
 | `RagdollService` | Turns any dying body into a ragdoll; runs the muscles and the killing shot's push for non-players (players' own clients run theirs). |
 | `TestArena` | The gun table, target dummies and the gunman in the [[Test Arena]]. |
@@ -47,18 +54,18 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | `Keybinds` | Every control in one table. The HUD's keybind list reads it. |
 | `CharacterController` | The client's state machine: predicts stances, sprint and crouch keys, walk speed, jumping, the painkiller and bullet-time keys. Sets the hip height and moves the root with it (`applyHeight`, which also handles heights the server forces first). Hands the body to the cover, dodge and vault controllers. Reads WASD and the left stick itself. |
 | `CoverController` | Taking cover, moving along it, corners, popping out to aim, the cover prompt. Keeps the root part facing the wall and the gap the body's reach needs (`bodyReach`, remembered per cover stance); the side-on cover clips turn the body round inside the root part and lean its back onto the wall. |
-| `DodgeController` | The dive: run-up, flight, wall collisions, landing, lying down, getting up. |
+| `DodgeController` | The dive: run-up, flight (the Humanoid kept from landing by itself, `holdInAir`; slowed by bullet time along the same arc), wall collisions, landing, lying down, getting up. |
 | `VaultController` | The vault: flies the body along `VaultRules`' path with free aim; `progress()` paces the Vault clip; softens the camera over the hop. |
 | `WeaponController` | Hold modes, trigger, aim, reload, pickups, recoil, reticle. |
 | `WeaponEffects` | Muzzle flash, gun kick, tracers, impacts. `restPose(motor)`: a gun part's resting pose, kept on the motor. |
 | `CameraController` | Shoulder camera, aim and scope zoom, recoil, cover shoulder and corner turns, dive field of view, Last Stand lock. Holds its height through hip-height changes and eases (`absorbRise` for the root jumping, `setVerticalLag` for a vault). Reports where the player looks (`AimUpdate`). |
 | `LastStandController` | Camera lock and drag, killer outline, countdown, the bullet-time look. |
 | `ProceduralLayer` | Applies every procedural joint bend (aim, recoil, flinches) once a frame, before physics, on top of the animations. |
-| `AimLayer` | Points every character's gun where its owner aims from any pose, the chest blade, head look (off while hidden in cover), recoil springs, momentum lean, the left hand on the gun, the carried gun's floor guard, arms and guns kept out of walls (`guardArm`, checked where the body will be drawn after the physics step), and the height easing (with the foot guard, which also runs all the time in cover). |
+| `AimLayer` | Points every character's gun where its owner aims from any pose, the chest blade, head look (off while hidden in cover), recoil springs, momentum lean, the left hand on the gun, the carried gun's floor guard, arms and guns kept out of walls (`guardArm`, checked where the body will be drawn after the physics step), and the height easing (with the foot guard, which also runs all the time in cover). A gun that changes hands in a switch eases into its new grip (`easeHandovers`). |
 | `HitReactions` | Euphoria-style flinches on every character, and the recent-hit log the death push and kill cam read. |
 | `RagdollController` | This player's own death: the body goes physical here at once, pushed by the killing shot. |
 | `KillCamController` | This player's kill cam: the bullet, the impact in slow motion, the comic-style panel ([[Max Payne 3 Kill Cam]]). |
-| `AnimationController` | Plays the clips in layers (body, hold, aim, one-off arm actions), stretched to the server's timers, slowed by bullet time; moves gun parts on reload markers. Plays one-off body clips on stance changes, the turns popping up out of low cover and ducking back among them. Sliding along cover, blind fire plays the run's own clips; the low run going right, and the high runs on a reversal, drop into the hold rather than cross-fading. A two-handed gun behind high cover has blind fire clips of its own (the one-handed ones stand in where those can't load). |
+| `AnimationController` | Plays the clips in layers (body, hold, aim, one-off arm actions), stretched to the server's timers, slowed by bullet time; moves gun parts on reload markers. Plays one-off body clips on stance changes, the turns popping up out of low cover and ducking back among them. Sliding along cover, blind fire plays the run's own clips; the low run going right, and the high runs on a reversal, drop into the hold rather than cross-fading. A two-handed gun behind high cover has blind fire clips of its own (the one-handed ones stand in where those can't load). Crouched, a two-handed gun has holds of its own (`Hold<set>Low`); with one carried, a one-handed gun reloads with the right hand alone; `SwapToOneHanded` passes the two-handed gun back to the left hand, and the switch clips fade in fast (`SWITCH_FADE`). |
 | `Hud` | Draws everything; holds no rules. |
 
 **Rule:** no weak-keyed tables keyed by instances (`__mode = "k"`) for state that must survive. The engine can drop an instance's Lua handle while the instance still exists, and the entry vanishes with it; this left slides racked back after reloads until 2026-11-02. Keep such state on the instance (attributes) or in a plain table cleared when the instance leaves. AimLayer's gun-box cache is the one weak table left, on purpose.
@@ -81,7 +88,7 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | Attribute | Meaning |
 |---|---|
 | `Stance`, `StanceSince` | Current stance and when it started (server time). |
-| `HoldMode` | None, OneA, OneB, Dual or Two. |
+| `HoldMode` | None, Secondary, Tertiary, Dual or Primary (OneA, OneB and Two until 2026-11-14). |
 | `Action`, `ActionEnds` | Reloading or Switching, and when it finishes (server time). |
 | `Aiming` | Aiming down the sights, as the server sees it. |
 | `CoverNormal`, `CoverHeight`, `CoverTop`, `CoverSide` | The cover in use. |
@@ -97,12 +104,25 @@ Related: [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover 
 | `BaseHipHeight` | Standing hip height. Crouching lowers HipHeight from it. |
 | Limb attributes | See [[Limb Health]]. |
 
-Gun models carry `WeaponId`, `Slot`, `Place` (Right, Left, Holster or Dropped), `Limb`, `Ammo`, `Reserve`, `Reloading`, and on the floor `DroppedAt` (also the drop's token) or `RackId`.
+Gun models carry `WeaponId`, `Slot` (Primary, Secondary or Tertiary), `Place` (Right, Left, Holster or Dropped), `Limb`, `Ammo`, `Reserve`, `Reloading`, and on the floor `DroppedAt` (also the drop's token) or `RackId`.
+
+## Player and match attributes (set by the server, since 2026-11-14)
+| Where | Attribute | Meaning |
+|---|---|---|
+| Player | `Level`, `XP`, `Cash`, `Prestige` | Copies of the profile's values, for the menus and name tags to read. Changing them does nothing: the profile is on the server. |
+| Player | `ProfileLoaded` | True once the profile is in memory. |
+| Player | `ProfileOffline` | Studio only: the profile is kept in memory and not saved (Studio can't reach DataStores, or the load failed). |
+| Player | `MatchScore`, `MatchKills`, `MatchDeaths` | This player's part in the match under way (kept from the last one until the next starts). |
+| `ReplicatedStorage.Match` | `State` | Waiting, Intermission or Running. |
+| `ReplicatedStorage.Match` | `EndsAt` | When the intermission or match ends, as a server time (`Workspace:GetServerTimeNow()`); nil while waiting. |
+| `ReplicatedStorage.Match` | `Mode`, `Map`, `Number` | FreeForAll, TestArena, and how many matches have started on this server. |
 Set on each client only, never replicated: `LastShot` on the character (when this player last fired), `RestC0` on a gun's moving-part motors (their resting pose), `Flashes` on a muzzle (its flash counter).
 Tags: `NotCover` (characters, dummies and dropped guns are never cover) and `Combatant` (non-player characters bullet time can slow).
 
 ## Studio tools and test hooks
 - `ServerStorage.Tools` (never reaches players): `AnimationImporter` builds the clips from Blender's export, and `TestHarness` records and measures play tests. Both are in the repo: `Assets/Blender/Animation/studio_import.luau` and `Tools/TestHarness.luau`. The game's own scripts are not in git, on purpose (the repo is public).
+- `ServerStorage.Tools.ProfileCheats` (in the repo as `Tools/ProfileCheats.luau`): Studio-only cheats that set your own Level, XP, Cash and Prestige. Clone it into ServerScriptService for a play session, then `mp.profile({ Level = 20, Cash = 5000 })` from the harness ([[Test Arena]]). It stops at once outside Studio.
+- `DebugMinPlayers`, `DebugLength` and `DebugIntermission` (numbers) on the `MatchService` module change the match's timings in Studio only: `DebugMinPlayers = 1` starts a match alone. Set them in play mode, so they aren't saved with the place.
 - A Vector2 `DebugLook` attribute on the player (yaw and pitch in radians) points their camera, in Studio only. Automated play tests use it to aim. It only applies when the value changes.
 - `DebugBulletTime = true` on any character activates its bullet time (it needs `Adrenaline`; a dummy needs an `Aim` toward its target).
 - `StanceService._records` exposes the server's stance records to game scripts in Studio. The command bar's `require` makes its own copy of a module, so it can't see them.

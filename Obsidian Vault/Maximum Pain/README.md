@@ -14,11 +14,11 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Last Stand and Bullet Time]]: Last Stand, localized bullet time and the adrenaline meter.
 - [[Limb Health]]: per-limb health, the limping, crawling, one-arm and disarmed rules, painkillers.
 - [[HUD Layout]]: blueprint of the HUD (Max Payne 3 style health figure and gun list, boxed keybinds and prompts).
-- [[Animation Hooks]]: how the 106 animations are made in Blender, imported, layered, chosen and published.
+- [[Animation Hooks]]: how the 113 animations are made in Blender, imported, layered, chosen and published.
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
 - [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.
-- [[Menus, Loadout, Progression and Shop - To Do]]: plan (not built yet) for the main menu and its Max Payne 3 look, Blender-made UI art, loadouts, items, skills (Bursts), levels/titles/cash, the Roblox-compliant skin shop, server-side economy, and settings.
+- [[Menus, Loadout, Progression and Shop - To Do]]: plan (Phase A built 2026-11-14: the slot rename, the saved server profile, the match manager; the rest not built yet) for the main menu and its Max Payne 3 look, Blender-made UI art, loadouts, items, skills (Bursts), levels/titles/cash, the Roblox-compliant skin shop, server-side economy, and settings.
 
 ## Max Payne 3 (primary reference)
 - [[Max Payne 3 Mechanics Reference]] — every mechanic found: single player and multiplayer.

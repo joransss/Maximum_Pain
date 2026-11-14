@@ -10,7 +10,7 @@ Related: [[Movement State Machine]] · [[Max Payne 3 Mechanics Reference]] · [[
 | Phase (stance) | Time | What happens |
 |---|---|---|
 | Run-up (DodgePrep) | 0.2 s | A step toward the dive with the hips dipping 0.6 studs. It makes the dive read as deliberate, and hides the network delay before the server agrees. |
-| Flight (DodgeAir) | about 0.5 s on flat ground | Launch at 26 studs/s level and 15 up. Gravity is cut to a quarter in the air, giving a long, low dive about 1.6 studs high and 17 studs long. The character can fire and aim. |
+| Flight (DodgeAir) | about 0.8 s on flat ground | Launch at 24 studs/s level and 9 up. Gravity is cut to a tenth in the air and the Humanoid isn't allowed to land by itself, giving a long, low dive: 18.6 studs in the air, the root at most 1.4 studs over its standing height, then the slide to rest about 20 studs from the launch (since 2026-11-11). The character can fire and aim. |
 | On the floor (DodgeGround) | until a movement key | Keeps 40% of the speed as a 0.35 s slide, then lies down (hips 2.2 studs lower). Can fire, aim, reload, switch and take a painkiller, turning to shoot in any direction. |
 | Getting up (GettingUp) | 0.6 s | Defenseless, as in Max Payne 3: no firing or moving. |
 | Cooldown | 1 s after standing up | No new dive. |
@@ -21,7 +21,7 @@ Related: [[Movement State Machine]] · [[Max Payne 3 Mechanics Reference]] · [[
 - After 2.5 s in the air (diving off a ledge) normal gravity takes over until the body lands.
 
 ## Injuries
-Dive speed and distance scale with `ShootDodgeScale` from [[Limb Health]]: 1 normally, 0.4 limping, 0 crawling (no dive; the HUD shows TOO HURT TO DIVE).
+Dive speed and distance scale with `ShootDodgeScale` from [[Limb Health]]: 1 normally, 0.4 limping, 0 crawling (no dive; the HUD shows TOO HURT TO DIVE). The launch's upward speed shrinks half as much (× 0.7 limping).
 
 ## Accuracy
 Spread ×1.3 in the run-up and in the air, ×0.9 on the floor. Recoil ×1.2 in the air.
@@ -30,7 +30,9 @@ Spread ×1.3 in the run-up and in the air, ×0.9 on the floor. Recoil ×1.2 in t
 The server accepts a dive only from Standing, Sprinting or Crouching, with a valid level direction, off cooldown, not too hurt, and with ground under the character. It runs its own timeline: run-up 0.2 s, landing no sooner than 0.2 s after launch (forced at 2.5 s), getting up forced after 8 s on the floor. The movement check allows dive speed (with 30% slack) only during and just after a dive.
 
 ## How it flies
-Roblox lets each player's own computer simulate their character, so the client flies the dive: a `LinearVelocity` holds the level speed, a `VectorForce` cancels three quarters of gravity, and a sphere cast ahead finds walls. Landing is detected when the body is past the shortest flight, no longer rising, and the floor is right under it.
+Roblox lets each player's own computer simulate their character, so the client flies the dive: a `LinearVelocity` holds the level speed, a `VectorForce` cancels nine tenths of gravity (`GRAVITY_SCALE` 0.1), and a sphere cast ahead finds walls. Landing is detected when the body is past the shortest flight, no longer rising, and the floor is right under it.
+- **The Humanoid is kept from landing by itself** (`DodgeController.holdInAir`, since 2026-11-11): while the dive flies, its Landed, Running and RunningNoPhysics states are switched off, and back on when it lands, ends, or the stance leaves DodgeAir. The Humanoid senses the floor from well above standing height, so the moment the body stopped rising it "landed" in mid-air and pulled the body down to its feet: every dive ended at the top of its arc, 0.3 s after the launch, and a low dive couldn't be a long one.
+- **In bullet time** the dive flies the same arc, slower: the speeds are scaled by the character's `TimeScale` and the gravity left by its square (the lift is mass × g × (1 − 0.1 × scale²)), and the shortest and longest flight times stretch with it. With gravity left whole, a dive at half speed rose for half the time at half the speed: a hop a quarter of the length. At 0.6: 18.8 studs in 1.32 s.
 
 ## Animations
 | Phase | Clip |
@@ -50,10 +52,20 @@ The direction's clips are picked by comparing the dive's direction with where th
 
 ## Compared with Max Payne 3
 - Same: any direction, aiming through the dive, sliding on landing, staying down until a direction is pressed, a plain exposed get-up, walls ending the dive.
-- Different: no slow motion during the dive. Max Payne 3's single player slows time; for multiplayer it isn't confirmed ([[Max Payne 3 Mechanics Reference]]). No turning and rolling on the floor yet: the body just turns to aim.
+- Different: the dive doesn't slow time by itself (bullet time, when it's on, slows the whole dive). Max Payne 3's single player slows time; for multiplayer it isn't confirmed ([[Max Payne 3 Mechanics Reference]]). No turning and rolling on the floor yet: the body just turns to aim.
+
+## Tested (2026-11-11, 83tg's avatar, flat floor)
+| Dive | In the air | Distance | Highest (root over standing height) |
+|---|---|---|---|
+| Before `holdInAir`, the old numbers (26, 15, 0.25) | about 0.5 s | 17 to rest | 1.6 |
+| Before `holdInAir`, while trying new numbers (24, 8, 0.1) | 0.52 s: the Humanoid landed it at the top | 11.5 | — |
+| Now (24, 9, 0.1) | 0.78 s | 18.6 in the air, 20.2 to rest | 1.4 |
+| Now, in bullet time at 0.6 | 1.32 s | 18.8 | the same arc |
+
+It gets up and walks off as before.
 
 ## Tested (2026-10-31)
-Forward dive: 17 studs, 1.6 studs high, about 0.5 s in the air. Sideways and backward dives went the right way with the body still facing forward. A head-on dive stopped at the end wall. A movement key got the character up, back to Standing after 0.6 s. The ledge and the angled wall weren't tested.
+Forward dive (the first numbers): 17 studs, 1.6 studs high, about 0.5 s in the air. Sideways and backward dives went the right way with the body still facing forward. A head-on dive stopped at the end wall. A movement key got the character up, back to Standing after 0.6 s. The ledge and the angled wall weren't tested.
 
 ## Tested (2026-11-02)
 - **Distance:** backward and sideways dives went 17.9 studs.
@@ -66,4 +78,4 @@ Forward dive: 17 studs, 1.6 studs high, about 0.5 s in the air. Sideways and bac
 - **Landing:** no fall and no bounce; the humanoid stays in Running; the camera step is 0.35 (was 1.38); hands and forearms stay above the floor (≥ −0.02).
 - **Run-up:** the body is no longer drawn a frame at the run-up's height (the feet were 0.60 into the floor for one drawn frame).
 - **Getting up:** feet within 0.05; camera step 0.15.
-- **Maybe later:** the body now settles onto the floor smoothly. A fall-shaped ease would land harder, more like Max Payne 3. See [[Animation and MP3 Systems - Progress and To Do]] (4.15).
+- **Maybe later:** the body now settles onto the floor smoothly. A fall-shaped ease would land harder, more like Max Payne 3. See [[Animation and MP3 Systems - Progress and To Do]] (4.22).

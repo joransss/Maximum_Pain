@@ -3,6 +3,80 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-14 (later): Phase A of the menu plan: slots renamed, the server profile, the match manager
+On this PC (Studio signed in as 83tg), with Claude Code driving Studio. JordanSaa asked for Phase A ("foundations") of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]] and nothing past it. Nothing here is visible to a player yet.
+- 8 scripts added and 8 changed in the Team Create place (50 scripts now). No clip changed.
+- Started ahead of two of the animation work's blockers: the place isn't published and the two-client test hasn't been run.
+
+**Changed: the weapon slots are Primary, Secondary and Tertiary in code**
+- `Two` → `Primary` (key 3), `OneA` → `Secondary` (key 1), `OneB` → `Tertiary` (key 2), as the loadout screen will call them. The keys, the order and every rule are as before.
+- Where: `LoadoutRules` (`Slot`, `HoldMode`, `Inventory`, its self-checks), `LoadoutService`, `WeaponController`, `Keybinds` (`SlotSecondary`, `SlotTertiary`, `SlotPrimary`), `AnimationController`, `Hud` (a comment). So the guns' `Slot` attribute, the character's `HoldMode` attribute and the `WeaponAction` remote's "Hold" value carry the new names.
+- Left alone: `OneArm` (an arm state), and the clip names with "Two" in them (`CoverHoldHighTwo`, `BlindFireHighTwoLeft`…), which mean two-handed and are published animations.
+- Done before any profile was saved, so no saved data ever holds the old names.
+
+**New: the server profile** (`ProfileService`, `ProfileSchema`, `ProfileStorage` in ServerScriptService; `ProgressionRules` in ReplicatedStorage.Modules; `GameServer` starts it)
+- Each player has one saved profile: `Version, Level, XP, Cash, Prestige` and `Stats` (kills, deaths, headshot kills, matches, wins, seconds played). Later steps add their own fields; old saves get the defaults when they load.
+- **`ProfileService` is the only code that saves data.** Other code reads with `get(player)` (the table is frozen) and changes with `update(player, function(profile) … end)`: the function edits a copy, which replaces the profile only if it ran without an error or a wait and the result passes `ProfileSchema.validate`. A change is kept whole or not at all, so a save can't catch one half done, and a negative balance or level 51 is refused.
+- DataStore safety: one key per player (`Player_<UserId>`), `UpdateAsync` only, each call in `pcall` and tried again after 1, 2, 4… s. The profile is locked to the server that loaded it, inside the same `UpdateAsync`; each autosave (60 s, spread out per player, skipped while the server's budget is spent) refreshes the lock, and a lock 180 s old belongs to a dead server and may be taken. Every save first checks the lock is still its own, so a server that lost it can't write over the new holder. Saved on leaving and in `BindToClose` (which waits up to 25 s for the last saves).
+- **A player whose profile can't be loaded is kicked** with a message (still saving on another server, a save from a newer version, an unreadable save, DataStores down). They never play on a fresh profile, since saving that would wipe their real one.
+- Level, XP, Cash and Prestige are copied to attributes on the Player for the menus. No remote carries them and nothing a client sends changes them.
+- Studio play tests save to a DataStore of their own (`PlayerProfiles_Studio`), never the live one. With Studio's API access off, as now, profiles are kept in memory and one line in the output says so.
+
+**New: the match manager** (`MatchService` in ServerScriptService, `MatchRules` in ReplicatedStorage.Modules)
+- States: Waiting (fewer than 2 players), Intermission (15 s), Running (8 minutes). All placeholders in `MatchRules`. Free-for-all: a kill is a point, the most points wins, ties share the win, nobody wins on 0.
+- Everyone who spawns while a match runs is in it, joining midway too. It counts kills, deaths and each player's time in the match (time out of the server doesn't count; a rejoin keeps its score).
+- At the end, `MatchService.Ended` carries the results: each player's score, kills, deaths, seconds, `won`, and `eligible` (in the match for at least half of it), which the win and loss payouts will need. Nothing is paid yet.
+- `LastStandService` now announces every death it deals with whoever dealt the blow (`Killed`), a killing shot or a Last Stand that failed. Kills are scored from it, only between two players.
+- Clients read the match from attributes on `ReplicatedStorage.Match` (`State`, `Mode`, `Map`, `Number`, `EndsAt`) and their own `MatchScore`, `MatchKills`, `MatchDeaths`.
+
+**New: Studio tools**
+- `ServerStorage.Tools.ProfileCheats` (repo: `Tools/ProfileCheats.luau`) and `mp.profile(...)` in the test harness (repo: `Tools/TestHarness.luau`): set your own Level, XP, Cash and Prestige in a play test, or start afresh. It only runs when cloned into ServerScriptService in Studio, and stops at once anywhere else.
+- `DebugMinPlayers`, `DebugLength`, `DebugIntermission` on the `MatchService` module (Studio only), to run a match alone and quickly.
+
+**Tested** (Studio play mode, 83tg's avatar, one player)
+| Test | Result |
+|---|---|
+| Keys 1, 2, 3, 4, G, F, gamepad Y | `HoldMode` Secondary, Tertiary, Primary, Dual as before; `DrawTwoHanded` and `SwapToOneHanded` played; dual wield dropped the AK and F took it back; G while dual left the Uzi (Tertiary) in hand; Y cycled |
+| Firing, reload, dual fire | M9 15 → 12, reload moved 3 from the spare rounds; dual wielding fired both hands |
+| Last Stand with nothing in hand | `prepareLastStand` drew the Secondary |
+| HUD | rows 1, 2, 3; DROPS AK-47 shows and hides with the Primary |
+| `ProfileStorage` against a stand-in DataStore (21 checks) | new player; autosave refreshes the lock; a second server is refused and writes nothing; the final save unlocks; an old session's save is refused; a lock 179 s old holds and 180 s old is taken; saves retry after errors and give up after their tries; a write that raced still ends locked; newer and bad saves are refused and left untouched; an old save is filled in |
+| `ProfileService` in play (15 checks) | the profile is frozen; a change goes through whole; a change that errors, waits or breaks a rule is dropped whole; on copies of the service with a stand-in DataStore: autosave, release, "no changes after release"; a save that throws doesn't leave the profile stuck; a session whose lock another server took writes nothing, ends at its next autosave and kicks the player with a message |
+| Cheats: `mp.profile` | sets and reports; level 51, level 0, negative, fractional and NaN cash, prestige 6, unknown fields and wrong types all refused |
+| Match alone (`DebugMinPlayers = 1`) | Waiting → Intermission → Running → results → Intermission → Waiting; `EndsAt` right; a killing blow and a failed Last Stand from the Gunman each fired `Killed`, counted a death and scored nobody; results: eligible, not won (score 0) |
+| All 50 scripts | compile, `--!strict`; nothing left over from testing; output log clean apart from the DataStore line |
+
+**Not done**
+- **Saving against the real DataStore.** Studio's API access is off (Game Settings > Security > Enable Studio Access to API Services), so loading, locking and saving were tested against a stand-in only. Turn it on and check a value set with `mp.profile` is still there in the next play test, before any of this reaches live players.
+- **Kills scoring between two players**: it needs the two-client test ([[Animation and MP3 Systems - Progress and To Do]], to-do 3). Add to that list: Player1 kills Player2 → Player1's `MatchKills` and `MatchScore` go up, Player2's `MatchDeaths`; the winner at the end.
+- Studio's Script Analysis (type warnings) wasn't run over the new scripts.
+- The `roblox-dev:roblox-reviewer` check over the profile code, due before publishing anything that touches cash or XP.
+- The place hasn't been saved (File > Save to Roblox) since these changes, and isn't published.
+- The repo: `Tools/ProfileCheats.luau` (new), `Tools/TestHarness.luau` and these notes aren't committed.
+
+## 2026-11-14: Every clip published, checked against the place, and the place saved
+On this PC (Studio signed in as 83tg). No clip or game code changed apart from `AnimationConfig`'s ids.
+- Details: [[Animation and MP3 Systems - Progress and To Do]] (to-do 1 and 2, and the 2026-11-14 test log).
+
+**Published: the 30 clips made since the first upload**
+- The first 102 clips were published on 2026-11-10 through Open Cloud (`Assets/Blender/Animation/publish_animations.ps1`, an API key made on 83tg), their ids in `AnimationConfig`'s `IDS`.
+- On 2026-11-14 83tg uploaded the rest the same way: session 7's 4 two-handed blind fire clips, session 8's 7 new clips, and with `-Force` the 19 it re-made. The `.rbxmx` files were rebuilt from the current export first.
+
+**Changed: the game** (Team Create place)
+- `AnimationConfig`: the 30 new ids in `IDS`, and `STALE` emptied. All 113 clips and all 123 slots now have a published id: Studio plays the published animations, and live servers will once the place is published.
+
+**Tested**
+| Test | Result |
+|---|---|
+| Every id in `IDS`, loaded back in Studio, against the place's clip | all 113 equal: 13,928 keyed poses, keyframe times, markers, easing, priority, looping |
+| Control: three re-made clips against their old 2026-11-10 uploads | differ by up to 113°, so a stale upload would show |
+| Play mode (83tg's avatar): crouch, draw the AK, stand, back to the M9, fire, reload with the AK carried | `CarryTwoHandedLow`, `DrawTwoHanded`, `HoldRifleLow`, `SwapToOneHanded`, `ReloadPistolOneHand` and the rest all played from their published ids |
+| The place before saving | no test leftovers, `HttpEnabled` off, all 42 scripts compile and are `--!strict`; output log clean |
+
+**Not done**
+- Publishing the place (83tg). Until then live servers run its last published version, without these ids.
+- The two-client test and the live test ([[Animation and MP3 Systems - Progress and To Do]], to-do 2 and 3).
+
 ## 2026-11-12: Switching between the carried rifle and a one-handed gun
 Session 8 went on into 2026-11-12 (this PC, Studio signed in as 83tg). JordanSaa asked for polish only, so it took the most visible fault left by the 2026-11-11 changes; the notes waited until after.
 - Two clips (one re-made, one new; 113 clips, 123 slots), not published. Five scripts changed in the Team Create place.
@@ -584,7 +658,7 @@ Session 3 ran on JackT6785's PC, with Claude Code driving Studio: 2026-11-02 20:
 - The FBX copies aren't committed, since they're rebuilt in seconds; the `.blend` is.
 - The low-cover pose stays hunched until JackT6785 and JordanSaa decide (to-do 3).
 - The commits stay local until JackT6785 pushes them, as it's JordanSaa's public repo.
-- Publishing the animations is left to JordanSaa, because an experience only plays animations its owner owns.
+- Publishing the animations is left to JordanSaa, because an experience only plays animations its owner owns. (Corrected 2026-11-10: the place's owner on Roblox is 83tg; JordanSaa is the GitHub name.)
 
 **Tested** (Studio play mode, JackT6785's avatar; before → after)
 | Test | Result |

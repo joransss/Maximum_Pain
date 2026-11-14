@@ -1,12 +1,13 @@
 # Menus, Loadout, Progression and Shop: To Do
 
-Plan and work queue for everything outside the fight: the main menu, the Max Payne 3-style menu look, loadouts and items, skills (Max Payne 3's "Bursts", renamed), levels, titles and cash, the skin shop and crates, and settings. Written 2026-11-10. **Planning only: nothing here has been built yet.**
+Plan and work queue for everything outside the fight: the main menu, the Max Payne 3-style menu look, loadouts and items, skills (Max Payne 3's "Bursts", renamed), levels, titles and cash, the skin shop and crates, and settings. Written 2026-11-10, decisions updated 2026-11-14. **Built so far: Phase A of the [[#Suggested build order]] (2026-11-14): the slot rename, the server profile and the match manager ([[Changelog]]). Everything else here is still a plan.**
 Related: [[Loadout and Dual Wielding]] · [[Last Stand and Bullet Time]] · [[Limb Health]] · [[HUD Layout]] · [[Architecture]] · [[Gun Skin Ideas]] · [[Max Payne 3 Game Modes - Roblox Engagement]] · [[Max Payne 3 HUD and Combat UI Reference]] · [[Blender and Asset Pipeline]] · [[Multiplayer Networking Research]] · [[Networking and Security]]
 
 > [!important] Ground rules for everything in this note
 > - **Original content only.** Max Payne 3 is the reference for *how it feels*, not for names, art, fonts or text. Every Burst, item and title below gets our own name (proposals are in each table). Real gun names (M9, AK-47) are fine, as now.
 > - **The server owns levels, XP, cash, unlocks, crates and purchases.** The client only *asks* ("equip loadout 2", "buy skin X", "open crate Y"); the server checks and decides. See [[#9. Server-side economy and anti-exploit]].
 > - **UI art is made in Blender** (backgrounds, panels, icons, crates, logo, badges), rendered to images and imported into Roblox. See [[#3. Blender for the UI]].
+> - **Every piece of UI follows the UI style** in [[#2. Making the UI feel like Max Payne 3]] (Oswald, white/black/grey, hard edges, white selection bar, film look). This applies to every UI item in this note, including the ones added later (player card, prestige icons, server-switch prompt, stats panel); items below marked 🎨 are reminders of it.
 > - **Every menu shows the live match behind it** (from the mockups): a camera watching the current match on the current map.
 > - Wiki numbers below were read on 2026-11-10 from the three Max Payne Wiki pages in [[#Sources]] (community wiki, not official; marked 📰).
 
@@ -23,6 +24,9 @@ Related: [[Loadout and Dual Wielding]] · [[Last Stand and Bullet Time]] · [[Li
 
 ![[Mockup - Shop.png]]
 **Shop.** Cash balance top left of the panel (`$0000`). Two wide skin cards and one tall featured skin card in the middle, three crates in a column on the right. Under the title: a note that **skins give no advantage**. Live match in the background.
+
+![[Mockup - Player Card.png]]
+**Player card** (added 2026-11-14). A square on the left holding **the player's avatar**; to its right, stacked: **Title**, **Name**, then **Level:** with the **money ($) shown alongside the level**. Shown in the main menu (see [[#Player card and stats (main menu)]]). The mockup is a layout sketch only: the finished card is drawn in the UI style of section 2. 🎨
 
 ### Max Payne 3 references (look and layout only)
 Kept in `Attachments/Menus/Max Payne 3/` and **committed to the repo** so collaborators see them. They are design references only: nothing in them goes into the game.
@@ -43,38 +47,91 @@ Kept in `Attachments/Menus/Max Payne 3/` and **committed to the repo** so collab
 
 ## 0. Decisions to make first
 - [x] **Primary / Secondary / Tertiary are weapon slots** (decided 2026-11-10). Primary = the two-handed gun, Secondary and Tertiary = the two one-handed guns, matching the built rule in [[Loadout and Dual Wielding]]. **Saved loadouts** are a separate layer on top: several named sets of those slots plus items and a skill.
-- [ ] **How many saved loadouts?** Max Payne 3 had **5 custom** + 4 presets. 📰 Proposed: 5 custom slots, the first 3 free and slots 4–5 unlocked at levels 10 and 25.
-- [ ] **Level cap:** 50 (as Max Payne 3) or 100? This plan uses **50**, plus a prestige track.
-- [ ] **Prestige reset:** Max Payne 3's Legend wiped guns, items, upgrades, cash and earned weight. That's harsh for Roblox (players quit). Proposed: reset level and unlocks only, **keep cash, skins and titles**. Decide.
-- [ ] **Crates bought with what?** Proposed: earned Cash only at launch (see [[#10. Shop (skins and crates), Roblox compliant]]). Selling Cash for Robux later turns every crate into a paid random item with all the rules.
+- [x] **5 saved loadouts** (decided 2026-11-14), plus the 4 read-only presets. **Slots 1–3 are free from level 1; slot 4 unlocks at level 10 and slot 5 at level 25.** Slots 4 and 5 **lock again on prestige** (their contents are kept for when they're re-earned).
+- [x] **Level cap: 50** (decided 2026-11-14). At 50 the player may **prestige**, which resets their level to 1.
+- [x] **Prestige** (decided 2026-11-14): **max prestige 5 (V)**. On prestige the player **keeps everything cosmetic** (skins, titles, accessories) and **loses guns, skills and cash** (cash resets to $0). They gain a **prestige icon next to their title** (Roman numerals **I–V**) and a **+20% cash multiplier per prestige**, stacking (I = +20% … V = +100%). Details in [[#8. Levels, titles and cash multipliers]].
+- [x] **Crates are bought with $ (Cash)** (decided 2026-11-14), earned from match performance: **$10 per kill, $1,000 for a win**; XP uses the same values (10 XP per kill, 1,000 XP for a win). Cash can't be bought with Robux, so crates aren't paid random items (see [[#10. Shop (skins and crates), Roblox compliant]]).
 - [x] **Skill and title names:** placeholders set (section 6 and section 8). Final names later; ids in config stay the same when names change.
-- [ ] **Join flow:** does a new player land on the main menu over a live match (as the mockups suggest) and press Play to spawn? Proposed: yes.
+- [x] **Join flow, server choice** (decided 2026-11-14): on join the game checks for **higher-population servers** and offers the player a switch (**ask first**, never forced). **Roblox private servers are exempt.** Plan in [[#Join flow: send players to fuller servers (plan for later)]].
+- [x] **Join flow, menu** (decided 2026-11-14): a new player **lands on the main menu over the live match** and presses PLAY to spawn.
+- [x] **Main menu key: M** (decided 2026-11-14). It shows the player card (title, name, level, money, avatar) and stats, and loadouts can be switched there at any time; **a new loadout is only received on death** (next spawn).
+
+**Questions added 2026-11-14 (all settled the same day):**
+- [x] **Loadout slots: 3 free, 2 by level.** Slot 4 at level 10, slot 5 at level 25; both lock again on prestige and are re-earned.
+- [x] **Level cash multipliers stay alongside prestige** (decided 2026-11-14). The milestone table's ×1.05 every 5 levels (up to ×1.50 at 50) and the prestige +20% add together: highest possible is prestige V at level 50 = 1.50 + 1.00 = ×2.50. The level part drops back to ×1.00 on each prestige; the prestige part is permanent.
+- [x] **Other rewards:** assists, bonus kills (headshot, shoot-dodge / bullet time, Last Stand, revenge), **losing a match ($250 / 250 XP)** and challenges all pay. Full table in section 8.
+- [x] **Gameplay items reset on prestige** (Riot Helmet, vests, gear), with guns and skills. Only cosmetics are kept.
+- [x] **XP curve: level 1 → 50 in about 20 hours** (about 100 hours for all five prestiges). Curve `300 + 50 × (L − 1)`, 73,500 XP in total; working in section 8.
+- [x] **M during a fight: the character stays in the match and can be shot.** No pause, no protection, no combat lock on the menu.
 
 **Open questions added 2026-11-10 (loadout weight, skills, titles):**
 - [x] **Two-handed size bonus: yes.** Two-handed guns get +2 weight on top of the stat score (decided 2026-11-10).
 - [x] **Same gun twice: yes.** Secondary and Tertiary may hold the same gun (e.g. two Desert Eagles for dual wielding). Assumed: owning the gun once covers both slots.
 - [x] **Weight classes change: health regen, stamina and aiming speed.** Walk speed and dive distance stay the same for every class.
-- [ ] **Weight allowance by level:** keep a cap that grows with level, or let the Heavy penalties be the only limit?
+- [x] **Weight allowance does not increase with level** (decided 2026-11-14). Every player has the same limits from level 1; the Light / Medium / Heavy penalties are what limit a heavy loadout.
 - [x] **Skill prices: Cash to unlock once the required level is reached** (Max Payne 3's way). Starter skills at level 1 stay free, since new players have no Cash.
 - [x] **Bullet Time free from level 1: yes.**
-- [ ] **Stats display:** bars + numbers (planned), or numbers only?
-- [ ] **Titles:** players pick any unlocked title (planned), or always show the latest?
+- [x] **Gun stats display: bars plus numbers** (decided 2026-11-14).
+- [x] **Titles: players pick any unlocked title** (decided 2026-11-14).
+- [x] **Slot keys stay as they are** (decided 2026-11-14): 1 and 2 = the one-handed guns, 3 = the two-handed gun, 4 = dual wield.
+- [x] **Slot names renamed in code too, for continuity** (decided 2026-11-14): `Two` → `Primary`, `OneA` → `Secondary`, `OneB` → `Tertiary`, everywhere at once.
+- [x] **Last Stand always takes all adrenaline** (decided 2026-11-14), however many segments are full.
+- [x] **Loadout names are editable** (decided 2026-11-14), filtered on the server.
 - [x] **Level and title on enemies' name tags: only at close distance** (placeholder ~60 studs, and only in line of sight). Teammates always see them.
 
 ---
 
 ## 1. Main menu shell (live match behind every menu)
-- [ ] **Menu state on join:** the player joins, their character is *not* spawned (`Players.CharacterAutoLoads = false`, spawn on Play via the server), and the menu opens over the live match.
+- [ ] **Menu state on join** (decided 2026-11-14: main menu first): the player joins, their character is *not* spawned (`Players.CharacterAutoLoads = false`, spawn on Play via the server), and the menu opens over the live match.
 - [ ] **Live match camera ("viewpoint of the current map being played"):**
   - [ ] Options, in order of effort: (a) slow cinematic dolly between a set of `MenuCam` parts placed per map; (b) spectate a random living player from a chase camera, switching every ~8 s or on their death; (c) mix: dolly, cut to a player when a kill happens nearby.
   - [ ] Start with (a), it never shows anything broken; add (b) later.
   - [ ] **StreamingEnabled:** the menu camera may be far from where the (unspawned) player is, so the map there might not be streamed in. Use `Player:RequestStreamAroundAsync(position)` on the server for each camera point, or set `Player.ReplicationFocus` to a part at the camera. Test with streaming on.
   - [ ] The menu camera is client-only (`Camera.CameraType = Scriptable`), so it can't leak or change anything.
-- [ ] **Left panel (mockup):** game title, then Play, Shop, Settings, Loadout. Proposed order: **PLAY, LOADOUT, SHOP, SETTINGS** (most-used first), plus a small player card at the bottom (name, level, title, cash).
+- [ ] **Left panel (mockup):** game title, then Play, Shop, Settings, Loadout. Proposed order: **PLAY, LOADOUT, SHOP, SETTINGS** (most-used first), plus the **player card** and stats (below).
+- [ ] **M opens and closes the main menu** at any time, including mid-match (decided 2026-11-14). Add `Menu = Enum.KeyCode.M` to the `Keybinds` module (M is unused today) so it's rebindable and shows in the HUD keybind list.
+- [ ] **Gamepad: Start opens the menu** (decided 2026-11-14), `Enum.KeyCode.ButtonStart`. **Test this first:** Roblox's own in-game menu also uses Start on gamepad (as it uses Esc on keyboard), and games can't reliably take that button over. If both menus open, or ours never gets the press, fall back to **Select/View** (`Enum.KeyCode.ButtonSelect`) and keep Start for Roblox's menu.
 - [ ] Each button opens its screen *over the same live background*; BACK (Esc / B) returns. One `MenuController` on the client owns the stack of screens (open, back, close-to-play).
 - [ ] Pressing Play: the client asks; the server checks the chosen loadout and spawns the character with it; the menu fades out.
-- [ ] **In-match pause menu:** Esc during a match opens a smaller version (Resume, Loadout (applies on next spawn), Settings, Leave). Roblox's own Esc menu: bind our menu to another key or to the in-game menu button, check `GuiService.MenuIsOpen`.
+- [ ] **In-match menu:** **M** during a match opens the same main menu (PLAY reads RESUME; add LEAVE). Esc stays Roblox's own menu; check `GuiService.MenuIsOpen` so the two never overlap. **The match does not pause and the character stays vulnerable** (decided 2026-11-14): it stands where it was and can be shot, so the menu can't be used as cover. Keep a small damage indicator visible over the menu so the player knows to close it.
+- [ ] **Loadouts can be switched freely in the menu, but the new loadout is only received on death** (decided 2026-11-14): the server stores the selection at once and uses it at the next spawn. The menu shows "APPLIES ON NEXT SPAWN" while the equipped and selected loadouts differ. 🎨
 - [ ] Death screen → after the kill cam ([[Max Payne 3 Kill Cam]]) offer **Change Loadout** before respawn, as Max Payne 3 does.
+
+### Player card and stats (main menu)
+Decided 2026-11-14. Layout from the player card mockup (see [[#Our mockups (the plan to follow)]]).
+- [ ] **Layout:** a square with **the player's avatar** on the left; to its right, three stacked lines:
+  ```
+  ┌────────┐  [prestige icon] TITLE
+  │ avatar │  PlayerName
+  │        │  LEVEL: 27        $12,450
+  └────────┘
+  ```
+- [ ] **Avatar:** `Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)` in an `ImageLabel` (in `pcall`, with a grey silhouette until it loads). Square frame with a hard white border, as in the mockup.
+- [ ] **Title line:** the selected title, with the **prestige icon (I–V) directly before it** once the player has prestiged (section 8).
+- [ ] **Level line:** `LEVEL: 27` with the **money shown alongside it** on the same line (`$12,450`). Under it, a thin **XP bar** with `XP earned / XP needed` for the next level.
+- [ ] **Stats block** under the card (numbers only, two columns):
+  | Stat | Source (server profile `Stats`) |
+  |---|---|
+  | Kills, Deaths, K/D | `Kills`, `Deaths`, `Kills ÷ max(1, Deaths)` to 2 decimals |
+  | Matches, Wins, Win rate | `Matches`, `Wins`, `Wins ÷ Matches` as % |
+  | Headshot kills | `HeadshotKills` (and % of kills) |
+  | Time played | `PlaySeconds`, shown as hours and minutes |
+- [ ] All values come from the server profile (replicated read-only, e.g. attributes on the player or one `ProfileChanged` remote); the client never computes or sends them.
+- [ ] 🎨 **Drawn in the UI style of section 2:** Oswald Bold for name and level, Oswald Regular for stat labels, white on the dark gradient panel, mid grey labels, no rounded corners. The mockup's boxes are placement only.
+
+### Join flow: send players to fuller servers (plan for later)
+Decided 2026-11-14: when a player joins, the game checks whether a **higher-population server** exists and offers to switch them to it. **Roblox private servers are exempt.** Basic plan only; build after the menu shell.
+- [ ] **Skip the check when:**
+  - the server is private: `game.PrivateServerId ~= ""` (covers paid/VIP private servers and reserved servers; `game.PrivateServerOwnerId ~= 0` means a player-owned private server);
+  - the player followed a friend in (`Player.FollowUserId ~= 0`) or arrived by our own switch (flag in `TeleportData` / `Player:GetJoinData()`), so nobody gets bounced twice or pulled away from a friend;
+  - in Studio (`RunService:IsStudio()`).
+- [ ] **Server list:** every public server writes `{ jobId, playerCount, maxPlayers, mode, map }` to a `MemoryStoreService` sorted map every ~30 s with a ~90 s expiry (dead servers drop out by themselves), and removes its entry in `BindToClose`. Sort key = player count.
+- [ ] **On join (server-side):** read the top entries; pick the fullest server that still has room (leave 1–2 slots spare for the race between check and arrival). Offer a switch only if it's clearly better: e.g. this server has fewer than `MIN_POPULATION` players (placeholder 4) **and** the other has at least `MIN_GAIN` more (placeholder 3).
+- [ ] **Ask first** (decided): the menu shows a prompt, "A FULLER MATCH IS AVAILABLE (9/12 PLAYERS) – SWITCH / STAY". 🎨 Drawn in the UI style of section 2 (white selection bar, context line, prompts bottom right). STAY is remembered for the session.
+- [ ] **Switch:** the client only answers yes/no; the server calls `TeleportService:TeleportAsync(game.PlaceId, { player }, options)` with `TeleportOptions.ServerInstanceId = jobId`, inside `pcall` with one retry. On failure (server filled or closed) the player simply stays, with a short message.
+- [ ] **Save first:** release the profile's session lock before teleporting (section 9), so the new server can load it.
+- [ ] **Limits to remember:** MemoryStore and teleport calls are rate-limited; check once on join, not on a loop. Parties: if several friends join together, offer the switch only when the target has room for all of them (later).
+- [ ] All thresholds in one `MatchmakingConfig` module.
 
 ---
 
@@ -95,7 +152,16 @@ How the menus should look and behave. This is the "feel" brief; the Blender sect
 
 ### Our version, concretely
 - [ ] **Font:** keep **Oswald** (already the HUD font, [[HUD Layout]]): Bold for headings, list items and prompts; Regular for the context line and descriptions. One family across HUD and menus.
-- [ ] **Colours:** reuse the HUD palette: white, black, mid grey `#A5A5A5`, red for danger/locked only. Add one accent for the shop and rarities (decide; keep it muted).
+- [ ] **Colours:** reuse the HUD palette: white, black, mid grey `#A5A5A5`, red for danger/locked only. **Rarity colours (decided 2026-11-14): each rarity gets its own colour**, used only in the shop, crate reveals and skin lists; the rest of the UI stays white/black/grey. All muted so they sit in the film look, none of them red (red stays danger/locked). Placeholder values, to tune on screen:
+  | Rarity | Colour (placeholder) | Pips |
+  |---|---|---|
+  | Common | Grey `#A5A5A5` (the HUD grey) | 1 |
+  | Uncommon | Dull teal `#5FA39A` | 2 |
+  | Rare | Steel blue `#6F8FA8` | 3 |
+  | Very Rare | Muted violet `#8B78A8` | 4 |
+  | Exceptional | Worn amber `#C9973F` | 5 |
+  - [ ] Colour is never the only cue: every rarity also shows its **name and 1–5 pips**, so it reads in the colourblind modes (section 11). Check the five colours in each mode and against the teal-tinted background.
+  - [ ] Stored once in `ShopConfig` (or a `UiTheme` module), so the shop, the odds pop-up and the crate reveal all read the same values. Prices and the Cash balance stay white.
 - [ ] **Left panel:** in the main menu mockup it's a boxed white panel. To feel like Max Payne 3, make it **a dark, see-through gradient** (black 70% → 0% to the right) instead of a white box, with the list on it. Keep the mockup's position and proportions (left ~40%).
 - [ ] **Colour grade on the live view while a menu is open:** client-side `ColorCorrectionEffect` (saturation −0.5, contrast +0.1, tint toward teal), `BlurEffect` size ~6 only behind the left panel area (or on the whole view, lighter), `DepthOfFieldEffect` for the bokeh feel. Remove them all when the match starts.
 - [ ] **Overlays (made in Blender, see section 3):** a tiling grain texture animated by offsetting it every frame, a vignette image, a few bokeh/light-leak images that drift slowly.
@@ -141,23 +207,23 @@ All non-text UI art is made in **Blender**, rendered to PNG and uploaded. This k
 ## 5. Loadout
 ### Weapon slots: Primary, Secondary, Tertiary
 From the mockup: the three boxes are weapon slots, and together they hold **one two-handed gun and two one-handed guns**.
-| Mockup slot | Holds | In-game key | Slot name in code today ([[Loadout and Dual Wielding]]) |
-|---|---|---|---|
-| **Primary** | the two-handed gun (rifle, shotgun, SMG, sniper) | 3 | `Two` |
-| **Secondary** | one-handed gun 1 (pistol, revolver, one-handed SMG, sawn-off) | 1 | `OneA` |
-| **Tertiary** | one-handed gun 2 | 2 | `OneB` |
-- [ ] Rename the slots in the UI only (Primary / Secondary / Tertiary); keep the code names, or rename `Two/OneA/OneB` everywhere at once. Decide.
-- [ ] Consider re-mapping keys so **1 = Primary** (shooter convention) — affects `Keybinds`, the HUD gun list order and muscle memory from play tests. Decide.
+| Mockup slot | Holds | In-game key | Slot name in code ([[Loadout and Dual Wielding]]) | Until 2026-11-14 |
+|---|---|---|---|---|
+| **Primary** | the two-handed gun (rifle, shotgun, SMG, sniper) | 3 | `Primary` | `Two` |
+| **Secondary** | one-handed gun 1 (pistol, revolver, one-handed SMG, sawn-off) | 1 | `Secondary` | `OneA` |
+| **Tertiary** | one-handed gun 2 | 2 | `Tertiary` | `OneB` |
+- [x] **Rename the slots in code as well as in the UI** (decided 2026-11-14, for continuity): `Two` → `Primary`, `OneA` → `Secondary`, `OneB` → `Tertiary`, everywhere in one change (`LoadoutRules`, `WeaponConfig` users, remotes, attributes, the HUD gun list, `Keybinds`, tests). Grep for all three old names first, do it before the server profile is built so no saved data ever holds the old names, and update [[Loadout and Dual Wielding]] afterwards. **Done 2026-11-14**, before the profile existed: six scripts (`LoadoutRules`, `LoadoutService`, `WeaponController`, `Keybinds`, `AnimationController`, `Hud`); no script holds an old name. The clip names with "Two" in them (`CoverHoldHighTwo`, `BlindFireHighTwoLeft`…) mean two-handed, are published animations, and stay.
+- [x] **Keys stay as they are** (decided 2026-11-14): 1 = Secondary, 2 = Tertiary, 3 = Primary, 4 = dual wield. No re-mapping to 1 = Primary.
 - [ ] A slot can be left empty (lighter weight). Dual wielding (key 4) uses Secondary + Tertiary and still drops the Primary, as built.
 - [ ] **The same gun may go in Secondary and Tertiary** (decided 2026-11-10), e.g. two Desert Eagles. Owning the gun once covers both slots. Each copy counts its own weight (two Desert Eagles = 6). Check that `LoadoutRules`, pickups and the HUD gun list handle two guns with the same id (they key some things by gun name today).
 - [ ] Each slot's picker only lists guns that fit it (the two-handed list for Primary, the one-handed list for the other two), read from `WeaponConfig.OneHanded`.
 
 ### Saved loadouts
 A **saved loadout** = Primary + Secondary + Tertiary + throwable + Head + Chest + Gear item + Skill, with a name. Max Payne 3 let players build **up to five** custom loadouts and choose one before each spawn. 📰
-- [ ] **5 custom loadouts** (proposal in section 0), plus the **4 presets** below, read-only, which can be copied into a custom slot.
-- [ ] Loadout screen: a list of saved loadouts down the left (PRESET: RIFLEMAN … CUSTOM 1 … CUSTOM 5, locked ones greyed with "LEVEL 10"), the selected one's details on the right.
-- [ ] Actions: **Select** (use on next spawn), **Edit**, **Copy** (preset → custom), **Rename** (if allowed), **Reset**.
-- [ ] Choosing a loadout is possible from: the main menu Loadout screen, the death screen (before respawn), and the pause menu. A change during a life **applies on the next spawn**.
+- [ ] **5 saved loadouts** (decided 2026-11-14), plus the **4 presets** below, read-only, which can be copied into a custom slot. **Slots 1–3 are free; slot 4 unlocks at level 10, slot 5 at level 25.** On prestige slots 4 and 5 lock again until those levels are reached; what was saved in them is kept, and if one was selected the selection falls back to slot 1.
+- [ ] Loadout screen: a list of saved loadouts down the left (PRESET: RIFLEMAN … CUSTOM 1 … CUSTOM 5, locked ones greyed with "LEVEL 10" / "LEVEL 25"), the selected one's details on the right. 🎨 In the UI style of section 2.
+- [ ] Actions: **Select** (use on next spawn), **Edit**, **Copy** (preset → custom), **Rename**, **Reset**.
+- [ ] Choosing a loadout is possible from: the main menu Loadout screen (**M**, at any time) and the death screen (before respawn). Players can switch freely, but **the new loadout is only received on death** (next spawn), never mid-life.
 - [ ] Remember the last selected loadout in the profile, so Play uses it straight away.
 - [ ] Unlocking: if a saved loadout contains something no longer owned (e.g. after a prestige reset), the server swaps that slot for the default and the screen flags it in red.
 - [ ] Saved on the server (section 9); the server re-checks the whole loadout every time it spawns the player, not only when it was saved.
@@ -167,7 +233,7 @@ A **saved loadout** = Primary + Secondary + Tertiary + throwable + Head + Chest 
 - [ ] Use the loadout screenshot's structure for the selected loadout: left = our character posed with the chosen Primary; right = the body-in-a-ring diagram with slots: Head, Chest, Gear, Secondary, Tertiary, Primary, throwable, Skill; weight bar along the bottom.
 - [ ] Selecting a slot opens a list of everything that fits it: icon, name, short stats (damage, fire rate, accuracy, magazine), weight, lock state ("UNLOCKS AT LEVEL 20", "$2,500").
 - [ ] Live match in the background (same grade as other menus).
-- [ ] Loadout name editable? If yes, filter the text with `TextService:FilterStringAsync` on the server. Simpler: fixed names.
+- [ ] **Loadout names are editable** (decided 2026-11-14). The client sends the typed name through a `RenameLoadout` remote; the server trims it, limits it to ~20 characters, runs `TextService:FilterStringAsync` (in `pcall`) and stores the filtered result; if filtering fails the old name stays. Default names are CUSTOM 1 … CUSTOM 5. Only the owner ever sees their loadout names; if they are ever shown to other players (kill cam, scoreboard), filter per viewer with `GetNonChatStringForBroadcastAsync`. 🎨 The text box follows the UI style of section 2.
 - [ ] Preset loadouts for new players (our originals, inspired by Max Payne 3's four presets):
   - **Rifleman:** Light Vest; Primary AK-47; Secondary M9, Tertiary S&W 500; frag grenade; skill **Hot Lead**. Weight 9 + 2 + 2 + 1 + 1 = **15, Medium**.
   - **Scout:** Soft Soles; Secondary Uzi only; flashbang; skill **Gut Feeling**. Weight 2 + 1 = **3, Light**.
@@ -239,7 +305,7 @@ In Max Payne 3, everything you carry has weight, and the total sets the class. T
   | Heavy | 5 s | ×0.75 | ×0.7 | ×1.2 (slower) |
 - [ ] **Aiming speed** = how long the camera takes to zoom in **and** the server's aim settle time (today a fixed 0.15 s, [[Weapons and Recoil]]): both × the class factor, so a Heavy player's tighter aimed spread really comes later. The sniper scope's second push scales too.
 - [ ] Needs a **stamina** system for sprinting (not built yet, check [[Movement State Machine]]) and **health regeneration** rules alongside [[Limb Health]].
-- [ ] **Weight allowance by level:** a cap that rises with level (e.g. 18 at level 1 → 24 at level 40) so new players can't carry everything heavy. Shown as the empty end of the weight bar. (Open question: keep it, or let the Heavy penalties be the only limit?)
+- [x] **Weight allowance does not increase with level** (decided 2026-11-14). No level-based cap: every player may build any loadout they own from level 1, and the class penalties above are the limit. The weight bar's full length is the heaviest possible loadout (24 today). Nothing about weight is reset or earned through prestige.
 - [ ] The server computes weight and class from the gun and item IDs with the shared functions; the client only displays the same calculation.
 
 ### Guns to add (Max Payne 3's multiplayer list, for ideas)
@@ -326,7 +392,7 @@ Max Payne 3 allows **at most 3 items**: one head, one chest, one gear. 📰 Full
 ### What we have now
 - `Adrenaline` attribute 0 to 1: +0.004 per damage point, +0.25 per kill; bullet time needs one third; a survived Last Stand empties it ([[Last Stand and Bullet Time]]).
 - [ ] **Change to three segments** (0–3 internally, or keep 0–1 with thresholds at 1/3, 2/3, 1), draw the HUD bar as three blocks, apply "lose the part-filled segment on death".
-- [ ] Decide how Last Stand's cost fits: it currently takes all adrenaline. Keep, or take one segment?
+- [x] **Last Stand takes all adrenaline, no matter what** (decided 2026-11-14): every full segment and any part-filled one, as it does today. It still needs at least one full segment to start ([[Last Stand and Bullet Time]]).
 - [ ] Bullet time today is triggered directly; make it **one skill** among many, chosen in the loadout. Line-of-sight bullet time is already built, which matches Max Payne 3's rule below.
 - [ ] Activation key (e.g. **Q** / gamepad L3+R3 or D-pad), shown on the HUD with the skill icon and current level.
 
@@ -412,21 +478,25 @@ How the locks work:
 - **Titles:** one per few ranks (14 rank titles from rank 1 to 50, Brazilian military ranks), one per Legend (10), plus achievement titles (all weapons, all bursts, all items, all avatar items, all weapons max rank, all achievements). Titles are shown to other players.
 
 ### Our level system (the request: milestones give a cash multiplier and a title others can see)
-- [ ] **Levels 1–50.** XP to go from level L to L+1: `500 + 100 × (L − 1)` (placeholder): level 2 needs 500 XP, level 49 → 50 needs 5,300; about 142,000 XP for 1→50. Tune so level 50 takes ~40–60 hours.
-- [ ] **XP sources (server-counted):**
-  | Event | XP |
-  |---|---|
-  | Kill | 100 |
-  | Assist (≥25% of the damage) | 50 |
-  | Headshot kill | +25 |
-  | Kill while shoot-dodging / in bullet time | +25 |
-  | Kill from Last Stand | +50 |
-  | Revenge kill (killed your last killer) | +25 |
-  | Skill used | 10 per level |
-  | Match finished | 200 |
-  | Match won | +300 |
-  | Challenge tier | per challenge |
-- [ ] **Cash sources:** a share of XP (e.g. Cash = XP ÷ 4) at match end, plus level-up rewards, then × the player's **cash multiplier**.
+- [ ] **Levels 1–50** (cap decided 2026-11-14). **Target (decided 2026-11-14): level 1 → 50 in about 20 hours**, so all five prestiges take about 100 hours.
+  - XP to go from level L to L+1: **`300 + 50 × (L − 1)`**: level 2 needs 300 XP, level 49 → 50 needs 2,700; **73,500 XP** for 1→50.
+  - Working (estimates, to check against real match data): a 12-minute match pays about 750 XP on average (half wins at 1,000 and half losses at 250 = 625, plus ~10 kills = 100, plus ~25 in assists and bonuses). 73,500 ÷ 750 ≈ 98 matches ≈ 20 hours.
+  - If matches turn out shorter or longer, or kills per match differ, change the two curve numbers, not the rewards.
+- [ ] **Rewards for match performance (server-counted).** **Decided 2026-11-14: Cash and XP use the same values**, and every row below pays:
+  | Event | Cash ($) | XP | Status |
+  |---|---|---|---|
+  | **Kill** | **$10** | **10** | Decided |
+  | **Match won** | **$1,000** | **1,000** | Decided |
+  | **Match lost** (played to the end) | **$250** | **250** | Decided |
+  | Assist (≥25% of the damage) | $5 | 5 | Decided |
+  | Headshot kill | +$3 | +3 | Decided |
+  | Kill while shoot-dodging / in bullet time | +$3 | +3 | Decided |
+  | Kill from Last Stand | +$5 | +5 | Decided |
+  | Revenge kill (killed your last killer) | +$3 | +3 | Decided |
+  | Challenge tier | same as its XP | per challenge | Decided to pay; amounts per challenge (section 7) |
+- [ ] Win and loss payouts only go to players who were in the match for most of it (placeholder: at least half the match time), so joining at the last minute doesn't pay $1,000.
+- [ ] **Cash** is paid by the server as the events happen (or totalled at match end), then × the player's **cash multiplier**. **XP is not multiplied.** Cash is what buys crates, skins, skills and items.
+- [ ] Match-end screen lists what was earned: kills × $10, win bonus, multiplier, total. 🎨 In the UI style of section 2.
 - [ ] **Milestones every 5 levels** give a new title and a cash multiplier step. All titles below are **placeholders** (ids like `title_lv20` stay when names change):
   | Level | Title (placeholder) | Cash multiplier |
   |---|---|---|
@@ -441,19 +511,21 @@ How the locks work:
   | 40 | Kingpin | ×1.40 |
   | 45 | Untouchable | ×1.45 |
   | 50 | Maximum Pain | ×1.50 |
-- [ ] **Prestige ("Notoriety", placeholder name, 1–10):** at 50, reset to level 1 for a permanent bonus: +10% on the cash multiplier per Notoriety, a title, a badge, and a mastery skin finish at 5 and 10. Decide what resets (decision 0). The Notoriety bonus stacks with the level bonus (Notoriety 3 at level 40 = ×1.40 + 0.30 = ×1.70).
-  | Notoriety | Title (placeholder) | Bonus on top of the level multiplier | Extra |
-  |---|---|---|---|
-  | 1 | Wanted | +0.10 | Badge 1 |
-  | 2 | Marked Man | +0.20 | Badge 2 |
-  | 3 | Feared | +0.30 | Badge 3 |
-  | 4 | Notorious | +0.40 | Badge 4 |
-  | 5 | Infamous | +0.50 | Badge 5, mastery finish |
-  | 6 | Most Wanted | +0.60 | Badge 6 |
-  | 7 | Street Legend | +0.70 | Badge 7 |
-  | 8 | Ghost Story | +0.80 | Badge 8 |
-  | 9 | Myth | +0.90 | Badge 9 |
-  | 10 | Immortal | +1.00 | Badge 10, top mastery finish |
+- [ ] **Prestige (decided 2026-11-14): levels I to V.** At level 50 the player may prestige from the main menu, which **resets their level to 1**. Max prestige is **5 (V)**; at prestige V, level 50 is the end.
+  | Prestige | Icon | Cash multiplier bonus | Title (placeholder) | Extra |
+  |---|---|---|---|---|
+  | 1 | **I** | +20% | Wanted | |
+  | 2 | **II** | +40% | Marked Man | |
+  | 3 | **III** | +60% | Feared | |
+  | 4 | **IV** | +80% | Notorious | |
+  | 5 | **V** | +100% | Infamous | Mastery skin finish (idea) |
+  - [ ] **Kept on prestige (everything cosmetic):** skins (owned and equipped), titles (unlocked and selected), accessories, unopened crates, stats, settings, and the contents of all saved loadouts.
+  - [ ] **Reset on prestige:** level and XP (to level 1, 0 XP), **guns**, **skills** (all levels, bought or free), **gameplay items** (helmet, vests, gear; decided 2026-11-14), **cash (to $0)**, and **loadout slots 4 and 5** (locked again until levels 10 and 25).
+  - [ ] Saved loadouts that hold something no longer owned fall back to defaults slot by slot (rule already in [[#Saved loadouts]]); equipped skins stay attached to the gun for when it's unlocked again.
+  - [ ] **Cash multiplier: +20% per prestige, stacking** (I = ×1.20 … V = ×2.00), applied to all earned Cash. **Decided 2026-11-14: the level milestone multipliers stay and the two add** (prestige III at level 40 = 1.40 + 0.60 = ×2.00; maximum prestige V at level 50 = ×2.50). The level part resets to ×1.00 with the level on each prestige.
+  - [ ] **Prestige icon:** a **Roman numeral (I, II, III, IV, V)** shown **next to the player's title** everywhere the title appears: player card, name tag, scoreboard, kill feed, kill cam panel. One small badge per numeral, made in Blender (`UI_Prestige_I` … `UI_Prestige_V`, section 3). 🎨 In the UI style of section 2: white numeral, hard-edged plate, no colour except where the palette allows.
+  - [ ] **Confirm screen** before prestiging, listing exactly what is lost and kept, with a hold-to-confirm. 🎨 Same style. The server performs the reset in one profile update (`Prestige` remote: checks level 50 and prestige < 5).
+  - [ ] The "Old Badge" gear item (Max Payne 3's Badge of Honor) is no longer needed: the multiplier is built into prestige.
 - [ ] **Achievement titles** (placeholders, unlocked by the server when it sees the condition):
   | Title (placeholder) | Condition |
   |---|---|
@@ -469,7 +541,7 @@ How the locks work:
   | Two Fisted | 1,000 kills while dual wielding |
   | Top Dog | Finish #1 on a season leaderboard (seasonal, dated) |
   | Founder | Played during the first month (limited) |
-- [ ] Players **choose which unlocked title to show** (in Loadout or a Profile screen). The server checks the title is unlocked.
+- [ ] Players **choose which unlocked title to show** (decided 2026-11-14; in Loadout or a Profile screen). The server checks the title is unlocked.
 - [ ] **Where others see it:** the overhead name tag (`BillboardGui`: level badge + name + title). **Decided: enemies see it only up close** (placeholder 60 studs, `MaxDistance`) and only in line of sight, never through walls; teammates always see it, the scoreboard (Tab: level, name, title, K/D, score), the kill feed, the kill cam death panel ("Killed by [Kingpin] PlayerName"), lobby/player card. Respect Turncoat and Street Clothes (they hide or fake parts of the tag).
 - [ ] **Level-up moment:** big centred "LEVEL 20 – ENFORCER", glitch transition, sound, unlock list (new guns, items, skill levels). Shown at match end so it doesn't block the fight; a small toast during the match.
 - [ ] Roblox **badges** (`BadgeService`) for level 10/25/50 and first prestige (optional, good for discovery).
@@ -483,27 +555,33 @@ How the locks work:
 - [ ] **Profile on the server** (`ProfileService` / `DataService` module in ServerScriptService):
   ```
   Profile = {
-    Version, Level, XP, Cash, Notoriety, TitleSelected,
+    Version, Level, XP, Cash, Prestige,  -- Prestige 0..5
+    TitleSelected,
     TitlesUnlocked = {}, Unlocks = { Guns, Items, Skills = { id = levelOwned } },
     Loadouts = { [1..5] = { Name, Primary, Secondary, Tertiary, Throwable, Head, Chest, Gear, Skill } },
     SelectedLoadout,  -- 1..5, or a preset id
     Skins = { owned ids, equipped per gun }, Crates = { id = count },
-    Challenges = {}, Stats = { Kills, Deaths, ... },
+    Challenges = {}, Stats = { Kills, Deaths, HeadshotKills, Matches, Wins, PlaySeconds, ... },
     Settings = { volumes, keybinds, accessibility },
     Purchases = { receiptIds processed },
   }
   ```
-- [ ] **DataStore safety** (see `roblox-datastores` practice): session locking so two servers can't load the same profile (ProfileStore-style), `UpdateAsync` not `SetAsync`, retries with backoff in `pcall`, autosave every ~60–120 s, save on leave and in `game:BindToClose`, schema `Version` with migrations, never save mid-transaction.
+  - **Built 2026-11-14 (Phase A):** `ProfileService`, with `ProfileSchema` (the fields) and `ProfileStorage` (the DataStore), in ServerScriptService. The profile holds `Version, Level, XP, Cash, Prestige` and `Stats = { Kills, Deaths, HeadshotKills, Matches, Wins, PlaySeconds }` so far. **Each later step adds its own fields** (titles, unlocks, loadouts, skins, crates, challenges, settings, purchases) with a default in `ProfileSchema.new` and a check in `ProfileSchema.validate`; old saves get the default when they load, with no version change.
+  - **How code uses it:** `ProfileService.get(player)` returns the profile, frozen. `ProfileService.update(player, function(profile) … end)` is the only way to change one: the function edits a copy, which replaces the profile only if it finishes without an error or a wait and passes `validate` (so a save never catches a change half done, and a negative balance or level 51 is refused). `ProfileService.release(player)` saves and unlocks before a teleport. `Loaded` and `Changed` signals. Level, XP, Cash and Prestige are copied to attributes on the Player for the menus to read.
+- [x] **DataStore safety** (see `roblox-datastores` practice): session locking so two servers can't load the same profile (ProfileStore-style), `UpdateAsync` not `SetAsync`, retries with backoff in `pcall`, autosave every ~60–120 s, save on leave and in `game:BindToClose`, schema `Version` with migrations, never save mid-transaction. **Built 2026-11-14:** one key per player (`Player_<UserId>` in the `PlayerProfiles` DataStore; Studio play tests use `PlayerProfiles_Studio`), the lock taken in the same `UpdateAsync` that loads, refreshed by each autosave (60 s) and free after 180 s without one; every save first checks the lock is still this server's; a player whose profile can't be loaded is kicked, never given a fresh one. Tested against a stand-in DataStore; **not yet against the real one** (Studio's API access is off, see the [[Changelog]]).
 - [ ] **XP and cash only from server events:** the damage system (server-side) records who damaged whom; on death the server awards kill/assist XP. Match-end XP/cash computed by the server's match manager. **No remote ever carries an XP or cash amount.**
 - [ ] **Remotes the client may call** (all validated, rate-limited):
   | Remote | Carries | Server checks |
   |---|---|---|
-  | `SetLoadout` | loadout index + Primary/Secondary/Tertiary/throwable/item/skill ids | index unlocked, ids exist, unlocked & owned, Primary is two-handed and Secondary/Tertiary one-handed (`LoadoutRules`), weight within allowance (applies on next spawn) |
-  | `SelectLoadout` | index 1–5 or preset id | valid and unlocked |
+  | `SetLoadout` | loadout index + Primary/Secondary/Tertiary/throwable/item/skill ids | index unlocked (slots 4 and 5 need levels 10 and 25), ids exist, unlocked & owned, Primary is two-handed and Secondary/Tertiary one-handed (`LoadoutRules`) (applies on next spawn) |
+  | `RenameLoadout` | index 1–5 + name | index unlocked, length limit, filtered with `TextService`; stores the filtered text only |
+  | `SelectLoadout` | index 1–5 or preset id | valid; stored now, used at the next spawn |
+  | `Prestige` | nothing | level 50, prestige < 5; reset and grant in one profile update |
+  | `SwitchServer` | yes / no | an offer is pending for this player; the server picks the target, never the client |
   | `BuyItem` | item id | unlocked at this level, not owned, enough Cash; deduct and grant in one profile update |
   | `BuySkill` | skill id | Lv 1 unlock level reached, not owned, enough Cash; deduct and grant in one profile update |
   | `BuySkin` | skin id | for sale now, enough Cash, not owned |
-  | `OpenCrate` | crate id | owns one (or enough Cash), policy allows; **roll on the server** |
+  | `OpenCrate` | crate id | owns one (or enough Cash), crate not complete for this player, policy allows; **roll on the server** among skins not yet owned |
   | `EquipSkin` | gun id + skin id | owns skin, skin fits gun |
   | `SetTitle` | title id | unlocked |
   | `SaveSettings` | settings table | types and ranges checked, size limit |
@@ -511,7 +589,7 @@ How the locks work:
 - [ ] **Anti-farm:** cap XP per minute; no XP for killing the same player more than N times in a short window when they don't fight back (AFK farming); reduced or no XP in private servers with fewer than N players; no XP from team kills or from your own Trust Issues friendly fire.
 - [ ] **Sanity and logging:** log big jumps (cash > X per match, level jumps) to an analytics/log store for review; `AnalyticsService` economy events for every Cash source and sink.
 - [ ] **Leaderboards:** `OrderedDataStore` written by the server (level, kills, season XP).
-- [ ] **Testing:** a cheat remote that only exists in Studio (`RunService:IsStudio()`) to set level/cash for testing, added to `Tools/TestHarness.luau`. Never shipped.
+- [x] **Testing:** a cheat remote that only exists in Studio (`RunService:IsStudio()`) to set level/cash for testing, added to `Tools/TestHarness.luau`. Never shipped. **Built 2026-11-14:** `ServerStorage.Tools.ProfileCheats` (in the repo as `Tools/ProfileCheats.luau`), cloned into ServerScriptService for a play session, and `mp.profile({ Level = 20, Cash = 5000, Prestige = 1 })` in the harness; how to install is in [[Test Arena]]. It goes through `ProfileService.update`, so it can't set a value the rules refuse.
 - [ ] The `roblox-dev:roblox-reviewer` check over all economy code before publishing.
 
 ---
@@ -539,11 +617,11 @@ A crate is a **paid random item** if it can be bought with **Robux, or with any 
 - [ ] Random rewards for actions that cost nothing (e.g. a free crate for reaching a level) don't need odds shown, **but show them anyway** for trust and consistency.
 
 ### How we comply (plan)
-- [ ] **Launch: crates cost earned Cash only, and Cash can't be bought with Robux.** Then crates aren't paid random items. Still show odds on every crate.
+- [x] **Decided 2026-11-14: crates are bought with $ (Cash), earned from match performance** ($10 per kill, $1,000 per win, section 8), **and Cash can't be bought with Robux.** Then crates aren't paid random items. Still show odds on every crate. Crate prices to set against those earnings (e.g. a crate at $2,500 ≈ two wins).
 - [ ] **If Robux comes later:** sell skins directly for Robux (Developer Products), not Cash. If Cash or crate keys are ever sold for Robux, every rule above applies at once.
 - [ ] **One config, two readers:** `ShopConfig` (ReplicatedStorage) holds each crate's items and weights; the server rolls from it and the odds screen reads from it, so the shown odds can never differ from the real ones. Odds computed as `weight / total weight`, shown to 2+ decimals.
 - [ ] **Roll on the server** with `Random.new()` seeded on the server; log every roll (player, crate, result) for support.
-- [ ] Example crate (placeholder):
+- [ ] Example crate (placeholder; the odds a new player sees, before any skin is owned):
   | Rarity | Chance | Items |
   |---|---|---|
   | Common | 70.00% | 7 skins, 10.00% each |
@@ -552,7 +630,13 @@ A crate is a **paid random item** if it can be bought with **Robux, or with any 
   | Very Rare | 2.20% | 2 skins, 1.10% each |
   | Exceptional | 0.30% | 1 skin, 0.30% |
   | **Total** | **100.00%** | |
-- [ ] **Duplicates:** either convert to Cash (say so and how much before purchase) or make crates no-duplicate with live odds. Proposed: duplicates → Cash refund of 25% of the crate price, shown in the Details pop-up.
+- [ ] **No-duplicate crates** (decided 2026-11-14): a crate never gives a skin the player already owns.
+  - [ ] Before rolling, the server removes every owned skin from that crate's list and rolls among the rest by their weights. Skins bought directly from the shop count as owned too.
+  - [ ] **The odds shown are per player:** recomputed from the skins that player still lacks (`weight ÷ total weight of what's left`), still adding up to 100%. The Details pop-up greys out owned skins and marks them OWNED. Same shared function for the roll and the display, so they can't differ.
+  - [ ] **Crate complete:** when the player owns everything in a crate, it shows COMPLETE and can't be bought or opened; the server refuses `OpenCrate` for it. 🎨 In the UI style of section 2.
+  - [ ] Crate cards show progress (`7 / 18 SKINS`).
+  - [ ] Unopened crates already held are opened against what's owned at the moment of opening, not at purchase. If one is held for a crate that has since been completed, refund its full price.
+  - [ ] Completed crates stop taking Cash, so plan new crates over time to keep something to spend on.
 - [ ] **Opening animation:** Blender-rendered crate opening, reveal with rarity colour, skip button, under 3 s. No fake "near miss" spins that suggest a better result was close.
 - [ ] **Content maturity:** blood-themed skins (e.g. "Bloodwork" in [[Gun Skin Ideas]]) and realistic gore can raise the experience's maturity label. Fill in the Roblox maturity questionnaire honestly and keep skins within the label we choose.
 - [ ] Shop purchases go through the server remotes in section 9.
@@ -616,18 +700,43 @@ Saved in the server profile (`Settings`), applied on the client. Defaults chosen
 ---
 
 ## Suggested build order
-Reordered 2026-11-10. Starts after the animation work's blockers ([[Animation and MP3 Systems - Progress and To Do#To do (in order)|its to-do]]: save, publish, two-client test). Each decision is taken when the step that needs it starts, not all up front.
-1. [ ] **Decisions that block the first steps** (section 0): the join flow (menu over the live match, Play to spawn), how many saved loadouts, the level cap. The rest wait: prestige reset until prestige (step 11), crate currency until the shop (step 10), the weight allowance until the loadout screen (step 6).
-2. [ ] Server profile + DataStore safety (section 9). Nothing else should save data on its own.
-3. [ ] Menu shell with live match camera and the section 2 look (main menu only, Play works).
-4. [ ] Blender UI pipeline and first assets (logo, overlays, weapon icons) (section 3).
-5. [ ] **Stamina and health regeneration** (new step): the weight classes change regen, stamina and aiming speed (section 5), and neither system is built yet ([[Movement State Machine]], [[Limb Health]]).
-6. [ ] Loadout screen with the existing guns, three loadouts, weight classes.
-7. [ ] Settings: audio sliders + keybind rebinding + the accessibility toggles that need no new systems. Moved after the loadout screen: nothing waits on it.
-8. [ ] XP, levels, titles, cash multiplier, name tags and scoreboard (section 8).
-9. [ ] Adrenaline as three segments; skills framework; first-wave skills; then items, first wave.
-10. [ ] Shop: direct-purchase skins, then crates with odds and `PolicyService` checks.
-11. [ ] Challenges; prestige; the items and skills that need minimap/looting/grenades.
+Reordered 2026-11-14, after every decision in section 0 was settled. Starts after the animation work's blockers ([[Animation and MP3 Systems - Progress and To Do#To do (in order)|its to-do]]: save, publish, two-client test). The rule behind the order: **each step only uses things built in the steps before it**, and each step ends with something that can be played and tested.
+
+**Phase A: foundations (nothing visible, everything else stands on it)**
+**Phase A was built on 2026-11-14** ([[Changelog]]), ahead of two of the animation work's blockers (publishing the place and the two-client test, both still open). To do before it reaches live players: turn on Studio's API access and test saving against the real DataStore, the two-client test (kills scoring between two players), and the `roblox-dev:roblox-reviewer` check.
+1. [x] **Rename the weapon slots in code** (`Two/OneA/OneB` → `Primary/Secondary/Tertiary`, section 5). First, because every later step (profile, remotes, loadout screen) would otherwise be written with the old names and renamed twice. Done 2026-11-14.
+2. [x] **Server profile + DataStore safety** (section 9), with the Studio-only cheat remote to set level, cash and prestige. Nothing else may save data on its own. Every later step reads and writes through this. Done 2026-11-14: `ProfileService` (`get`, `update`, `release`), `ProfileSchema`, `ProfileStorage`, `ProfileCheats`; details in section 9.
+3. [x] **Match manager** (new step; nothing like it exists in the code yet): match start and end, timer, who won and lost, how long each player was in the match. The win and loss payouts ($1,000 / $250) can't exist without it, and the menu's "current match" line reads from it. Done 2026-11-14: `MatchService` and `MatchRules` ([[Architecture]]). Free-for-all only, a kill is a point, the most points wins (ties share it, nobody wins on 0). Placeholders in `MatchRules`: 8-minute matches, 15 s between them, 2 players to start, half the match to count as won or lost. For step 7: `MatchService.Ended` carries each player's `won` and `eligible` (pay the win or loss only when `eligible`), and `LastStandService.Killed` gives each kill with its killer. For the menu: the attributes on `ReplicatedStorage.Match` (`State`, `Mode`, `Map`, `Number`, `EndsAt`).
+
+**Phase B: the menu shell**
+4. [ ] **Shared UI kit in the section 2 style:** the list with the white selection bar, heading, context line, prompts, panel gradient, film overlays, `UIScale` rule, keyboard/gamepad navigation. Built once as modules, so every later screen is assembled from it instead of restyled. Placeholder art is fine here.
+5. [ ] **Menu shell:** `CharacterAutoLoads = false`, main menu on join over the live match camera, PLAY spawns through the server, **M** opens and closes it mid-match (test **Start** on gamepad now, section 1). Player card with avatar, title, name, level and money, showing real profile values (all zeros for now).
+6. [ ] **Blender UI pipeline and first assets** (logo, overlays, weapon icons, section 3). Can run alongside steps 4–5; the images swap in for the placeholders when ready.
+
+**Phase C: progression (so later screens have real levels and cash to lock things behind)**
+7. [ ] **XP, cash, levels and stats** (section 8): rewards from the server's own kill and match events, the level curve, the level cash multiplier, the stats on the player card, the XP bar, the match-end earnings screen, the level-up moment.
+8. [ ] **Titles, name tags and scoreboard:** milestone titles, picking a title, the name tag (distance and line-of-sight rule), Tab scoreboard, kill feed.
+
+**Phase D: loadouts**
+9. [ ] **Stamina and health regeneration:** the weight classes change regen, stamina and aiming speed, and neither system is built yet ([[Movement State Machine]], [[Limb Health]]).
+10. [ ] **Loadout screen:** five saved loadouts (slots 4 and 5 locked to levels 10 and 25), presets, rename, gun stats as bars plus numbers, weight and classes, switch any time and receive on death, change loadout on the death screen. Gun unlock levels and prices, bought with Cash (`BuyItem` pattern).
+
+**Phase E: skills and items**
+11. [ ] **Adrenaline as three segments**, then the **status effects module**, then the **skills framework** and first-wave skills with `BuySkill`.
+12. [ ] **Items, first wave** (the ones that work with what's built), on the same status effects module.
+
+**Phase F: shop**
+13. [ ] **Shop, direct-purchase skins** first: rarity colours, skin cards, preview, equip.
+14. [ ] **Crates:** no-duplicate rolls on the server, per-player odds pop-up, COMPLETE state, opening animation, `PolicyService` check.
+
+**Phase G: the long tail**
+15. [ ] **Prestige (I–V).** Late on purpose: it resets guns, skills, items, cash and loadout slots, so all of those must exist first. Needs the prestige icons from Blender.
+16. [ ] **Settings:** audio sliders, keybind rebinding, the accessibility toggles that need no new systems. Nothing waits on it, so it can be pulled earlier whenever a break from systems work is wanted; a minimal version (volume, sensitivity) could ship with step 5.
+17. [ ] **Challenges** (section 7).
+18. [ ] **Join flow: offer a switch to a fuller server** (section 1), once there are enough players for it to matter.
+19. [ ] The items and skills that need minimap, looting, grenades, melee or objective modes, as those systems arrive.
+
+Before publishing any step that touches cash, XP or purchases: run the `roblox-dev:roblox-reviewer` check (section 9).
 
 ---
 

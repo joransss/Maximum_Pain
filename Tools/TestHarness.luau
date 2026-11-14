@@ -6,6 +6,8 @@
 -- command bar:
 --   Server:  game.ServerStorage.Tools.TestHarness:Clone().Parent = game.ReplicatedStorage
 --   Client:  _G.mp = require(game.ReplicatedStorage:WaitForChild("TestHarness"))
+-- For mp.profile (Studio's profile cheats), also once on the server:
+--            game.ServerStorage.Tools.ProfileCheats:Clone().Parent = game.ServerScriptService
 -- The command bar and the MCP run in a Lua VM of their own, so requiring one of the game's
 -- modules there gives a fresh copy, not the game's state: the harness reads only instances and
 -- attributes. "Stance" is the server's attribute; the hip height shows the client's stance at once.
@@ -36,6 +38,9 @@
 -- Driving: mp.look(yaw, pitch), mp.yawTo(point), mp.walk(points), mp.halt(), mp.status(). Keys go
 -- through the MCP's keyboard tool; they register with UserInputService:IsKeyDown, which the game reads
 -- (aim can be held with the gamepad's ButtonL2). Screenshots: mp.view(eye, at, rootSpace), mp.unview().
+-- Profile: mp.profile({ Level = 20, Cash = 5000, Prestige = 1 }) sets your own profile's values (XP back
+-- to 0 with a new level), mp.profile({ Reset = true }) starts it afresh, mp.profile() reports it. Needs
+-- ServerStorage.Tools.ProfileCheats on the server (above).
 -- In Studio play driven by the MCP, the window is usually in the background: frames are drawn at about
 -- 15 per second while physics runs at 60, so render-step code (the camera, stances, movers, clip
 -- weights) runs in 66 ms steps. Check timing-sensitive results against that.
@@ -738,6 +743,16 @@ function Harness.status(): string
         attribute(character, "Adrenaline"),
         attribute(character, "TimeScale")
     )
+end
+
+-- Studio's profile cheats, through ServerStorage.Tools.ProfileCheats (see the header).
+function Harness.profile(changes: { [string]: any }?): string
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local remote = remotes and remotes:FindFirstChild("DebugProfile")
+    if not remote or not remote:IsA("RemoteFunction") then
+        return "no DebugProfile remote: install ServerStorage.Tools.ProfileCheats on the server first"
+    end
+    return remote:InvokeServer(changes)
 end
 
 Harness.clips = registerClips()

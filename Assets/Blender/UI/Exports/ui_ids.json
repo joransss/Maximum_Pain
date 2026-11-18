@@ -1,0 +1,30 @@
+{
+  "UI_Logo_Compact": {
+    "id": 136813098305884,
+    "sha256": "75151f3c7b9f2e13c9000caa127c73df0268842ddf12c822324b51b0e0c5b275"
+  },
+  "UI_Logo_Full": {
+    "id": 96790464909769,
+    "sha256": "364c9ea5240a7155d5e06d3e909a4b8d1216a830e48f6945a02bab3c46e79cb3"
+  },
+  "UI_Overlay_Bokeh1": {
+    "id": 87414498407667,
+    "sha256": "fc780aee242e7b5277658bc5d0f620c2af56104885f621597411f457938bef7f"
+  },
+  "UI_Overlay_Bokeh2": {
+    "id": 71815412009345,
+    "sha256": "d94956aced4de8742c937f85c3534dc4e1d93bfb68d97a481d11aa71b2db7246"
+  },
+  "UI_Overlay_Grain": {
+    "id": 100309540894530,
+    "sha256": "a0564e4a9c0fe3e48f7ca476353ba99372713d457a284c58acb551cea0a26dd9"
+  },
+  "UI_Overlay_LightLeak": {
+    "id": 72722730202860,
+    "sha256": "159a1bcefd97bb1c68b8d1524a3cea4c82320f04f200cf3f945f3fd6096df2df"
+  },
+  "UI_Overlay_Vignette": {
+    "id": 72666939925737,
+    "sha256": "10474dea421ddc65f57b9f472f321e64d6ca57fc4839704588511e3f34bdbf99"
+  }
+}

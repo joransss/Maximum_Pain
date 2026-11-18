@@ -3,6 +3,81 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-18: Phase B of the menu plan: the main menu, the menu kit and the first UI art
+On this PC (Studio signed in as 83tg, Blender 5.2.3), with Claude Code driving Studio and Blender. JordanSaa asked for Phase B ("the menu shell") of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]]; nothing past it was built.
+- 6 scripts added and 12 changed in the Team Create place (65 game scripts now). No clip changed.
+- **Players no longer spawn by themselves:** they join into the main menu and press PLAY. In Studio play tests, press Enter (or `mp.play()`, [[Test Arena]]) to get a character.
+
+**New: the main menu** (`MenuController`, client)
+- A player joins with no character, into the main menu over the live match: the MAXIMUM PAIN logo, MAIN MENU, then PLAY, LOADOUT, SHOP, SETTINGS (the plan's proposed order); the player card and stats bottom left (`PlayerCard`); the mode, map, player count and match clock top right; SELECT [ENTER] bottom right.
+- PLAY asks the server for a character; the menu fades when it arrives.
+- **M** opens the same menu mid-match, over the player's own view: RESUME, LOADOUT, SHOP, SETTINGS, then LEAVE MATCH set apart. M, RESUME, Backspace or B closes it. The match doesn't pause and the character can be shot: a hit shows UNDER FIRE and a red flash over the menu, and dying closes it at once for the kill cam.
+- LEAVE MATCH asks to confirm (STAY / LEAVE); the server takes the character away and the player is back in the menu they joined into.
+- LOADOUT, SHOP and SETTINGS open their screen with NOT OPEN YET: each becomes a real screen when its phase builds it (one entry in `MenuController`'s `SCREENS`).
+- While it is open: the HUD is covered, the mouse is free, the camera doesn't turn, the body doesn't move or jump, and no gun, prompt or game key does anything. Roblox's own menu (Esc) covers it, and it comes back when that closes. The match-end screen waits behind it.
+- Keys: the up and down arrows or W/S (D-pad, left stick) move the white bar, which wraps round; Enter (A) selects; Backspace (B) goes back. Esc can't be BACK: it is Roblox's menu. The mouse works too: hovering moves the bar, a click selects.
+
+**New: spawning goes through the server** (`SpawnService` in ServerScriptService; `MenuRules` in ReplicatedStorage.Modules; the `MenuRequest` and `MenuResult` remotes)
+- `Players.CharacterAutoLoads` is off. A client may ask for two things only, "Play" and "Leave" (`MenuRequest`, no values, at most one every half second); a refusal comes back with why (`MenuResult`).
+- **Play** needs a loaded profile and no character. From then on the player is deployed (`Deployed` on the Player): respawned `Players.RespawnTime` (3 s) after each death, as Roblox did, and given a character back after 3 s if theirs goes any other way (a fall out of the world).
+- **Leave** is refused within 5 s of being hurt (`LEAVE_SAFE_TIME`: any drop in limb health), in a Last Stand, or dead, so the menu is never a way out of a fight. It takes the character away (no death is counted) and ends the player's stretch in the match (`MatchService.sitOut`), as leaving the server does; they are back in the match when they spawn again. Someone out of the match when it ends is in no results, so gets no win or loss pay.
+- **Redeploy delay:** PLAY waits 10 s after leaving (`REDEPLOY_DELAY`; the menu counts down READY IN 10, 9…, and the server refuses anything earlier). Without it, leaving and playing again would be a free instant heal, ammo refill and trip back to a spawn point. My call (not in the plan): change the number in `MenuRules`.
+- While a player is in the menu, the server points their `ReplicationFocus` at the menu camera's shot, so StreamingEnabled streams the map in where they look.
+
+**New: the menu camera** (`MenuCamera`, client; shots in `Workspace.MenuCams`)
+- The plan's option (a): a slow dolly through four shots of the Test Arena, 12 s each, dipping to black at the cuts. The shot on screen comes from the server's clock, so everyone in the menu sees the same one and the server knows where to stream.
+- Shots are placed in Studio: `Workspace.MenuCams.<Map>` holds Models named Shot1, Shot2…, each with two invisible Parts, From and To, facing the way the camera looks, and an optional `Fov` attribute. `MenuCams` is a Persistent model, so its parts reach every client. A map with no shots gets a slow turn round the middle of the world.
+
+**New: the menu kit** (`MenuKit`, client): the parts every menu screen is built from, in section 2's style.
+- A canvas laid out in 1080p pixels (the HUD's scale rule, shrunk further on screens smaller than 1100 × 960); the dark gradient down the left; the context line, the big heading (it arrives with a red and cyan glitch) and the list with the white selection bar (Quad Out, 0.08 s), grey unavailable rows and gaps between groups; a red notice line; the prompts bottom right, named for the keyboard or the gamepad, whichever was used last (hidden on touch); the film overlays; and the colour grade on the live view (saturation −0.5, contrast +0.1, a teal tint, blur 4, the far distance out of focus).
+- `MenuKit.reducedMotion` turns off the glitch, the bar's slide and the film's drift, for the reduce-motion setting when settings exist.
+
+**New: UI art from Blender** (`Assets/Blender/UI/ui_lib.py`; `UiAssets` in ReplicatedStorage.Modules)
+- `ui_lib.py` builds and renders the menus' images: the logo (`UI_Logo.blend`: MAXIMUM PAIN in Oswald Bold, the HUD's own font, extruded, worn white paint over steel; one-line and two-line versions), the film overlays (a grain tile, a vignette, two bokeh images and a light leak, worked out pixel by pixel) and weapon icons (below). Re-running it gives byte-identical files. How to run it: [[Blender and Asset Pipeline#UI art for the menus]].
+- The seven images were uploaded by 83tg through Studio. Their ids are in `UiAssets` and in `Assets/Blender/UI/Exports/ui_ids.json`; nothing else holds an asset id. The menu shows the logo, the vignette, the bokeh, the light leak and the grain; each falls back to a placeholder (the title in text, dark bars, nothing) if its id is taken out.
+- **Weapon icons:** the renderer is built and was tried on the M9 (side-on, muzzle right, white, tinted the HUD's grey in game), but the 13 icons aren't made, because the guns' source isn't here: `Assets/Blender/Weapons/build_weapons.py` and its `Exports/FBX` aren't in the repo or on this PC. JackT6785's reverted commit `ed11f9d` has FBX files for 9 of the 13 guns and a `WeaponKit.blend` with only the M9, and Studio won't hand out the uploaded meshes ("no permission to load asset"). With the FBX folder in place, `ui_lib.py weapons` makes all 13.
+
+**Changed**
+- `CharacterController.setControlEnabled`. Off, the body stands still. Roblox's new PlayerModule (2026) reads the movement keys through the Input Action System, not ContextActionService, so the menu can't take the keys from it; instead `update`, later in the same frame, sets the humanoid's move back to nothing (as it already did in cover), and jumping is off. A dive or vault under way finishes.
+- `CameraController.setLookEnabled`, `WeaponController.setInputEnabled`, `Hud.setCovered` (kept apart from `setVisible`, so the menu and the kill cam don't undo each other).
+- `Keybinds.Menu` (M, also in the HUD's keybind list). `LimbRules.totalHealth`. `UiStyle.modeName` and `mapName` (the scoreboard's, now shared). `MatchService.sitOut`. `GameServer` starts `SpawnService`; `ClientMain` starts `MenuController` last.
+- `TestHarness`: `mp.play()` and `mp.leave()`. The repo's copy (`Tools/TestHarness.luau`) was behind the place's (it lacked `mp.progress`, `mp.title` and `mp.shoot`); they are the same script again.
+
+**Found**
+- **A gamepad's Start opens Roblox's own menu**, whatever a game binds to it (tested, as the plan asked). The plan's fallback, Select, is bullet time, so the menu has no gamepad button to open it mid-match yet: a decision for JordanSaa, in [[Menus, Loadout, Progression and Shop - To Do#0. Decisions to make first]]. In the menu, B resumes.
+- **Phase C's code is already in the place**, and these notes don't describe it: `ProgressionService` and `CombatLog` (server); `ProgressionRules`' level curve, rewards and titles; `UiStyle`, `PlayerCard`, `Scoreboard`, `MatchHud`, `KillFeed`, `NameTags` and `MatchEndScreen` (client); the `ProgressionEvent`, `KillFeed` and `SetTitle` remotes. No Claude session on this PC built it, and GitHub has nothing newer (checked 2026-11-18). Phase B builds on `UiStyle` and `PlayerCard`. [[Architecture]] now lists them from their own headers; the rest (the to-do's steps 7 and 8, tests) is for whoever built them to write up.
+- One Studio window showed only a flat grey world in play-mode screenshots (the HUD and menus drew, the 3D view didn't); after Studio restarted, screenshots were normal. Nothing in the game caused it.
+
+**Tested** (Studio play mode, 83tg's avatar, one player)
+| Test | Result |
+|---|---|
+| Joining | No character; the menu over the live match (the dolly, the grade, the film overlays); HUD covered, mouse free; `ReplicationFocus` on the shot |
+| Moving through the menu | Arrows, W/S, Enter, Backspace; the bar wraps round; mouse hover and click; LOADOUT opens NOT OPEN YET with BACK [BACKSPACE] |
+| PLAY | The character spawns and the menu fades as it arrives; HUD back, mouse locked, grade off; the match counts the player |
+| M mid-match | RESUME … LEAVE MATCH over the player's own view, with RESUME [M]; M again closes |
+| Walking with the menu open | Before the fix, W held kept walking (16.5 studs in 1 s); after, 0.00 studs in 1 s and no jump, and walking goes on as soon as it closes |
+| Gun keys with the menu open | 3 and R did nothing |
+| A hit with the menu open | UNDER FIRE and the red flash |
+| LEAVE within 5 s of a hit | Refused: YOU CAN'T LEAVE WHILE YOU ARE UNDER FIRE |
+| LEAVE | The character gone, no death counted; out of the running match (`isPlaying` false); back in the menu, focus on the shot |
+| PLAY right after leaving | The server refused a direct request (Cooldown); the row counted down READY IN 10, 9… in place; PLAY early showed TOO SOON AFTER LEAVING THE MATCH |
+| Dying with the menu open | It closed at once; the kill cam; respawned 3.4 s later; `MatchDeaths` 1 |
+| A match ending with the menu open | The match-end screen waited behind it and showed when it closed |
+| Esc | Roblox's menu covered it; it came back after |
+| Gamepad Start | Opened Roblox's menu, not this one |
+| `mp.play()`, `mp.leave()` | Work |
+| The art | All 7 images load in game; two runs of `ui_lib.py` gave byte-identical files |
+| Output log | Clean apart from the DataStore line |
+
+**Not done**
+- A gamepad button to open the menu mid-match (above).
+- The weapon icons (above). Item, skill and crate icons, badges and 9-slice panels come with later phases.
+- No menu sounds (the game has none yet), no touch controls, no reduce-motion setting (the switch is there for it).
+- Screen shapes: only Studio's window (1609 × 793) was seen. 21:9, 4:3 and a phone weren't tried.
+- Two players: someone in the menu, seen from the match (they have no character), and the menu camera showing the other player. Added to the two-client test ([[Animation and MP3 Systems - Progress and To Do#3. Play tests]]).
+- Studio's Script Analysis (type warnings) wasn't run over the new scripts.
+- The place isn't published (Team Create keeps the changes). Nothing is committed: `Assets/Blender/UI/` (new), `Tools/TestHarness.luau` and these notes.
+
 ## 2026-11-14 (later): Phase A of the menu plan: slots renamed, the server profile, the match manager
 On this PC (Studio signed in as 83tg), with Claude Code driving Studio. JordanSaa asked for Phase A ("foundations") of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]] and nothing past it. Nothing here is visible to a player yet.
 - 8 scripts added and 8 changed in the Team Create place (50 scripts now). No clip changed.

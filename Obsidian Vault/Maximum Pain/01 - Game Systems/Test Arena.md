@@ -78,6 +78,8 @@ Details and the before/after numbers: [[Animation and MP3 Systems - Progress and
 To work the left side without moving along the wall (the move's floor dips would cloud the numbers), press Q before E: the cover side starts on the camera's shoulder.
 
 ## Test harness
+**Since 2026-11-18 a play test starts in the main menu, with no character:** press Enter on PLAY (or click it), or call `mp.play()` from the harness, which asks the server the way the menu does and waits for the character. `mp.leave()` goes back to the menu (refused within 5 s of a hit), and PLAY then waits 10 s. While in the menu, the camera dollies through four shots of the arena (`Workspace.MenuCams.TestArena`).
+
 `ServerStorage.Tools.TestHarness` (in the repo as `Tools/TestHarness.luau`) records play tests frame by frame and measures them: boxes against the floor and against an obstacle (exact depth), clearance over a top, camera steps, the clip timeline. It can also walk the character, point the camera and frame screenshots. Install it once per play session (see its header):
 - Server: `game.ServerStorage.Tools.TestHarness:Clone().Parent = game.ReplicatedStorage`
 - Client: `_G.mp = require(game.ReplicatedStorage:WaitForChild("TestHarness"))`

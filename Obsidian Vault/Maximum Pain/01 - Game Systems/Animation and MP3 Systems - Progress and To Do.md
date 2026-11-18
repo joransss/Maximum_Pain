@@ -879,7 +879,7 @@ Moved before the play tests and polish on 2026-11-10: until the clips were publi
 ### 3. Play tests
 - [x] Everything on the session 2 list below, done in session 3 (see above), apart from:
 - [ ] **Two clients.** It has to be run by hand: on 2026-11-04 the Studio MCP couldn't reach the test windows (only the editing window was connected), so it was left for later.
-  - **Start it:** Studio > Test tab > Clients and Servers, 2 players, Start. A server window and two player windows open. Do each thing with Player1 and watch it from Player2's window.
+  - **Start it:** Studio > Test tab > Clients and Servers, 2 players, Start. A server window and two player windows open. Since 2026-11-18 each player window starts in the main menu: press Enter (PLAY) in both. Do each thing with Player1 and watch it from Player2's window.
   - **Already checked from the server's side** (session 3): stance and hip height changes, the root's smoothed drop, and the Vault clip's speed chase all replicate.
   - **Studio limit (found in session 4):** each Studio process gives a clip its own temporary id. The server and a client registered ReloadRifle as different ids. So Player2 may not be able to play or identify Player1's clips at all: expect default poses, and no reload markers from Player1. Positions, heights, guns, hits and bullet time can still be checked. The clips between players are really tested once the animations are published, when every client uses the same id. **Since 2026-11-10 every slot has a published id, which Studio plays too, so this limit should be gone:** check it.
   - Checks:
@@ -894,6 +894,8 @@ Moved before the play tests and polish on 2026-11-10: until the clips were publi
     - [ ] **Bullet time between players:** Player1's line of sight slows Player2 (`TimeScale`), with the aim penalty, and a counter-activation clears it.
     - [ ] **Clips:** note what Player2 shows of Player1's clips (see the Studio limit above). Live servers use published ids and don't have this limit.
     - [ ] **Cover (new in session 4):** Player1 in high and low cover, sliding, at an end, blind firing, popping out: does Player2 see the side-on body against the wall, the head along it, the gun round or over the cover? The head's look-at is off while hidden for every character, so Player2's view of Player1 should match Player1's.
+    - [ ] **Match scoring (from the 2026-11-14 changelog):** with `DebugMinPlayers` off (2 players start a match), Player1 kills Player2: Player1's `MatchKills` and `MatchScore` go up, Player2's `MatchDeaths`; the winner at the end.
+    - [ ] **Main menu (new 2026-11-18):** Player2 stays in the menu: Player1 doesn't see them (no character), and Player2's menu camera shows Player1 moving about. Then both play; Player1 opens M mid-fight and Player2 shoots them: UNDER FIRE on Player1's screen, and dying closes their menu. Player1 leaves the match: Player2 sees the body vanish (no ragdoll, no kill feed line).
 - [x] **Add the test harness to the repo** (decided 2026-11-07): `Tools/TestHarness.luau`, the same script as the place's `ServerStorage.Tools.TestHarness`. Its header says how to install it each play session and what it reports; see also [[Test Arena]].
 
 <details><summary>The session 2 list, for reference (all done in session 3 apart from two clients)</summary>

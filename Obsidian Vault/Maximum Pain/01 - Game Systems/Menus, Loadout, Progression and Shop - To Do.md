@@ -1,6 +1,6 @@
 # Menus, Loadout, Progression and Shop: To Do
 
-Plan and work queue for everything outside the fight: the main menu, the Max Payne 3-style menu look, loadouts and items, skills (Max Payne 3's "Bursts", renamed), levels, titles and cash, the skin shop and crates, and settings. Written 2026-11-10, decisions updated 2026-11-14. **Built so far: Phase A of the [[#Suggested build order]] (2026-11-14): the slot rename, the server profile and the match manager ([[Changelog]]). Everything else here is still a plan.**
+Plan and work queue for everything outside the fight: the main menu, the Max Payne 3-style menu look, loadouts and items, skills (Max Payne 3's "Bursts", renamed), levels, titles and cash, the skin shop and crates, and settings. Written 2026-11-10, decisions updated 2026-11-14. **Built so far: Phase A of the [[#Suggested build order]] (2026-11-14): the slot rename, the server profile and the match manager; Phase B (2026-11-18): the main menu, the menu kit and the first UI art ([[Changelog]]). Phase C's code (steps 7 and 8) is in the place too, but these notes don't describe it yet (found 2026-11-18). Everything else here is still a plan.**
 Related: [[Loadout and Dual Wielding]] · [[Last Stand and Bullet Time]] · [[Limb Health]] · [[HUD Layout]] · [[Architecture]] · [[Gun Skin Ideas]] · [[Max Payne 3 Game Modes - Roblox Engagement]] · [[Max Payne 3 HUD and Combat UI Reference]] · [[Blender and Asset Pipeline]] · [[Multiplayer Networking Research]] · [[Networking and Security]]
 
 > [!important] Ground rules for everything in this note
@@ -54,7 +54,7 @@ Kept in `Attachments/Menus/Max Payne 3/` and **committed to the repo** so collab
 - [x] **Skill and title names:** placeholders set (section 6 and section 8). Final names later; ids in config stay the same when names change.
 - [x] **Join flow, server choice** (decided 2026-11-14): on join the game checks for **higher-population servers** and offers the player a switch (**ask first**, never forced). **Roblox private servers are exempt.** Plan in [[#Join flow: send players to fuller servers (plan for later)]].
 - [x] **Join flow, menu** (decided 2026-11-14): a new player **lands on the main menu over the live match** and presses PLAY to spawn.
-- [x] **Main menu key: M** (decided 2026-11-14). It shows the player card (title, name, level, money, avatar) and stats, and loadouts can be switched there at any time; **a new loadout is only received on death** (next spawn).
+- [x] **Main menu key: M** (decided 2026-11-14). It shows the player card (title, name, level, money, avatar) and stats, and loadouts can be switched there at any time; **a new loadout is only received on death** (next spawn). Built 2026-11-18. The gamepad's button is an open question (below).
 
 **Questions added 2026-11-14 (all settled the same day):**
 - [x] **Loadout slots: 3 free, 2 by level.** Slot 4 at level 10, slot 5 at level 25; both lock again on prestige and are re-earned.
@@ -63,6 +63,9 @@ Kept in `Attachments/Menus/Max Payne 3/` and **committed to the repo** so collab
 - [x] **Gameplay items reset on prestige** (Riot Helmet, vests, gear), with guns and skills. Only cosmetics are kept.
 - [x] **XP curve: level 1 → 50 in about 20 hours** (about 100 hours for all five prestiges). Curve `300 + 50 × (L − 1)`, 73,500 XP in total; working in section 8.
 - [x] **M during a fight: the character stays in the match and can be shot.** No pause, no protection, no combat lock on the menu.
+
+**Open question added 2026-11-18:**
+- [ ] **Which gamepad button opens the main menu?** Start was the plan (2026-11-14), but Start opens Roblox's own menu whatever a game binds to it (tested 2026-11-18), and Select, the plan's fallback, is bullet time. Options: (a) Select opens the menu and bullet time moves to another button, e.g. R3, the right-stick click (swap shoulder now), which then moves too; (b) holding Select for half a second opens the menu and a tap is still bullet time (it would then fire as the button is let go, a fraction later than now). Until it's decided, a gamepad player gets the menu on joining and B closes it, but can't open it mid-match.
 
 **Open questions added 2026-11-10 (loadout weight, skills, titles):**
 - [x] **Two-handed size bonus: yes.** Two-handed guns get +2 weight on top of the stat score (decided 2026-11-10).
@@ -82,42 +85,43 @@ Kept in `Attachments/Menus/Max Payne 3/` and **committed to the repo** so collab
 ---
 
 ## 1. Main menu shell (live match behind every menu)
-- [ ] **Menu state on join** (decided 2026-11-14: main menu first): the player joins, their character is *not* spawned (`Players.CharacterAutoLoads = false`, spawn on Play via the server), and the menu opens over the live match.
-- [ ] **Live match camera ("viewpoint of the current map being played"):**
-  - [ ] Options, in order of effort: (a) slow cinematic dolly between a set of `MenuCam` parts placed per map; (b) spectate a random living player from a chase camera, switching every ~8 s or on their death; (c) mix: dolly, cut to a player when a kill happens nearby.
-  - [ ] Start with (a), it never shows anything broken; add (b) later.
-  - [ ] **StreamingEnabled:** the menu camera may be far from where the (unspawned) player is, so the map there might not be streamed in. Use `Player:RequestStreamAroundAsync(position)` on the server for each camera point, or set `Player.ReplicationFocus` to a part at the camera. Test with streaming on.
-  - [ ] The menu camera is client-only (`Camera.CameraType = Scriptable`), so it can't leak or change anything.
-- [ ] **Left panel (mockup):** game title, then Play, Shop, Settings, Loadout. Proposed order: **PLAY, LOADOUT, SHOP, SETTINGS** (most-used first), plus the **player card** and stats (below).
-- [ ] **M opens and closes the main menu** at any time, including mid-match (decided 2026-11-14). Add `Menu = Enum.KeyCode.M` to the `Keybinds` module (M is unused today) so it's rebindable and shows in the HUD keybind list.
-- [ ] **Gamepad: Start opens the menu** (decided 2026-11-14), `Enum.KeyCode.ButtonStart`. **Test this first:** Roblox's own in-game menu also uses Start on gamepad (as it uses Esc on keyboard), and games can't reliably take that button over. If both menus open, or ours never gets the press, fall back to **Select/View** (`Enum.KeyCode.ButtonSelect`) and keep Start for Roblox's menu.
-- [ ] Each button opens its screen *over the same live background*; BACK (Esc / B) returns. One `MenuController` on the client owns the stack of screens (open, back, close-to-play).
-- [ ] Pressing Play: the client asks; the server checks the chosen loadout and spawns the character with it; the menu fades out.
-- [ ] **In-match menu:** **M** during a match opens the same main menu (PLAY reads RESUME; add LEAVE). Esc stays Roblox's own menu; check `GuiService.MenuIsOpen` so the two never overlap. **The match does not pause and the character stays vulnerable** (decided 2026-11-14): it stands where it was and can be shot, so the menu can't be used as cover. Keep a small damage indicator visible over the menu so the player knows to close it.
+**Built 2026-11-18** (Phase B, [[Changelog]]): `MenuController`, `MenuCamera` and `MenuKit` on the client, `SpawnService` on the server, `MenuRules` shared.
+- [x] **Menu state on join** (decided 2026-11-14: main menu first): the player joins, their character is *not* spawned (`Players.CharacterAutoLoads = false`, spawn on Play via the server), and the menu opens over the live match.
+- [x] **Live match camera ("viewpoint of the current map being played"):**
+  - [x] Options, in order of effort: (a) slow cinematic dolly between a set of `MenuCam` parts placed per map; (b) spectate a random living player from a chase camera, switching every ~8 s or on their death; (c) mix: dolly, cut to a player when a kill happens nearby.
+  - [x] Start with (a), it never shows anything broken; add (b) later. **Built:** four shots of the Test Arena in `Workspace.MenuCams.TestArena` (Models Shot1–4, each a From and a To part and an optional `Fov`), 12 s each, dipping to black at the cuts, the shot on screen taken from the server's clock. (b) is still to do.
+  - [x] **StreamingEnabled:** the menu camera may be far from where the (unspawned) player is, so the map there might not be streamed in. Use `Player:RequestStreamAroundAsync(position)` on the server for each camera point, or set `Player.ReplicationFocus` to a part at the camera. Test with streaming on. **Built:** `ReplicationFocus` on the shot's From part (2 s ahead of each cut); `MenuCams` is a Persistent model. Tested with streaming on.
+  - [x] The menu camera is client-only (`Camera.CameraType = Scriptable`), so it can't leak or change anything.
+- [x] **Left panel (mockup):** game title, then Play, Shop, Settings, Loadout. Proposed order: **PLAY, LOADOUT, SHOP, SETTINGS** (most-used first), plus the **player card** and stats (below). Built in that order; the card bottom left.
+- [x] **M opens and closes the main menu** at any time, including mid-match (decided 2026-11-14). Add `Menu = Enum.KeyCode.M` to the `Keybinds` module (M is unused today) so it's rebindable and shows in the HUD keybind list.
+- [x] **Gamepad: Start opens the menu** (decided 2026-11-14), `Enum.KeyCode.ButtonStart`. **Test this first:** Roblox's own in-game menu also uses Start on gamepad (as it uses Esc on keyboard), and games can't reliably take that button over. If both menus open, or ours never gets the press, fall back to **Select/View** (`Enum.KeyCode.ButtonSelect`) and keep Start for Roblox's menu. **Tested 2026-11-18: Start opens Roblox's menu and ours never gets it.** The fallback, Select, is bullet time, so this is an open question in [[#0. Decisions to make first]]; `Keybinds.Menu` is M alone until then.
+- [x] Each button opens its screen *over the same live background*; BACK (Esc / B) returns. One `MenuController` on the client owns the stack of screens (open, back, close-to-play). **BACK is Backspace (B on a gamepad):** Esc is Roblox's own menu and a game can't take it.
+- [x] Pressing Play: the client asks; the server checks the chosen loadout and spawns the character with it; the menu fades out. Built without the loadout check, which comes with the loadout screen (step 10).
+- [x] **In-match menu:** **M** during a match opens the same main menu (PLAY reads RESUME; add LEAVE). Esc stays Roblox's own menu; check `GuiService.MenuIsOpen` so the two never overlap. **The match does not pause and the character stays vulnerable** (decided 2026-11-14): it stands where it was and can be shot, so the menu can't be used as cover. Keep a small damage indicator visible over the menu so the player knows to close it. **Built:** UNDER FIRE and a red flash on each hit; dying closes the menu. LEAVE MATCH asks to confirm and is refused within 5 s of being hurt or in a Last Stand; after leaving, PLAY waits 10 s (both in `MenuRules`, my numbers, 2026-11-18), so leaving can't be used to heal, refill or get back to a spawn quicker than fighting on.
 - [ ] **Loadouts can be switched freely in the menu, but the new loadout is only received on death** (decided 2026-11-14): the server stores the selection at once and uses it at the next spawn. The menu shows "APPLIES ON NEXT SPAWN" while the equipped and selected loadouts differ. 🎨
 - [ ] Death screen → after the kill cam ([[Max Payne 3 Kill Cam]]) offer **Change Loadout** before respawn, as Max Payne 3 does.
 
 ### Player card and stats (main menu)
-Decided 2026-11-14. Layout from the player card mockup (see [[#Our mockups (the plan to follow)]]).
-- [ ] **Layout:** a square with **the player's avatar** on the left; to its right, three stacked lines:
+Decided 2026-11-14. Layout from the player card mockup (see [[#Our mockups (the plan to follow)]]). **Built:** `PlayerCard`, a component that was already in the place on 2026-11-18 (with Phase C's code; the scoreboard shows it too). The main menu shows it bottom left, refreshed as the profile's attributes change; checked on screen 2026-11-18 (avatar, NOBODY, the name, LEVEL: 1, $0, the XP bar, the stats).
+- [x] **Layout:** a square with **the player's avatar** on the left; to its right, three stacked lines:
   ```
   ┌────────┐  [prestige icon] TITLE
   │ avatar │  PlayerName
   │        │  LEVEL: 27        $12,450
   └────────┘
   ```
-- [ ] **Avatar:** `Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)` in an `ImageLabel` (in `pcall`, with a grey silhouette until it loads). Square frame with a hard white border, as in the mockup.
-- [ ] **Title line:** the selected title, with the **prestige icon (I–V) directly before it** once the player has prestiged (section 8).
-- [ ] **Level line:** `LEVEL: 27` with the **money shown alongside it** on the same line (`$12,450`). Under it, a thin **XP bar** with `XP earned / XP needed` for the next level.
-- [ ] **Stats block** under the card (numbers only, two columns):
+- [x] **Avatar:** `Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)` in an `ImageLabel` (in `pcall`, with a grey silhouette until it loads). Square frame with a hard white border, as in the mockup.
+- [x] **Title line:** the selected title, with the **prestige icon (I–V) directly before it** once the player has prestiged (section 8). The icon is a text plate until the Blender badges exist.
+- [x] **Level line:** `LEVEL: 27` with the **money shown alongside it** on the same line (`$12,450`). Under it, a thin **XP bar** with `XP earned / XP needed` for the next level.
+- [x] **Stats block** under the card (numbers only, two columns):
   | Stat | Source (server profile `Stats`) |
   |---|---|
   | Kills, Deaths, K/D | `Kills`, `Deaths`, `Kills ÷ max(1, Deaths)` to 2 decimals |
   | Matches, Wins, Win rate | `Matches`, `Wins`, `Wins ÷ Matches` as % |
   | Headshot kills | `HeadshotKills` (and % of kills) |
   | Time played | `PlaySeconds`, shown as hours and minutes |
-- [ ] All values come from the server profile (replicated read-only, e.g. attributes on the player or one `ProfileChanged` remote); the client never computes or sends them.
-- [ ] 🎨 **Drawn in the UI style of section 2:** Oswald Bold for name and level, Oswald Regular for stat labels, white on the dark gradient panel, mid grey labels, no rounded corners. The mockup's boxes are placement only.
+- [x] All values come from the server profile (replicated read-only, e.g. attributes on the player or one `ProfileChanged` remote); the client never computes or sends them. Attributes on the Player (`Level`, `XP`, `Cash`, `Prestige`, `Title`, `Stat<name>`).
+- [x] 🎨 **Drawn in the UI style of section 2:** Oswald Bold for name and level, Oswald Regular for stat labels, white on the dark gradient panel, mid grey labels, no rounded corners. The mockup's boxes are placement only.
 
 ### Join flow: send players to fuller servers (plan for later)
 Decided 2026-11-14: when a player joins, the game checks whether a **higher-population server** exists and offers to switch them to it. **Roblox private servers are exempt.** Basic plan only; build after the menu shell.
@@ -151,8 +155,9 @@ How the menus should look and behave. This is the "feel" brief; the Blender sect
 10. **Sound:** a soft tick on hover, a heavier click on select, a low ambient music bed. No bouncy or cartoon sounds.
 
 ### Our version, concretely
-- [ ] **Font:** keep **Oswald** (already the HUD font, [[HUD Layout]]): Bold for headings, list items and prompts; Regular for the context line and descriptions. One family across HUD and menus.
-- [ ] **Colours:** reuse the HUD palette: white, black, mid grey `#A5A5A5`, red for danger/locked only. **Rarity colours (decided 2026-11-14): each rarity gets its own colour**, used only in the shop, crate reveals and skin lists; the rest of the UI stays white/black/grey. All muted so they sit in the film look, none of them red (red stays danger/locked). Placeholder values, to tune on screen:
+**Built 2026-11-18** as `MenuKit` (client): every menu screen is put together from it (the canvas, the shade, the page with its heading, context line, list and notice, the prompts, the film, the grade, the glitch). Ticked below where built; the rarity colours wait for the shop.
+- [x] **Font:** keep **Oswald** (already the HUD font, [[HUD Layout]]): Bold for headings, list items and prompts; Regular for the context line and descriptions. One family across HUD and menus.
+- [ ] **Colours:** reuse the HUD palette (done: white, black, grey, red only for UNDER FIRE and refusals): white, black, mid grey `#A5A5A5`, red for danger/locked only. **Rarity colours (decided 2026-11-14): each rarity gets its own colour**, used only in the shop, crate reveals and skin lists; the rest of the UI stays white/black/grey. All muted so they sit in the film look, none of them red (red stays danger/locked). Placeholder values, to tune on screen:
   | Rarity | Colour (placeholder) | Pips |
   |---|---|---|
   | Common | Grey `#A5A5A5` (the HUD grey) | 1 |
@@ -162,36 +167,37 @@ How the menus should look and behave. This is the "feel" brief; the Blender sect
   | Exceptional | Worn amber `#C9973F` | 5 |
   - [ ] Colour is never the only cue: every rarity also shows its **name and 1–5 pips**, so it reads in the colourblind modes (section 11). Check the five colours in each mode and against the teal-tinted background.
   - [ ] Stored once in `ShopConfig` (or a `UiTheme` module), so the shop, the odds pop-up and the crate reveal all read the same values. Prices and the Cash balance stay white.
-- [ ] **Left panel:** in the main menu mockup it's a boxed white panel. To feel like Max Payne 3, make it **a dark, see-through gradient** (black 70% → 0% to the right) instead of a white box, with the list on it. Keep the mockup's position and proportions (left ~40%).
-- [ ] **Colour grade on the live view while a menu is open:** client-side `ColorCorrectionEffect` (saturation −0.5, contrast +0.1, tint toward teal), `BlurEffect` size ~6 only behind the left panel area (or on the whole view, lighter), `DepthOfFieldEffect` for the bokeh feel. Remove them all when the match starts.
-- [ ] **Overlays (made in Blender, see section 3):** a tiling grain texture animated by offsetting it every frame, a vignette image, a few bokeh/light-leak images that drift slowly.
-- [ ] **Animation:** `TweenService` for the selection bar (Quad Out, 0.08 s), screen fade (0.2 s), glitch transition made from 3–4 offset copies of the frame with red/cyan tint for ~0.15 s.
-- [ ] **Navigation:** fully playable with mouse, keyboard (arrows / W S, Enter, Esc) and gamepad (`GuiService.SelectedObject`, `NextSelectionUp/Down`). Touch later.
-- [ ] **Scaling:** build in `Scale` with `UIAspectRatioConstraint` and a `UIScale` driven by screen height (same rule as the HUD: 1080 p = 1, clamp 0.75–1.25). Test 16:9, 21:9, 4:3, and a phone.
-- [ ] **What not to copy:** the Max Payne 3 logo, Max or any character, Rockstar's fonts and icons, Social Club, the exact wording of menu hints, narration lines. All art and text is ours.
+- [x] **Left panel:** in the main menu mockup it's a boxed white panel. To feel like Max Payne 3, make it **a dark, see-through gradient** (black 70% → 0% to the right) instead of a white box, with the list on it. Keep the mockup's position and proportions (left ~40%). Built: 70% black at the edge, half that at about a third of the screen, clear by 62%.
+- [x] **Colour grade on the live view while a menu is open:** client-side `ColorCorrectionEffect` (saturation −0.5, contrast +0.1, tint toward teal), `BlurEffect` size ~6 only behind the left panel area (or on the whole view, lighter), `DepthOfFieldEffect` for the bokeh feel. Remove them all when the match starts. Built with the whole view at blur 4; eased on and off in 0.25 s.
+- [x] **Overlays (made in Blender, see section 3):** a tiling grain texture animated by offsetting it every frame, a vignette image, a few bokeh/light-leak images that drift slowly. Built: the grain jumps 18 times a second, three bokeh drift, the light leak swells and fades in the top right corner.
+- [x] **Animation:** `TweenService` for the selection bar (Quad Out, 0.08 s), screen fade (0.2 s), glitch transition made from 3–4 offset copies of the frame with red/cyan tint for ~0.15 s. Built: the glitch splits each new screen's heading (two copies).
+- [x] **Navigation:** fully playable with mouse, keyboard (arrows / W S, Enter, Esc) and gamepad (`GuiService.SelectedObject`, `NextSelectionUp/Down`). Touch later. Built with the menu's own highlight instead of `GuiService.SelectedObject` (one highlight for every device): arrows / W S / D-pad / left stick, Enter / A, and BACK on Backspace / B, since Esc is Roblox's menu. Opening it on a gamepad mid-match is the open question in section 0.
+- [ ] **Scaling:** build in `Scale` with `UIAspectRatioConstraint` and a `UIScale` driven by screen height (same rule as the HUD: 1080 p = 1, clamp 0.75–1.25). Test 16:9, 21:9, 4:3, and a phone. Built (2026-11-18) as a canvas laid out in 1080p pixels with the HUD's rule, shrunk further where the screen is under 1100 × 960; only seen in Studio's window (1609 × 793). **The four screen shapes are still to test.**
+- [x] **What not to copy:** the Max Payne 3 logo, Max or any character, Rockstar's fonts and icons, Social Club, the exact wording of menu hints, narration lines. All art and text is ours. Kept: the logo is set in Oswald (the HUD's font), and every hint is our own wording.
 
 ---
 
 ## 3. Blender for the UI
 All non-text UI art is made in **Blender**, rendered to PNG and uploaded. This keeps the menus looking 3D and cinematic without live `ViewportFrame` cost.
 
-- [ ] **New folder** `Assets/Blender/UI/` with one `.blend` per asset group: `UI_Logo.blend`, `UI_Icons_Weapons.blend`, `UI_Icons_Items.blend`, `UI_Icons_Skills.blend`, `UI_Crates.blend`, `UI_Badges.blend`, `UI_Overlays.blend`, `UI_LoadoutBody.blend`.
-- [ ] **A render script** (`ui_lib.py`, like `mp_lib.py` for animations): opens a `.blend`, renders every object in a collection one by one through a fixed camera to `Exports/UI/<name>.png`, deterministic, so re-running gives identical files.
-- [ ] **Render setup:** orthographic camera, transparent film (`Film > Transparent`), Eevee for speed, a soft three-point light rig shared by all icons, render at 2× the on-screen size and no bigger than **1024 px** (Roblox texture limit to check), PNG RGBA.
-- [ ] **Naming:** `UI_` prefix on every object and export (`UI_Icon_AK47`, `UI_Crate_Street`, `UI_Title_Badge_10`), matching CLAUDE.md's prefix rule.
+**Built 2026-11-18:** `Assets/Blender/UI/ui_lib.py` and the first images (the logo and the film overlays), uploaded and in `UiAssets`. How to run it: [[Blender and Asset Pipeline#UI art for the menus]].
+- [x] **New folder** `Assets/Blender/UI/` with one `.blend` per asset group: `UI_Logo.blend`, `UI_Icons_Weapons.blend`, `UI_Icons_Items.blend`, `UI_Icons_Skills.blend`, `UI_Crates.blend`, `UI_Badges.blend`, `UI_Overlays.blend`, `UI_LoadoutBody.blend`. Made so far: `UI_Logo.blend`; `ui_lib.py` builds `UI_Icons_Weapons.blend` when the guns' FBX files are there. The overlays need no `.blend`: they are worked out pixel by pixel (exact, seamless, and identical every run).
+- [x] **A render script** (`ui_lib.py`, like `mp_lib.py` for animations): opens a `.blend`, renders every object in a collection one by one through a fixed camera to `Exports/UI/<name>.png`, deterministic, so re-running gives identical files. Built; the images go to `Assets/Blender/UI/Exports/<name>.png` with `manifest.json` (sizes and hashes). Two runs gave byte-identical files.
+- [x] **Render setup:** orthographic camera, transparent film (`Film > Transparent`), Eevee for speed, a soft three-point light rig shared by all icons, render at 2× the on-screen size and no bigger than **1024 px** (Roblox texture limit to check), PNG RGBA. Built with **Cycles on the CPU** instead of Eevee, so the same file comes out every time (a render takes seconds), no denoiser, Standard colour (no tone curve), and no metadata in the PNGs.
+- [x] **Naming:** `UI_` prefix on every object and export (`UI_Icon_AK47`, `UI_Crate_Street`, `UI_Title_Badge_10`), matching CLAUDE.md's prefix rule.
 - [ ] **What to make:**
-  - [ ] **Logo:** "MAXIMUM PAIN" as an extruded, scuffed metal or worn-print title, rendered flat-on. Variants: full, compact.
-  - [ ] **Weapon icons:** side-on, muzzle right (same as the HUD gun list), white and grey versions. Reuse the gun meshes from `ServerStorage.WeaponKit` / the gun `.blend`s.
+  - [x] **Logo:** "MAXIMUM PAIN" as an extruded, scuffed metal or worn-print title, rendered flat-on. Variants: full, compact. Built: Oswald Bold, worn off-white paint over steel (chips, fine scratches, worn edges); `UI_Logo_Full` (one line, 1024 × 147, in the menu at 104 px high at 1080p) and `UI_Logo_Compact` (two lines, 628 × 320, not used yet).
+  - [ ] **Weapon icons:** side-on, muzzle right (same as the HUD gun list), white and grey versions. Reuse the gun meshes from `ServerStorage.WeaponKit` / the gun `.blend`s. **The renderer is built and tried on the M9** (512 × 160 each, white; the grey is the same image tinted with `ImageColor3`, so one upload per gun). **The 13 icons wait for the guns' source:** `build_weapons.py`'s `Exports/FBX` isn't in the repo or on JordanSaa's PC, and Studio won't hand out the uploaded meshes (2026-11-18). Put the FBX files in `Assets/Blender/Weapons/Exports/FBX` and run `ui_lib.py weapons`.
   - [ ] **Item icons** (helmet, gas mask, goggles, armour, gear) and **skill icons** (one per skill, simple bold silhouettes that read at 48 px).
   - [ ] **Loadout body:** a grey human silhouette inside a radial ring (our own design, inspired by the loadout screenshot), rendered as a single image; slot positions recorded as UV coordinates so the Roblox UI places icons and leader lines on it.
   - [ ] **Crates:** 3D crate models (wooden ammo crate, police evidence box, metal case…) rendered closed, open, and as a short image sequence for the opening animation (sprite sheet).
   - [ ] **Title/level badges:** a patch or stamp per milestone, shown next to names (see section 8).
-  - [ ] **Overlays:** grain tile (256 px, seamless), vignette, bokeh blobs, light leaks, glitch strips.
+  - [x] **Overlays:** grain tile (256 px, seamless), vignette, bokeh blobs, light leaks, glitch strips. Built: `UI_Overlay_Grain`, `UI_Overlay_Vignette`, `UI_Overlay_Bokeh1` (warm) and `2` (cool), `UI_Overlay_LightLeak`. The glitch is done in code (`MenuKit.glitch`), so it needs no strips.
   - [ ] **9-slice panels:** panel frames rendered flat and used with `ImageLabel.ScaleType = Slice` so they stretch cleanly.
   - [ ] Optional: a slimmer **HUD health figure** (already listed under Known limits in [[HUD Layout]]).
-- [ ] **Import into Roblox:** upload as images (Asset Manager or Open Cloud), store IDs in one `UiAssets` module (`ReplicatedStorage.Modules`) so nothing hard-codes an asset ID.
-- [ ] **Pre-rendered images vs ViewportFrames:** use images for menus (cheap, any number). Keep `ViewportFrame` only where it must react live (the HUD figure tinting limbs, a rotating skin preview in the shop).
-- [ ] Add the UI pipeline to [[Blender and Asset Pipeline]] when it's built.
+- [x] **Import into Roblox:** upload as images (Asset Manager or Open Cloud), store IDs in one `UiAssets` module (`ReplicatedStorage.Modules`) so nothing hard-codes an asset ID. Done 2026-11-18 through Studio (signed in as 83tg); the ids are also kept in `Assets/Blender/UI/Exports/ui_ids.json`.
+- [x] **Pre-rendered images vs ViewportFrames:** use images for menus (cheap, any number). Keep `ViewportFrame` only where it must react live (the HUD figure tinting limbs, a rotating skin preview in the shop).
+- [x] Add the UI pipeline to [[Blender and Asset Pipeline]] when it's built.
 
 ---
 
@@ -709,11 +715,13 @@ Reordered 2026-11-14, after every decision in section 0 was settled. Starts afte
 3. [x] **Match manager** (new step; nothing like it exists in the code yet): match start and end, timer, who won and lost, how long each player was in the match. The win and loss payouts ($1,000 / $250) can't exist without it, and the menu's "current match" line reads from it. Done 2026-11-14: `MatchService` and `MatchRules` ([[Architecture]]). Free-for-all only, a kill is a point, the most points wins (ties share it, nobody wins on 0). Placeholders in `MatchRules`: 8-minute matches, 15 s between them, 2 players to start, half the match to count as won or lost. For step 7: `MatchService.Ended` carries each player's `won` and `eligible` (pay the win or loss only when `eligible`), and `LastStandService.Killed` gives each kill with its killer. For the menu: the attributes on `ReplicatedStorage.Match` (`State`, `Mode`, `Map`, `Number`, `EndsAt`).
 
 **Phase B: the menu shell**
-4. [ ] **Shared UI kit in the section 2 style:** the list with the white selection bar, heading, context line, prompts, panel gradient, film overlays, `UIScale` rule, keyboard/gamepad navigation. Built once as modules, so every later screen is assembled from it instead of restyled. Placeholder art is fine here.
-5. [ ] **Menu shell:** `CharacterAutoLoads = false`, main menu on join over the live match camera, PLAY spawns through the server, **M** opens and closes it mid-match (test **Start** on gamepad now, section 1). Player card with avatar, title, name, level and money, showing real profile values (all zeros for now).
-6. [ ] **Blender UI pipeline and first assets** (logo, overlays, weapon icons, section 3). Can run alongside steps 4–5; the images swap in for the placeholders when ready.
+**Phase B was built on 2026-11-18** ([[Changelog]]). Left open: a gamepad button to open the menu mid-match (the question in section 0), the 13 weapon icons (waiting for the guns' FBX files, section 3), and testing on 21:9, 4:3 and a phone.
+4. [x] **Shared UI kit in the section 2 style:** the list with the white selection bar, heading, context line, prompts, panel gradient, film overlays, `UIScale` rule, keyboard/gamepad navigation. Built once as modules, so every later screen is assembled from it instead of restyled. Placeholder art is fine here. Done 2026-11-18: `MenuKit`. A new screen is one entry in `MenuController`'s `SCREENS` (a heading, a context line, and rows that say what choosing them does).
+5. [x] **Menu shell:** `CharacterAutoLoads = false`, main menu on join over the live match camera, PLAY spawns through the server, **M** opens and closes it mid-match (test **Start** on gamepad now, section 1). Player card with avatar, title, name, level and money, showing real profile values (all zeros for now). Done 2026-11-18: `MenuController`, `MenuCamera`, `SpawnService`, `MenuRules`; plus LEAVE MATCH. Start turned out to be Roblox's (section 0).
+6. [x] **Blender UI pipeline and first assets** (logo, overlays, weapon icons, section 3). Can run alongside steps 4–5; the images swap in for the placeholders when ready. Done 2026-11-18 apart from the weapon icons: `ui_lib.py`, the logo and the five overlays, uploaded and in the menu. The icons' renderer is ready; the guns' source isn't on this PC.
 
 **Phase C: progression (so later screens have real levels and cash to lock things behind)**
+Found in the place on 2026-11-18, built outside these notes: `ProgressionService`, `CombatLog`, `ProgressionRules`' curve, rewards and titles, `PlayerCard`, `Scoreboard`, `MatchHud`, `KillFeed`, `NameTags` and `MatchEndScreen` cover most of steps 7 and 8 ([[Architecture]] lists them). Not checked against the plan here and not ticked: whoever built them should write them up and tick what's done.
 7. [ ] **XP, cash, levels and stats** (section 8): rewards from the server's own kill and match events, the level curve, the level cash multiplier, the stats on the player card, the XP bar, the match-end earnings screen, the level-up moment.
 8. [ ] **Titles, name tags and scoreboard:** milestone titles, picking a title, the name tag (distance and line-of-sight rule), Tab scoreboard, kill feed.
 

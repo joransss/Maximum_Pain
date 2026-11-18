@@ -35,12 +35,22 @@
 -- times in seconds since mp.start(). Boxes are the body parts (not the root) and each gun's box,
 -- named by where the gun is ("Right:M9", "Left:AK47"). Depths and clearances are exact box-against-
 -- box results (separating axis tests), not sampled points.
+-- Spawning: characters only spawn when asked for (the main menu's PLAY, since 2026-11-18). mp.play()
+-- asks the way the menu does (the MenuRequest remote) and waits for the character; mp.leave() asks to
+-- leave the match for the menu (refused within 5 s of a hit). After leaving, PLAY waits 10 s.
 -- Driving: mp.look(yaw, pitch), mp.yawTo(point), mp.walk(points), mp.halt(), mp.status(). Keys go
 -- through the MCP's keyboard tool; they register with UserInputService:IsKeyDown, which the game reads
 -- (aim can be held with the gamepad's ButtonL2). Screenshots: mp.view(eye, at, rootSpace), mp.unview().
 -- Profile: mp.profile({ Level = 20, Cash = 5000, Prestige = 1 }) sets your own profile's values (XP back
 -- to 0 with a new level), mp.profile({ Reset = true }) starts it afresh, mp.profile() reports it. Needs
 -- ServerStorage.Tools.ProfileCheats on the server (above).
+-- Progression: mp.progress() reports what the server shows of your profile and your part in the match
+-- (attributes on the Player). mp.title(id) asks for another title the way the scoreboard does (the
+-- SetTitle remote), so the server's checks apply. mp.shoot(name, part, limit) fires the gun in your
+-- right hand at a dummy's part through the FireWeapon remote until the dummy dies: real shots, with
+-- the server's fire rate, ammo, spread and line of fire. To play a match alone, on the server:
+--   game.ServerScriptService.MatchService:SetAttribute("DebugMinPlayers", 1)
+--   game.ServerScriptService.MatchService:SetAttribute("DebugNpcKills", true)  -- dummies score and pay
 -- In Studio play driven by the MCP, the window is usually in the background: frames are drawn at about
 -- 15 per second while physics runs at 60, so render-step code (the camera, stances, movers, clip
 -- weights) runs in 66 ms steps. Check timing-sensitive results against that.
@@ -745,6 +755,53 @@ function Harness.status(): string
     )
 end
 
+local function menuRequest(kind: string): string?
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local remote = remotes and remotes:FindFirstChild("MenuRequest")
+    if not remote or not remote:IsA("RemoteEvent") then
+        return "no MenuRequest remote"
+    end
+    remote:FireServer(kind)
+    return nil
+end
+
+-- Asks the server for a character, as the main menu's PLAY does, and waits for it (10 s at most).
+function Harness.play(): string
+    local character = player.Character
+    if player:GetAttribute("Deployed") == true and character and character:FindFirstChild("HumanoidRootPart") then
+        return "already playing: " .. Harness.status()
+    end
+    local problem = menuRequest("Play")
+    if problem then
+        return problem
+    end
+    local deadline = os.clock() + 10
+    while os.clock() < deadline do
+        character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") and character:FindFirstChildOfClass("Humanoid") then
+            return "playing: " .. Harness.status()
+        end
+        task.wait(0.1)
+    end
+    return `no character after 10 s (Deployed {attribute(player, "Deployed")}, RedeployAt {attribute(player, "RedeployAt")})`
+end
+
+-- Asks to leave the match for the main menu, as its LEAVE MATCH does, and waits for the answer (3 s).
+function Harness.leave(): string
+    local problem = menuRequest("Leave")
+    if problem then
+        return problem
+    end
+    local deadline = os.clock() + 3
+    while os.clock() < deadline do
+        if player:GetAttribute("Deployed") ~= true then
+            return "in the menu"
+        end
+        task.wait(0.1)
+    end
+    return "still playing (the server refused: hurt in the last 5 s, in a Last Stand, or dead)"
+end
+
 -- Studio's profile cheats, through ServerStorage.Tools.ProfileCheats (see the header).
 function Harness.profile(changes: { [string]: any }?): string
     local remotes = ReplicatedStorage:FindFirstChild("Remotes")
@@ -753,6 +810,67 @@ function Harness.profile(changes: { [string]: any }?): string
         return "no DebugProfile remote: install ServerStorage.Tools.ProfileCheats on the server first"
     end
     return remote:InvokeServer(changes)
+end
+
+-- What the server shows of this player's profile and their part in the match (attributes on the Player).
+function Harness.progress(): string
+    local names = { "Level", "XP", "Cash", "Prestige", "Title", "Titles" }
+    local stats = { "StatKills", "StatDeaths", "StatHeadshotKills", "StatMatches", "StatWins", "StatPlaySeconds" }
+    local match = { "MatchScore", "MatchKills", "MatchDeaths" }
+    local lines: { string } = {}
+    for _, group in { names, stats, match } do
+        local parts: { string } = {}
+        for _, name in group do
+            table.insert(parts, name .. " " .. attribute(player, name))
+        end
+        table.insert(lines, table.concat(parts, "  "))
+    end
+    local folder = ReplicatedStorage:FindFirstChild("Match")
+    if folder then
+        local ends = folder:GetAttribute("EndsAt")
+        local left = if typeof(ends) == "number" then string.format("%.0f s left", ends - Workspace:GetServerTimeNow()) else "no clock"
+        table.insert(lines, `match {attribute(folder, "Number")} {attribute(folder, "State")}, {left}`)
+    end
+    return table.concat(lines, "\n")
+end
+
+-- Asks the server to show another title, as the scoreboard's picker does. The server only agrees to a
+-- title the profile has unlocked; the reply here is the title shown half a second later.
+function Harness.title(id: string): string
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local remote = remotes and remotes:FindFirstChild("SetTitle")
+    if not remote or not remote:IsA("RemoteEvent") then
+        return "no SetTitle remote"
+    end
+    remote:FireServer(id)
+    task.wait(0.5)
+    return "Title " .. attribute(player, "Title")
+end
+
+-- Fires the gun in the right hand at `partName` of the arena dummy called `name`, through the game's
+-- own FireWeapon remote, until the dummy dies or `limit` shots (15) have been asked for. Returns how
+-- many were asked for; the server may drop some (fire rate, an empty magazine, something in the way).
+function Harness.shoot(name: string, partName: string?, limit: number?): number
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local remote = remotes and remotes:FindFirstChild("FireWeapon")
+    local arena = Workspace:FindFirstChild("TestArena")
+    local dummies = arena and arena:FindFirstChild("Dummies")
+    local dummy = dummies and dummies:FindFirstChild(name)
+    local humanoid = dummy and dummy:FindFirstChildOfClass("Humanoid")
+    local shots = 0
+    if not remote or not remote:IsA("RemoteEvent") or not dummy or not humanoid then
+        return shots
+    end
+    while dummy.Parent and humanoid.Health > 0 and shots < (limit or 15) do
+        local part = dummy:FindFirstChild(partName or "UpperTorso")
+        if not part or not part:IsA("BasePart") then
+            break
+        end
+        remote:FireServer(part.Position, "Right")
+        shots += 1
+        task.wait(0.22)
+    end
+    return shots
 end
 
 Harness.clips = registerClips()

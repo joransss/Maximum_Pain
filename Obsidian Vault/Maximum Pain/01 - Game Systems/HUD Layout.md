@@ -63,8 +63,9 @@ Roblox's own hotbar and health bar are switched off, since this HUD replaces bot
 - `WeaponController` sends it the three slots (`Hud.setWeapons`), the reticle (`Hud.setReticle`, with the blocked flag), the scope zoom (`Hud.setScope`), the pickup prompt (`Hud.setPrompt`), the dual-wield warning (`Hud.setKeyHint`) and the stance tag (`Hud.setStance`).
 - `CoverController` sends the cover prompt; `CharacterController`, `CoverController` and `DodgeController` send short messages (`Hud.flash`); `LastStandController` sends the countdown (`Hud.setLastStand`) and the bullet-time label (`Hud.setBulletTime`).
 - The HUD reads the limb, painkiller and adrenaline attributes itself and updates when they change.
+- While the main menu is up (since 2026-11-18) the whole HUD is hidden (`Hud.setCovered`). It is kept apart from `Hud.setVisible`, which the kill cam uses, so closing the menu never brings the HUD back into a kill cam. See [[Menus, Loadout, Progression and Shop - To Do#1. Main menu shell (live match behind every menu)]].
 
 ## Known limits
 - The "Man" body is chunkier than Max's slim figure. A custom slimmer figure could be modelled in Blender and swapped in as `HealthFigure` with the same part names.
 - Keyboard and mouse first. Gamepad: right stick to look, left stick to move, L2 aim, R2 fire, X reload, Y next gun, B crouch, L1 cover, R1 dive, R3 swap shoulder, L3 sprint, D-pad up painkiller, D-pad down pick up, D-pad left dual wield, D-pad right drop. **There are no touch controls, so phones and tablets can't play yet.**
-- The keybind list now has 14 rows; it may need folding into a shorter list or a help screen later.
+- The keybind list now has 18 rows (M MENU was added on 2026-11-18); it may need folding into a shorter list or a help screen later.

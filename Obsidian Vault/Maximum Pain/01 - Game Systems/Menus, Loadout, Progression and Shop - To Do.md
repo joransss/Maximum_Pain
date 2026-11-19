@@ -1,6 +1,6 @@
 # Menus, Loadout, Progression and Shop: To Do
 
-Plan and work queue for everything outside the fight: the main menu, the Max Payne 3-style menu look, loadouts and items, skills (Max Payne 3's "Bursts", renamed), levels, titles and cash, the skin shop and crates, and settings. Written 2026-11-10, decisions updated 2026-11-14. **Built so far: Phase A of the [[#Suggested build order]] (2026-11-14): the slot rename, the server profile and the match manager; Phase B (2026-11-18): the main menu, the menu kit and the first UI art ([[Changelog]]). Phase C's code (steps 7 and 8) is in the place too, but these notes don't describe it yet (found 2026-11-18). Everything else here is still a plan.**
+Plan and work queue for everything outside the fight: the main menu, the Max Payne 3-style menu look, loadouts and items, skills (Max Payne 3's "Bursts", renamed), levels, titles and cash, the skin shop and crates, and settings. Written 2026-11-10, decisions updated 2026-11-14. **Built so far: Phase A of the [[#Suggested build order]] (2026-11-14): the slot rename, the server profile and the match manager; Phase B (2026-11-18): the main menu, the menu kit and the first UI art; Phase C (built by 2026-11-18, checked against this plan and written up 2026-11-19): XP, Cash, levels, titles and stats, the scoreboard, kill feed, name tags and the match-end screen ([[Changelog]]). Everything else here is still a plan.**
 Related: [[Loadout and Dual Wielding]] · [[Last Stand and Bullet Time]] · [[Limb Health]] · [[HUD Layout]] · [[Architecture]] · [[Gun Skin Ideas]] · [[Max Payne 3 Game Modes - Roblox Engagement]] · [[Max Payne 3 HUD and Combat UI Reference]] · [[Blender and Asset Pipeline]] · [[Multiplayer Networking Research]] · [[Networking and Security]]
 
 > [!important] Ground rules for everything in this note
@@ -484,11 +484,11 @@ How the locks work:
 - **Titles:** one per few ranks (14 rank titles from rank 1 to 50, Brazilian military ranks), one per Legend (10), plus achievement titles (all weapons, all bursts, all items, all avatar items, all weapons max rank, all achievements). Titles are shown to other players.
 
 ### Our level system (the request: milestones give a cash multiplier and a title others can see)
-- [ ] **Levels 1–50** (cap decided 2026-11-14). **Target (decided 2026-11-14): level 1 → 50 in about 20 hours**, so all five prestiges take about 100 hours.
+- [x] **Levels 1–50** (cap decided 2026-11-14). **Target (decided 2026-11-14): level 1 → 50 in about 20 hours**, so all five prestiges take about 100 hours. **Built** (`ProgressionRules`, checked 2026-11-19): the curve below, 73,500 XP in all; XP past level 50 is dropped.
   - XP to go from level L to L+1: **`300 + 50 × (L − 1)`**: level 2 needs 300 XP, level 49 → 50 needs 2,700; **73,500 XP** for 1→50.
   - Working (estimates, to check against real match data): a 12-minute match pays about 750 XP on average (half wins at 1,000 and half losses at 250 = 625, plus ~10 kills = 100, plus ~25 in assists and bonuses). 73,500 ÷ 750 ≈ 98 matches ≈ 20 hours.
   - If matches turn out shorter or longer, or kills per match differ, change the two curve numbers, not the rewards.
-- [ ] **Rewards for match performance (server-counted).** **Decided 2026-11-14: Cash and XP use the same values**, and every row below pays:
+- [x] **Rewards for match performance (server-counted).** **Decided 2026-11-14: Cash and XP use the same values**, and every row below pays. **Built** (`ProgressionService`): every row but challenges (section 7), in XP and Cash alike; a kill gets the shoot-dodge or the bullet time bonus, not both. Since 2026-11-19 a player is paid for at most 5 kills and assists on the same victim in a match (`PAID_PER_VICTIM`), so a second account standing still can't be farmed; more still score and count in stats.
   | Event | Cash ($) | XP | Status |
   |---|---|---|---|
   | **Kill** | **$10** | **10** | Decided |
@@ -500,10 +500,10 @@ How the locks work:
   | Kill from Last Stand | +$5 | +5 | Decided |
   | Revenge kill (killed your last killer) | +$3 | +3 | Decided |
   | Challenge tier | same as its XP | per challenge | Decided to pay; amounts per challenge (section 7) |
-- [ ] Win and loss payouts only go to players who were in the match for most of it (placeholder: at least half the match time), so joining at the last minute doesn't pay $1,000.
-- [ ] **Cash** is paid by the server as the events happen (or totalled at match end), then × the player's **cash multiplier**. **XP is not multiplied.** Cash is what buys crates, skins, skills and items.
-- [ ] Match-end screen lists what was earned: kills × $10, win bonus, multiplier, total. 🎨 In the UI style of section 2.
-- [ ] **Milestones every 5 levels** give a new title and a cash multiplier step. All titles below are **placeholders** (ids like `title_lv20` stay when names change):
+- [x] Win and loss payouts only go to players who were in the match for most of it (placeholder: at least half the match time), so joining at the last minute doesn't pay $1,000. **Built**, and tightened 2026-11-19 after the reviewer showed two accounts could farm it (`MatchRules.results`): a player must also have fought (taken 10 limb health off other players, or killed one); a match needs two players who count to be won or lost at all; and when everyone who counts ties, it's a draw that pays all of them the loss (a tie at the top still shares the win when someone else scored less). The end screen says why a match didn't count. Players in the main menu no longer make up the 2 a match needs to start.
+- [x] **Cash** is paid by the server as the events happen (or totalled at match end), then × the player's **cash multiplier**. **XP is not multiplied.** Cash is what buys crates, skins, skills and items. **Built:** paid as the events happen, in whole dollars, the hundredths carried to the next payment.
+- [x] Match-end screen lists what was earned: kills × $10, win bonus, multiplier, total. 🎨 In the UI style of section 2. **Built** (`MatchEndScreen`): a row per reward with its count, XP and Cash, the multiplier, the total, the standings and the XP bar filling.
+- [x] **Milestones every 5 levels** give a new title and a cash multiplier step. All titles below are **placeholders** (ids like `title_lv20` stay when names change). **Built:** the titles unlock with the level, and a player wearing their top title moves up to the new one:
   | Level | Title (placeholder) | Cash multiplier |
   |---|---|---|
   | 1 | Nobody | ×1.00 |
@@ -517,7 +517,7 @@ How the locks work:
   | 40 | Kingpin | ×1.40 |
   | 45 | Untouchable | ×1.45 |
   | 50 | Maximum Pain | ×1.50 |
-- [ ] **Prestige (decided 2026-11-14): levels I to V.** At level 50 the player may prestige from the main menu, which **resets their level to 1**. Max prestige is **5 (V)**; at prestige V, level 50 is the end.
+- [ ] **Prestige (decided 2026-11-14): levels I to V.** At level 50 the player may prestige from the main menu, which **resets their level to 1**. Max prestige is **5 (V)**; at prestige V, level 50 is the end. Not built (step 15); the prestige part of the multiplier and the five prestige titles are already in `ProgressionRules`.
   | Prestige | Icon | Cash multiplier bonus | Title (placeholder) | Extra |
   |---|---|---|---|---|
   | 1 | **I** | +20% | Wanted | |
@@ -532,7 +532,7 @@ How the locks work:
   - [ ] **Prestige icon:** a **Roman numeral (I, II, III, IV, V)** shown **next to the player's title** everywhere the title appears: player card, name tag, scoreboard, kill feed, kill cam panel. One small badge per numeral, made in Blender (`UI_Prestige_I` … `UI_Prestige_V`, section 3). 🎨 In the UI style of section 2: white numeral, hard-edged plate, no colour except where the palette allows.
   - [ ] **Confirm screen** before prestiging, listing exactly what is lost and kept, with a hold-to-confirm. 🎨 Same style. The server performs the reset in one profile update (`Prestige` remote: checks level 50 and prestige < 5).
   - [ ] The "Old Badge" gear item (Max Payne 3's Badge of Honor) is no longer needed: the multiplier is built into prestige.
-- [ ] **Achievement titles** (placeholders, unlocked by the server when it sees the condition):
+- [ ] **Achievement titles** (placeholders, unlocked by the server when it sees the condition). Not built (not part of step 8); most need systems still to come, and the ones that count kills should count only paid kills, or alts could farm them:
   | Title (placeholder) | Condition |
   |---|---|
   | Arsenal | Every gun unlocked |
@@ -547,11 +547,11 @@ How the locks work:
   | Two Fisted | 1,000 kills while dual wielding |
   | Top Dog | Finish #1 on a season leaderboard (seasonal, dated) |
   | Founder | Played during the first month (limited) |
-- [ ] Players **choose which unlocked title to show** (decided 2026-11-14; in Loadout or a Profile screen). The server checks the title is unlocked.
-- [ ] **Where others see it:** the overhead name tag (`BillboardGui`: level badge + name + title). **Decided: enemies see it only up close** (placeholder 60 studs, `MaxDistance`) and only in line of sight, never through walls; teammates always see it, the scoreboard (Tab: level, name, title, K/D, score), the kill feed, the kill cam death panel ("Killed by [Kingpin] PlayerName"), lobby/player card. Respect Turncoat and Street Clothes (they hide or fake parts of the tag).
-- [ ] **Level-up moment:** big centred "LEVEL 20 – ENFORCER", glitch transition, sound, unlock list (new guns, items, skill levels). Shown at match end so it doesn't block the fight; a small toast during the match.
+- [x] Players **choose which unlocked title to show** (decided 2026-11-14; in Loadout or a Profile screen). The server checks the title is unlocked. **Built** in the Tab scoreboard (the left and right arrows, `SetTitle`); a picker in Loadout or a Profile screen can follow.
+- [x] **Where others see it** (**built:** the name tag, the scoreboard, the kill feed, the kill cam's KILLED BY panel and the player card; Turncoat and Street Clothes come with them): the overhead name tag (`BillboardGui`: level badge + name + title). **Decided: enemies see it only up close** (placeholder 60 studs, `MaxDistance`) and only in line of sight, never through walls; teammates always see it, the scoreboard (Tab: level, name, title, K/D, score), the kill feed, the kill cam death panel ("Killed by [Kingpin] PlayerName"), lobby/player card. Respect Turncoat and Street Clothes (they hide or fake parts of the tag).
+- [x] **Level-up moment:** big centred "LEVEL 20 – ENFORCER", glitch transition, sound, unlock list (new guns, items, skill levels). Shown at match end so it doesn't block the fight; a small toast during the match. **Built** (`MatchEndScreen`, and a row under the score bar during the match), **without the sound** (the game has none yet). Its unlock list shows the new title and multiplier, and will list guns, items and skill levels once those unlock by level.
 - [ ] Roblox **badges** (`BadgeService`) for level 10/25/50 and first prestige (optional, good for discovery).
-- [ ] Titles are fixed strings we wrote, so no text filtering needed. Never let players type a title.
+- [x] Titles are fixed strings we wrote, so no text filtering needed. Never let players type a title. (Built: `SetTitle` takes an id, never text.)
 
 ---
 
@@ -572,10 +572,10 @@ How the locks work:
     Purchases = { receiptIds processed },
   }
   ```
-  - **Built 2026-11-14 (Phase A):** `ProfileService`, with `ProfileSchema` (the fields) and `ProfileStorage` (the DataStore), in ServerScriptService. The profile holds `Version, Level, XP, Cash, Prestige` and `Stats = { Kills, Deaths, HeadshotKills, Matches, Wins, PlaySeconds }` so far. **Each later step adds its own fields** (titles, unlocks, loadouts, skins, crates, challenges, settings, purchases) with a default in `ProfileSchema.new` and a check in `ProfileSchema.validate`; old saves get the default when they load, with no version change.
+  - **Built 2026-11-14 (Phase A):** `ProfileService`, with `ProfileSchema` (the fields) and `ProfileStorage` (the DataStore), in ServerScriptService. The profile holds `Version, Level, XP, Cash, Prestige, TitleSelected, TitlesUnlocked` and `Stats = { Kills, Deaths, HeadshotKills, Matches, Wins, PlaySeconds }` so far (the titles came with Phase C). **Each later step adds its own fields** (titles, unlocks, loadouts, skins, crates, challenges, settings, purchases) with a default in `ProfileSchema.new` and a check in `ProfileSchema.validate`; old saves get the default when they load, with no version change.
   - **How code uses it:** `ProfileService.get(player)` returns the profile, frozen. `ProfileService.update(player, function(profile) … end)` is the only way to change one: the function edits a copy, which replaces the profile only if it finishes without an error or a wait and passes `validate` (so a save never catches a change half done, and a negative balance or level 51 is refused). `ProfileService.release(player)` saves and unlocks before a teleport. `Loaded` and `Changed` signals. Level, XP, Cash and Prestige are copied to attributes on the Player for the menus to read.
-- [x] **DataStore safety** (see `roblox-datastores` practice): session locking so two servers can't load the same profile (ProfileStore-style), `UpdateAsync` not `SetAsync`, retries with backoff in `pcall`, autosave every ~60–120 s, save on leave and in `game:BindToClose`, schema `Version` with migrations, never save mid-transaction. **Built 2026-11-14:** one key per player (`Player_<UserId>` in the `PlayerProfiles` DataStore; Studio play tests use `PlayerProfiles_Studio`), the lock taken in the same `UpdateAsync` that loads, refreshed by each autosave (60 s) and free after 180 s without one; every save first checks the lock is still this server's; a player whose profile can't be loaded is kicked, never given a fresh one. Tested against a stand-in DataStore; **not yet against the real one** (Studio's API access is off, see the [[Changelog]]).
-- [ ] **XP and cash only from server events:** the damage system (server-side) records who damaged whom; on death the server awards kill/assist XP. Match-end XP/cash computed by the server's match manager. **No remote ever carries an XP or cash amount.**
+- [x] **DataStore safety** (see `roblox-datastores` practice): session locking so two servers can't load the same profile (ProfileStore-style), `UpdateAsync` not `SetAsync`, retries with backoff in `pcall`, autosave every ~60–120 s, save on leave and in `game:BindToClose`, schema `Version` with migrations, never save mid-transaction. **Built 2026-11-14:** one key per player (`Player_<UserId>` in the `PlayerProfiles` DataStore; Studio play tests use `PlayerProfiles_Studio`), the lock taken in the same `UpdateAsync` that loads, refreshed by each autosave (60 s) and free after 180 s without one; every save first checks the lock is still this server's; a player whose profile can't be loaded is kicked, never given a fresh one. Tested against a stand-in DataStore; **not yet against the real one** (Studio's API access is off, see the [[Changelog]]). **Tightened 2026-11-19** (the reviewer's findings): a last save that fails is tried again every 10 s while the server runs instead of being dropped, and a rejoin to the same server waits for it; one player's loads run one at a time; a lock left by an earlier session on the same server now blocks a load like any other (it used to be ignored, which could load older data).
+- [x] **XP and cash only from server events:** the damage system (server-side) records who damaged whom; on death the server awards kill/assist XP. Match-end XP/cash computed by the server's match manager. **No remote ever carries an XP or cash amount.** **Built (Phase C):** `CombatLog` records who damaged whom and `ProgressionService` pays from the server's own kill and match events; the reviewer confirmed no remote carries an amount (2026-11-19).
 - [ ] **Remotes the client may call** (all validated, rate-limited):
   | Remote | Carries | Server checks |
   |---|---|---|
@@ -589,14 +589,14 @@ How the locks work:
   | `BuySkin` | skin id | for sale now, enough Cash, not owned |
   | `OpenCrate` | crate id | owns one (or enough Cash), crate not complete for this player, policy allows; **roll on the server** among skins not yet owned |
   | `EquipSkin` | gun id + skin id | owns skin, skin fits gun |
-  | `SetTitle` | title id | unlocked |
+  | `SetTitle` | title id | unlocked (built, Phase C) |
   | `SaveSettings` | settings table | types and ranges checked, size limit |
 - [ ] **Robux purchases:** `MarketplaceService.ProcessReceipt` on the server only; idempotent (store `PurchaseId`, return `PurchaseGranted` only after the profile saved). Never grant from a client message.
-- [ ] **Anti-farm:** cap XP per minute; no XP for killing the same player more than N times in a short window when they don't fight back (AFK farming); reduced or no XP in private servers with fewer than N players; no XP from team kills or from your own Trust Issues friendly fire.
+- [ ] **Anti-farm:** cap XP per minute; no XP for killing the same player more than N times in a short window when they don't fight back (AFK farming); reduced or no XP in private servers with fewer than N players; no XP from team kills or from your own Trust Issues friendly fire. **Partly built 2026-11-19:** at most 5 paid kills and assists per victim a match; no win or loss pay for a player who didn't fight or had nobody who counted to play against; players in the menu don't make up a match. Not built: the XP-per-minute cap and the private-server rule (a decision: lower or no rewards there?).
 - [ ] **Sanity and logging:** log big jumps (cash > X per match, level jumps) to an analytics/log store for review; `AnalyticsService` economy events for every Cash source and sink.
 - [ ] **Leaderboards:** `OrderedDataStore` written by the server (level, kills, season XP).
 - [x] **Testing:** a cheat remote that only exists in Studio (`RunService:IsStudio()`) to set level/cash for testing, added to `Tools/TestHarness.luau`. Never shipped. **Built 2026-11-14:** `ServerStorage.Tools.ProfileCheats` (in the repo as `Tools/ProfileCheats.luau`), cloned into ServerScriptService for a play session, and `mp.profile({ Level = 20, Cash = 5000, Prestige = 1 })` in the harness; how to install is in [[Test Arena]]. It goes through `ProfileService.update`, so it can't set a value the rules refuse.
-- [ ] The `roblox-dev:roblox-reviewer` check over all economy code before publishing.
+- [x] The `roblox-dev:roblox-reviewer` check over all economy code before publishing. **Done 2026-11-19** over the progression and profile code (19 scripts); its nine findings were fixed and tested the same day ([[Changelog]]). Run it again before publishing each later step that touches Cash, XP or purchases.
 
 ---
 
@@ -709,7 +709,7 @@ Saved in the server profile (`Settings`), applied on the client. Defaults chosen
 Reordered 2026-11-14, after every decision in section 0 was settled. Starts after the animation work's blockers ([[Animation and MP3 Systems - Progress and To Do#To do (in order)|its to-do]]: save, publish, two-client test). The rule behind the order: **each step only uses things built in the steps before it**, and each step ends with something that can be played and tested.
 
 **Phase A: foundations (nothing visible, everything else stands on it)**
-**Phase A was built on 2026-11-14** ([[Changelog]]), ahead of two of the animation work's blockers (publishing the place and the two-client test, both still open). To do before it reaches live players: turn on Studio's API access and test saving against the real DataStore, the two-client test (kills scoring between two players), and the `roblox-dev:roblox-reviewer` check.
+**Phase A was built on 2026-11-14** ([[Changelog]]), ahead of two of the animation work's blockers (publishing the place and the two-client test, both still open). To do before it reaches live players: turn on Studio's API access and test saving against the real DataStore, and the two-client test (kills scoring between two players). The `roblox-dev:roblox-reviewer` check was done on 2026-11-19.
 1. [x] **Rename the weapon slots in code** (`Two/OneA/OneB` → `Primary/Secondary/Tertiary`, section 5). First, because every later step (profile, remotes, loadout screen) would otherwise be written with the old names and renamed twice. Done 2026-11-14.
 2. [x] **Server profile + DataStore safety** (section 9), with the Studio-only cheat remote to set level, cash and prestige. Nothing else may save data on its own. Every later step reads and writes through this. Done 2026-11-14: `ProfileService` (`get`, `update`, `release`), `ProfileSchema`, `ProfileStorage`, `ProfileCheats`; details in section 9.
 3. [x] **Match manager** (new step; nothing like it exists in the code yet): match start and end, timer, who won and lost, how long each player was in the match. The win and loss payouts ($1,000 / $250) can't exist without it, and the menu's "current match" line reads from it. Done 2026-11-14: `MatchService` and `MatchRules` ([[Architecture]]). Free-for-all only, a kill is a point, the most points wins (ties share it, nobody wins on 0). Placeholders in `MatchRules`: 8-minute matches, 15 s between them, 2 players to start, half the match to count as won or lost. For step 7: `MatchService.Ended` carries each player's `won` and `eligible` (pay the win or loss only when `eligible`), and `LastStandService.Killed` gives each kill with its killer. For the menu: the attributes on `ReplicatedStorage.Match` (`State`, `Mode`, `Map`, `Number`, `EndsAt`).
@@ -721,9 +721,9 @@ Reordered 2026-11-14, after every decision in section 0 was settled. Starts afte
 6. [x] **Blender UI pipeline and first assets** (logo, overlays, weapon icons, section 3). Can run alongside steps 4–5; the images swap in for the placeholders when ready. Done 2026-11-18 apart from the weapon icons: `ui_lib.py`, the logo and the five overlays, uploaded and in the menu. The icons' renderer is ready; the guns' source isn't on this PC.
 
 **Phase C: progression (so later screens have real levels and cash to lock things behind)**
-Found in the place on 2026-11-18, built outside these notes: `ProgressionService`, `CombatLog`, `ProgressionRules`' curve, rewards and titles, `PlayerCard`, `Scoreboard`, `MatchHud`, `KillFeed`, `NameTags` and `MatchEndScreen` cover most of steps 7 and 8 ([[Architecture]] lists them). Not checked against the plan here and not ticked: whoever built them should write them up and tick what's done.
-7. [ ] **XP, cash, levels and stats** (section 8): rewards from the server's own kill and match events, the level curve, the level cash multiplier, the stats on the player card, the XP bar, the match-end earnings screen, the level-up moment.
-8. [ ] **Titles, name tags and scoreboard:** milestone titles, picking a title, the name tag (distance and line-of-sight rule), Tab scoreboard, kill feed.
+**Phase C was built by 2026-11-18** (found in the place that day, built outside these notes) **and checked against this plan on 2026-11-19**: everything in steps 7 and 8 is there ([[Architecture]] describes each part; section 8 has the ticks). The `roblox-dev:roblox-reviewer` check ran over it the same day and its nine findings were fixed ([[Changelog]]). Left open: the level-up sound (the game has no sound yet), the two-client test (kills, assists, revenge, name tags and the kill feed between two real players), and section 8's optional extras (achievement titles, Roblox badges).
+7. [x] **XP, cash, levels and stats** (section 8): rewards from the server's own kill and match events, the level curve, the level cash multiplier, the stats on the player card, the XP bar, the match-end earnings screen, the level-up moment. Done (checked 2026-11-19).
+8. [x] **Titles, name tags and scoreboard:** milestone titles, picking a title, the name tag (distance and line-of-sight rule), Tab scoreboard, kill feed. Done (checked 2026-11-19).
 
 **Phase D: loadouts**
 9. [ ] **Stamina and health regeneration:** the weight classes change regen, stamina and aiming speed, and neither system is built yet ([[Movement State Machine]], [[Limb Health]]).

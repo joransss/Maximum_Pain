@@ -3,8 +3,9 @@
 -- afresh. Never part of a live game: it lives in ServerStorage.Tools, where scripts don't run, and stops
 -- at once outside Studio. The repo has the same script as Tools/ProfileCheats.luau.
 --
--- Install it once per play session, on the server (the Studio MCP's execute_luau, or the command bar
--- in the server's view):
+-- Install it once per play session, on the server, while the play test runs (the Studio MCP's
+-- execute_luau on the Server datamodel, or the command bar in the server's view). Never in Edit mode:
+-- the copy would be saved into the place.
 --   game.ServerStorage.Tools.ProfileCheats:Clone().Parent = game.ServerScriptService
 -- Cloned there it runs as one of the game's scripts, so it changes the profiles the game holds (a
 -- `require` from the command bar would get a copy of ProfileService of its own). It adds the
@@ -29,6 +30,17 @@ local ProfileService = require(ServerScriptService:WaitForChild("ProfileService"
 
 local FIELDS: { [string]: boolean } = { Level = true, XP = true, Cash = true, Prestige = true }
 
+-- Who may use it: the place's owner, Studio's own test players (Player1, Player2... have ids below 1)
+-- and anyone listed here, such as a collaborator testing in Team Create.
+local EXTRA_USER_IDS: { [number]: boolean } = {}
+
+local function allowed(player: Player): boolean
+    if player.UserId < 1 or EXTRA_USER_IDS[player.UserId] then
+        return true
+    end
+    return game.CreatorType == Enum.CreatorType.User and player.UserId == game.CreatorId
+end
+
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local old = remotes:FindFirstChild("DebugProfile")
 if old then
@@ -48,6 +60,9 @@ local function describe(player: Player): string
 end
 
 remote.OnServerInvoke = function(player: Player, request: unknown): string
+    if not allowed(player) then
+        return "not allowed: only the place's owner and Studio's test players may use the cheats"
+    end
     local wanted: { [string]: number } = {}
     local reset = false
     if request ~= nil then

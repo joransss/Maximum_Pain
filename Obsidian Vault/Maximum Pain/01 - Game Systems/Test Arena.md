@@ -86,7 +86,7 @@ To work the left side without moving along the wall (the move's floor dips would
 
 **Profile cheats** (since 2026-11-14; Studio only): also on the server, `game.ServerStorage.Tools.ProfileCheats:Clone().Parent = game.ServerScriptService` (in the repo as `Tools/ProfileCheats.luau`). Then on the client `mp.profile({ Level = 20, Cash = 5000, Prestige = 1 })` sets your own profile's values (XP goes back to 0 with a new level), `mp.profile({ Reset = true })` starts it afresh and `mp.profile()` reports it. Values the rules don't allow (level 51, negative cash) are refused.
 
-**A match alone:** in play mode, on the server, `game.ServerScriptService.MatchService:SetAttribute("DebugMinPlayers", 1)` starts matches with one player; `DebugIntermission` and `DebugLength` (seconds) shorten them. Read the match from `game.ReplicatedStorage.Match`'s attributes.
+**A match alone:** in play mode, on the server, `game.ServerScriptService.MatchService:SetAttribute("DebugMinPlayers", 1)` starts matches with one player, once they have pressed PLAY (players in the menu don't count); `DebugIntermission` and `DebugLength` (seconds) shorten them. `DebugNpcKills = true` makes the dummies score and pay like players, and `DebugMinContestants = 1` lets the match be won alone (a match otherwise needs two players who fought; since 2026-11-19). Read the match from `game.ReplicatedStorage.Match`'s attributes and `mp.progress()`.
 
 ## Not tested yet
 Two real players, network lag, phones and tablets (there are no touch controls), the angled wall, the ledge dive, the line-of-sight failure in Last Stand, and Studio's Script Analysis (type warnings).

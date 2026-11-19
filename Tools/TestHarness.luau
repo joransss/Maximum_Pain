@@ -48,9 +48,11 @@
 -- (attributes on the Player). mp.title(id) asks for another title the way the scoreboard does (the
 -- SetTitle remote), so the server's checks apply. mp.shoot(name, part, limit) fires the gun in your
 -- right hand at a dummy's part through the FireWeapon remote until the dummy dies: real shots, with
--- the server's fire rate, ammo, spread and line of fire. To play a match alone, on the server:
+-- the server's fire rate, ammo, spread and line of fire. To play a match alone (after PLAY: players in
+-- the menu don't count towards a match), on the server:
 --   game.ServerScriptService.MatchService:SetAttribute("DebugMinPlayers", 1)
 --   game.ServerScriptService.MatchService:SetAttribute("DebugNpcKills", true)  -- dummies score and pay
+--   game.ServerScriptService.MatchService:SetAttribute("DebugMinContestants", 1)  -- a match alone can be won
 -- In Studio play driven by the MCP, the window is usually in the background: frames are drawn at about
 -- 15 per second while physics runs at 60, so render-step code (the camera, stances, movers, clip
 -- weights) runs in 66 ms steps. Check timing-sensitive results against that.

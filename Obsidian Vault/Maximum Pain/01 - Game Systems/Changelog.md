@@ -3,6 +3,53 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-19: The reviewer's check over the economy code, its nine fixes, and Phase C checked against the plan
+On this PC (Studio signed in as 83tg), with Claude Code driving Studio. JordanSaa asked for the `roblox-dev:roblox-reviewer` check over the progression code, then to fix everything it found and begin Phase C.
+- 9 game scripts changed in the Team Create place (none added), and the two Studio tools (`ProfileCheats`, `TestHarness`) with their repo copies. No clip changed.
+- **What players will notice:** a match only starts with 2 players in the fight (the menu doesn't count); a player who never fought, or had nobody else who counted, gets no win or loss pay; when everyone who counts ties, it's a DRAW, paid as a loss; after 5 kills or assists on the same victim in a match, more pay nothing.
+
+**The review** (the `roblox-dev:roblox-reviewer` agent over 19 scripts: the profile, match and progression servers, their shared rules, the cheats and the six progression screens)
+- No client can give itself XP, Cash, kills, titles or stats: `SetTitle` and `MenuRequest` are checked, throttled and checked again on the server, and no remote carries an amount. The DataStore side (locking, retries, `BindToClose`, number checks, migrations) and memory use were sound.
+- It found nine problems, all fixed below. Two things it couldn't see from those files were checked here: `BulletTimeLevel` is cleared to nil when bullet time ends (so the +3 bonus can't pay on every kill), and the `Remotes` folder is saved in the place.
+
+**Fixed**
+1. **Win and loss pay could be farmed** (high). Two accounts tied 1–1 both "won" $1,000 a match, and an idle account with a second one sitting in the menu was paid $250 a match for nothing. Now (`MatchRules.results`): a player counts only if they were in the match for half of it **and fought** (`MIN_DAMAGE`: took 10 limb health off other players, or killed one); a match needs **two players who count** (`MIN_CONTESTANTS`) to be won or lost at all; a tie at the top still shares the win when someone else scored less, but when everyone who counts ties it's a **draw**: nobody wins and all are paid the loss. `MatchService` counts only `Deployed` players towards the 2 a match needs, and adds up the damage each player deals (`CombatLog.Hurt`). The end screen says DRAW (MATCH DRAWN on the loss row), or why the match didn't count: JOINED TOO LATE, NO DAMAGE DEALT or NOBODY TO BEAT. My calls, as placeholders: the 10 damage, and a draw paying the loss.
+2. **Kills of the same victim paid without limit** (medium): an alt standing at a spawn was $13 a kill. Now at most 5 kills and assists on one victim pay per match (`ProgressionRules.PAID_PER_VICTIM`, my number); more still score and count in the lifetime stats.
+3. **Leaving and rejoining while the profile loaded** could open two sessions of one profile on the same server (medium), kicking the player and losing up to a minute. One player's loads now run one at a time (`ProfileService`).
+4. **A last save that failed was thrown away** (medium), and a rejoin to the same server then loaded the older autosave. It's now tried again every 10 s for as long as the server runs, and a rejoin to that server waits for it (up to 90 s, then "still being saved, please rejoin in a minute"). `ProfileStorage` no longer ignores a lock left by an earlier session on the same server.
+5. **Up to about 35 s of play time was lost on each leave or shutdown** (low). `ProfileService.beforeRelease(callback)` runs just before the last save, and `ProgressionService` writes the play time there.
+6. **Name tags could go missing with StreamingEnabled** (low): a tag waited only 10 s for the head and was dropped when the character streamed out. A player's tag now lasts their whole visit and finds their character and head again at every sight check (`NameTags`).
+7. **A kill wasn't paid if the killer respawned before the victim died** (low), and their revenge could never pay. `CombatLog.killerOf` names the player the log saw land the killing blow; the match's score and the rewards both use it.
+8. **`CombatLog` took infinite damage** (low; `LimbService` caps damage at the limb's health, so it can't happen today): refused now.
+9. **`ProfileCheats` had no allowlist** (low; it can't run outside Studio). It now answers only the place's owner and Studio's own test players (ids below 1); anyone else goes in `EXTRA_USER_IDS`. Its install note now says Play mode only (in Edit mode the copy would be saved into the place). The repo's `Tools/ProfileCheats.luau` matches.
+
+**Phase C checked against the plan**
+- Everything in steps 7 and 8 of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]] is in the place: the level curve, every reward, the eligibility rule, the Cash multiplier (the prestige part too), the player card's stats and XP bar, the match-end screen and the level-up moment, milestone titles, the title picker (Tab, then the left and right arrows), name tags (60 studs, line of sight), the scoreboard, the kill feed, and titles on the kill cam's KILLED BY panel. Section 8 and the build order are ticked, and [[Architecture]] now describes each part instead of quoting its header.
+- Missing from the plan's list: the level-up sound (the game has no sound yet). Not part of steps 7 and 8 and not built: achievement titles, Roblox badges, prestige (step 15).
+- `TestHarness`: playing a match alone now also needs `DebugMinContestants = 1`, and PLAY pressed first.
+
+**Tested** (Studio play mode, 83tg's avatar, one player; `DebugNpcKills` on, so the dummies count)
+| Test | Result |
+|---|---|
+| Self-checks | `MatchRules` (with the new draw, idle and alone cases), `ProfileStorage` (with the same-server lock case) and `ProgressionRules` pass on load |
+| One player in the menu, `DebugMinPlayers = 1` | Stays WAITING; the match starts once they press PLAY |
+| Six headshot kills of the same dummy in one match | Score and stats 6; paid 5 (65 XP, $65) |
+| That match ending (`DebugMinContestants = 1`) | Win: $1,000 and 1,000 XP; the summary says won, not drawn; level 1 → 4 with 15 XP |
+| The next match | The first kill paid again (the cap is per match) |
+| Alone, with the default 2 contestants | MATCH OVER (`Alone`): the kill paid, no win or loss, Matches not counted |
+| A match without firing | `Idle`, nothing paid; the end screen reads NO DAMAGE DEALT: THIS ONE DIDN'T COUNT, and it fits |
+| A last save failing twice (a copy of `ProfileService` on a stand-in DataStore) | Tried again at 10 s and 20 s, saved on the third try; the `beforeRelease` callback ran once before it and its change was saved; the lock given up |
+| A name tag on a dummy whose head is taken away and a new copy put back (as streaming does) | Shown; hidden with no head; hung on the new head and shown; back on the original |
+| `mp.profile()` as the place's owner | Answers as before |
+| Output log | Clean apart from the DataStore line and the stand-in's own warnings |
+
+**Not done**
+- The two-client test is still owed: kills, assists, revenge, a draw, name tags and the kill feed between two real players, and a kill credited after the killer respawned (fix 7). The one-load-at-a-time fix (3) wasn't run: it needs the same player to leave and rejoin while their profile loads.
+- Saving against the real DataStore (Studio's API access is still off).
+- Private servers (lower or no rewards there?) and an XP-per-minute cap: decisions, in section 9 of the plan.
+- Studio's Script Analysis (type warnings) wasn't run over the changed scripts.
+- The place isn't published (Team Create keeps the changes). Nothing is committed: `Tools/ProfileCheats.luau`, `Tools/TestHarness.luau` and these notes.
+
 ## 2026-11-18: Phase B of the menu plan: the main menu, the menu kit and the first UI art
 On this PC (Studio signed in as 83tg, Blender 5.2.3), with Claude Code driving Studio and Blender. JordanSaa asked for Phase B ("the menu shell") of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]]; nothing past it was built.
 - 6 scripts added and 12 changed in the Team Create place (65 game scripts now). No clip changed.

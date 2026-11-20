@@ -6,8 +6,8 @@ Related: [[Loadout and Dual Wielding]] · [[Movement State Machine]] · [[Cover 
 ## Where the code lives
 | Piece | Place in Studio | Job |
 |---|---|---|
-| `WeaponConfig` | ReplicatedStorage.Modules | Every gun's numbers. **The only file to edit when tuning.** It checks itself when it loads (for example, `MaxSpread` below `BaseSpread` stops the game with a clear error). |
-| `WeaponMath` | ReplicatedStorage.Modules | Spread, bloom and spray-pattern maths. Shared by server and client so both always agree. |
+| `WeaponConfig` | ReplicatedStorage.Modules | Every gun's numbers. **The only file to edit when tuning.** It checks itself when it loads (for example, `MaxSpread` below `BaseSpread` stops the game with a clear error). Since 2026-11-20 also each gun's line for the loadout screen (`Descriptions`), the level it unlocks at and its price (`Unlocks`), and an optional `WeightOverride`. |
+| `WeaponMath` | ReplicatedStorage.Modules | Spread, bloom and spray-pattern maths. Shared by server and client so both always agree. Since 2026-11-20 also the loadout screen's five ratings (`ratings`), damage per second (`dps`) and each gun's weight from its stats (`power`, `weight`). |
 | `ShotRules` | ReplicatedStorage.Modules | Where shots leave from (the gun's path from the body, over or round cover), and the stance, movement and dual-wield accuracy modifiers. |
 | `WeaponServer` | ServerScriptService | Decides every shot: fire rate, ammo, the gun's path, spread, hits and limb damage. Takes hold, drop, aim and reload requests. |
 | `LoadoutService` | ServerScriptService | What each player carries and holds, reloads, dropping and picking up. See [[Loadout and Dual Wielding]]. |
@@ -20,7 +20,8 @@ Related: [[Loadout and Dual Wielding]] · [[Movement State Machine]] · [[Cover 
 - **The server decides.** The client only sends where it is aiming and which hand fires. Damage, ammo, fire rate, spread, aiming and hits are all worked out on the server.
 - **Hitscan.** Each shot is an instant ray from the muzzle toward the crosshair's target. The tracer is only the picture of that shot.
 - **Ammo: one spare magazine.** Every gun spawns with a full magazine plus one spare. When both are spent the gun is empty. Dropped guns keep their ammo, so picking one up is the only way to get more.
-- **Loadout:** two one-handed guns and one two-handed gun, with dual wielding. Everyone spawns with the M9, Uzi and AK-47; the [[Test Arena]]'s gun table has all 13. See [[Loadout and Dual Wielding]].
+- **Loadout:** two one-handed guns and one two-handed gun, with dual wielding. Each player spawns with the loadout they selected (since 2026-11-20; before, everyone had the M9, Uzi and AK-47); the [[Test Arena]]'s gun table has all 13. See [[Loadout and Dual Wielding]].
+- **Unlocks:** each gun unlocks at a level and some cost Cash (`WeaponConfig.Unlocks`, 2026-11-20): the M9, Uzi, AK-47, S&W 500 and M500 are free from level 1, the FAL from level 3, then the Glock 18 (level 5, $500), MP5 (8, $1,000), Desert Eagle (12, $1,500), sawn-off (16, $2,000), SPAS-15 (22, $2,500), M107 (28, $3,500) and M4 (34, $3,000). Guns lying on the floor can be picked up by anyone, locked or not.
 
 ## Weapon balancing
 All numbers are first-pass placeholders, tuned by feel. Damage is per bullet (per pellet for shotguns). Headshots do ×2.
@@ -138,7 +139,7 @@ Like Counter-Strike 2, recoil and inaccuracy are two separate systems.
 
 ## Aiming and the sniper scope
 - **Aim:** right mouse button (gamepad L2), held. The camera moves in close to the shoulder and the field of view narrows from 70 to 52. Spread is multiplied by `AimSpreadScale`. Sprinting stops while aiming, and walking slows to 70%.
-- **The server tracks aiming.** The client tells the server when aiming starts and stops (`WeaponAction` "Aim"), not with each shot. The tighter aimed spread only applies after 0.15 s of aiming, only in stances that allow aiming, and never while hidden behind cover (that is blind fire).
+- **The server tracks aiming.** The client tells the server when aiming starts and stops (`WeaponAction` "Aim"), not with each shot. The tighter aimed spread only applies after 0.15 s of aiming (times the loadout's weight class since 2026-11-20: Light ×0.85, Heavy ×1.2, as the camera's zoom), only in stances that allow aiming, and never while hidden behind cover (that is blind fire).
 - In cover, aiming pops out ([[Cover System]]).
 - **Sniper scope (M107):** after the normal aim zoom, a second, slower and heavier push takes the view to 10. At 85% of that push the scope overlay appears with a quick fade from black. From the hip the overlay appears about 0.45 s after pressing aim. Letting go zooms out quickly. Turning speed scales with zoom, so scoped aiming stays steady.
 - Switching guns while aiming blends smoothly in both directions; it never snaps.

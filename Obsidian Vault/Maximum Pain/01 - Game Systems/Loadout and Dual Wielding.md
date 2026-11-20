@@ -19,7 +19,13 @@ The slots were called `OneA`, `OneB` and `Two` in the code until 2026-11-14, whe
 
 - The Uzi is a one-arm SMG, so it is now one-handed. The MP5 stays two-handed.
 - The sawn-off stays one-handed, as in Max Payne 3 (it already was in [[Limb Health]]). Change `OneHanded` in `WeaponConfig` to move it.
-- Default loadout on every spawn: M9 (1), Uzi (2), AK-47 (3), with the M9 in hand.
+- **What a player spawns with** (since 2026-11-20): their selected loadout, from the loadout screen ([[Menus, Loadout, Progression and Shop - To Do#5. Loadout]]): one of four presets or five saved loadouts, checked again by the server at every spawn. A new player's saved loadouts all start as the old default, M9 (1), Uzi (2), AK-47 (3) (`LoadoutRules.DEFAULT`). The first one-handed gun spawns in hand, or the two-handed gun when there is none. Before Phase D everyone spawned with that default.
+
+## Weight
+Since 2026-11-20 (Phase D). Every gun has a weight worked out from its stats (`WeaponMath.weight`, from 1 for the sawn-off to 11 for the M107; the table and the formula are in [[Menus, Loadout, Progression and Shop - To Do#Gun weight, worked out from the stats]]). **The guns a character carries right now** add up to its loadout weight and class: Light up to 10, Medium 11 to 17, Heavy from 18 (`LoadoutRules`). The class sets health regeneration, stamina and aiming speed ([[Limb Health#Regeneration]], [[Movement State Machine#Sprint]]).
+- Picking up, dropping or losing a gun changes it at once (decided 2026-11-20): drop the rifle to run lighter, pick up an M107 and get heavier. Dual wielding drops the two-handed gun, and injured arms drop guns, so both can change it too.
+- The server works it out (`LoadoutService`) and puts it on the character as `LoadoutWeight` and `WeightClass`; clients read those. The HUD names the class under the figure.
+- Guns alone reach 17 at most (the M107 and two Desert Eagles), so Heavy arrives with the items of Phase E.
 
 ## Holding
 | Mode | Key | Right hand | Left hand |

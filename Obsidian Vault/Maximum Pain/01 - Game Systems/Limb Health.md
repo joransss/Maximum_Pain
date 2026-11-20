@@ -14,7 +14,7 @@ Related: [[Weapons and Recoil]] · [[Loadout and Dual Wielding]] · [[Last Stand
 - A limb is **in the red** at or below 25% of its maximum (`RED_FRACTION`).
 - Headshots do ×2 damage.
 - A hit only damages the limb it lands on. A shotgun blast spreads its pellets over several limbs.
-- Health does not regenerate. Only painkillers restore it.
+- Health comes back by itself only above the red (since 2026-11-20): after a spell without damage, a limb out of the red heals to full, and a limb in the red stays injured until a painkiller lifts it out. See [[#Regeneration]].
 
 ## State rules
 | Condition | Status (HUD tag) | Effect |
@@ -40,6 +40,23 @@ Leg and arm statuses combine (the HUD shows, for example, "LIMPING / ONE ARM").
 - 1 s cooldown. A painkiller is refused when nothing is hurt, the player is dead, or the stance doesn't allow it (sprinting is fine; diving, getting up and Last Stand are not).
 - A painkiller is also the price of surviving a Last Stand, and having one is what makes a Last Stand possible.
 
+## Regeneration
+Added 2026-11-20 with the loadout weight classes (Phase D of [[Menus, Loadout, Progression and Shop - To Do]]). The numbers live in `VitalsRules`; `LimbService` runs it on the server, a step every 0.25 s.
+- Once the character has gone its weight class's delay without damage, **every limb out of the red** heals a share of its maximum each second, up to full.
+- **A limb in the red doesn't heal by itself** (decided 2026-11-20): LIMPING, ONE ARM and the rest stay until a painkiller lifts the limb out of the red, and regeneration carries it on to full from there. So painkillers keep mattering.
+- Any damage starts the delay again.
+
+| Weight class | Delay after the last hit | Heals per second |
+|---|---|---|
+| Light | 3 s | 5% of the limb's maximum |
+| Medium | 4 s | 4% |
+| Heavy | 5 s | 3% |
+
+- The class is the one the guns the character carries make **right now** ([[Loadout and Dual Wielding#Weight]]), so dropping or picking up a gun changes it.
+- Never during a Last Stand or after death. Bullet time slows it, as it slows everything else.
+- Example: a leg on 21 of 70 (just out of the red) on a Medium loadout: nothing for 4 s, then 2.8 a second, full about 18 s later.
+- The test arena's dummies heal too (as Medium), since they have limb health.
+
 ## Hooks the other systems read
 The server keeps these attributes on each character:
 - `ShootDodgeScale`: **1** normal, **0.4** limping, **0** crawling. The [[Shoot-Dodge]] multiplies dive speed and distance by it; **0 blocks the dive**.
@@ -50,7 +67,7 @@ The server keeps these attributes on each character:
 | Piece | Place in Studio | Job |
 |---|---|---|
 | `LimbRules` | ReplicatedStorage.Modules | All the numbers and rules above, shared by server and client. Checks itself when it loads. |
-| `LimbService` | ServerScriptService | Applies damage (with who dealt it), then the effects: status attributes, the arm rules through `LoadoutService`, and killing blows through `LastStandService`. Ignores damage during a Last Stand. Also handles painkillers. |
+| `LimbService` | ServerScriptService | Applies damage (with who dealt it), then the effects: status attributes, the arm rules through `LoadoutService`, and killing blows through `LastStandService`. Ignores damage during a Last Stand. Also handles painkillers and, since 2026-11-20, regeneration above the red (`VitalsRules`). |
 | `CharacterServer` | ServerScriptService | Sets up each new character (stance, limbs, loadout) and answers painkiller requests. Replaced `LimbServer` on 2026-10-31. |
 | `CharacterController` | StarterPlayerScripts.Controllers | The client's stance machine: walk speed and jumping from the leg rules and the stance, sprint, crouch and the painkiller key. |
 

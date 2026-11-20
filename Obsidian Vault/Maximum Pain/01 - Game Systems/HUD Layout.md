@@ -17,6 +17,8 @@ Related: [[Weapons and Recoil]] · [[Loadout and Dual Wielding]] · [[Limb Healt
 | [ 4 ] DUAL WIELD [DROPS AK-47]   [F] PICK UP M9          1 [M9]  15 15|
 | [ G ] DROP GUN                   [E] TAKE COVER LOW      2 [UZI] 32 32|
 | [ F ] PICK UP                         figure | bar       3 [AK]  30 30|
+|                                       ======  (stamina)              |
+|                                       MEDIUM LOADOUT                 |
 |                                       CROUCHED                       |
 |                                       ONE ARM                        |
 +----------------------------------------------------------------------+
@@ -41,7 +43,9 @@ Related: [[Weapons and Recoil]] · [[Loadout and Dual Wielding]] · [[Limb Healt
 | Health figure | Bottom right, left of the guns | A human figure 150 px tall, seen from behind the way the player sees their character, drawn in see-through grey (60% visible). Each limb fills red from its lowest part up as it takes damage, so a leg goes foot first, then shin, then thigh, and an arm goes hand first. The torso fills from the waist and the head tints as a whole. A limb in the red is red all over. |
 | Painkiller count | On the figure's upper back | Bold black number in a white square, as in Max Payne 3. |
 | Adrenaline bar | Right of the figure | White, 5 px wide, 85% of the figure's height, filling from the bottom with the `Adrenaline` attribute (0 to 1) over a faint track. Emptied by a survived Last Stand. |
-| Stance tag | Under the figure | Small grey text: SPRINTING, CROUCHED, HIGH COVER, LOW COVER, PEEKING, AIMING FROM COVER, SHOOT-DODGE, ON THE FLOOR, GETTING UP, DEFENSELESS (after a Last Stand), LAST STAND. Hidden when standing. |
+| Stamina bar | Under the figure | Since 2026-11-20: a slim white bar the figure's width, 3 px, over a faint track, showing sprint stamina; there only while it isn't full, grey once it has run dry (until a sprint can start again). It keeps its place when hidden, so nothing under it moves. See [[Movement State Machine#Sprint]]. |
+| Loadout class | Under the stamina bar | Since 2026-11-20: small grey text, LIGHT LOADOUT, MEDIUM LOADOUT or HEAVY LOADOUT, the class the guns carried make right now. When it changes mid-life (a gun picked up or dropped) it shows white for a moment, so a change in sprint or regeneration makes sense. See [[Loadout and Dual Wielding#Weight]]. |
+| Stance tag | Under the loadout class | Small grey text: SPRINTING, CROUCHED, HIGH COVER, LOW COVER, PEEKING, AIMING FROM COVER, SHOOT-DODGE, ON THE FLOOR, GETTING UP, DEFENSELESS (after a Last Stand), LAST STAND. Hidden when standing. |
 | Status text | Under the stance tag | Red bold text, no box: LIMPING, CRAWLING, ONE ARM, DISARMED, joined with " / ". Hidden when normal. |
 | Gun list | Bottom right | Three fixed rows: 1 and 2 (one-handed), 3 (two-handed), 28 px high: slot number (small grey), the gun as a see-through grey side-on shape (muzzle pointing right), then the ammo written like Max Payne 3's "30 120" (magazine in bold white, spare rounds in grey). An empty slot shows a faint dash. |
 | Guns in hand | In the gun list | Bright white (both one-handed rows when dual wielding). Other guns sit back at 60% in grey. |
@@ -62,7 +66,7 @@ Roblox's own hotbar and health bar are switched off, since this HUD replaces bot
 - The `Hud` module (StarterPlayerScripts.Controllers) draws everything. It only draws; it holds no game rules.
 - `WeaponController` sends it the three slots (`Hud.setWeapons`), the reticle (`Hud.setReticle`, with the blocked flag), the scope zoom (`Hud.setScope`), the pickup prompt (`Hud.setPrompt`), the dual-wield warning (`Hud.setKeyHint`) and the stance tag (`Hud.setStance`).
 - `CoverController` sends the cover prompt; `CharacterController`, `CoverController` and `DodgeController` send short messages (`Hud.flash`); `LastStandController` sends the countdown (`Hud.setLastStand`) and the bullet-time label (`Hud.setBulletTime`).
-- The HUD reads the limb, painkiller and adrenaline attributes itself and updates when they change.
+- The HUD reads the limb, painkiller, adrenaline and weight class (`WeightClass`) attributes itself and updates when they change. `CharacterController` sends the stamina it predicts (`Hud.setStamina`).
 - While the main menu is up (since 2026-11-18) the whole HUD is hidden (`Hud.setCovered`). It is kept apart from `Hud.setVisible`, which the kill cam uses, so closing the menu never brings the HUD back into a kill cam. See [[Menus, Loadout, Progression and Shop - To Do#1. Main menu shell (live match behind every menu)]].
 
 ## Known limits

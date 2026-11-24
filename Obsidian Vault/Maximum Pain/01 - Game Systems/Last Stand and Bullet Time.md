@@ -1,6 +1,6 @@
 # Last Stand and Bullet Time
 
-Max Payne 3's Last Stand, for multiplayer: a killing blow gives the victim one slow-motion chance to shoot their killer. Also the localized bullet time it uses, and the adrenaline meter. Built 2026-10-31.
+Max Payne 3's Last Stand, for multiplayer: a killing blow gives the victim one slow-motion chance to shoot their killer. Also the localized bullet time it uses, and the adrenaline meter. Built 2026-10-31. Since 2026-11-21 (Phase E of [[Menus, Loadout, Progression and Shop - To Do]]) the meter is three segments that pay for the loadout's skill, and player-triggered bullet time is one of the skills.
 Related: [[Limb Health]] · [[Movement State Machine]] · [[Max Payne 3 Mechanics Reference]] · [[HUD Layout]]
 
 ## When it happens
@@ -10,7 +10,7 @@ On a killing blow (head or torso in the red), a player gets a Last Stand only if
 - not both arms in the red;
 - a killer to shoot at: another character that is still up;
 - not already getting up from a Last Stand, and no Last Stand in the last 10 s;
-- at least **one level of bullet time** in the adrenaline meter (a third of it).
+- at least **one full segment** of adrenaline (a third of the meter), or the **Pacemaker** item, which needs none (since 2026-11-21). Since 2026-11-22 the part a running skill has yet to spend doesn't count ([[#Adrenaline]]).
 
 Otherwise they die at once. Test dummies never get one.
 
@@ -25,6 +25,8 @@ Otherwise they die at once. Test dummies never get one.
 3. **The window (4 s):** the player aims and fires. The camera keeps being dragged along as the killer moves, on top of the player's own aim. A white bar under LAST STAND counts down.
 4. **Survive:** the killer dies or goes down (dead, or in a Last Stand of their own). The player pays **one painkiller** and **all their adrenaline**, and comes back with head and torso at 35% of their maximum (other limbs stay as they were).
 5. **Fail:** the window runs out, or the killer stays **completely out of sight** for 0.75 s (checked from the downed player's head to the killer's head and torso). The player dies.
+   - Either way the stand takes the whole meter (decided 2026-11-14): from its start a death keeps no segments for the next life (`AdrenalineService.forfeit`, since 2026-11-21, when full segments began to be kept through a death).
+   - With the **Ammo Pouch** item, firing uses no ammo during the stand (since 2026-11-21).
 6. **Wakeup (3 s, the LastStandWakeup clip):** the player gets up **defenseless**: no moving, firing, reloading or anything else. They can be hurt and killed normally, with no second Last Stand. The HUD tag reads DEFENSELESS. During the window the body sits on the floor aiming (the LastStand clip, with the aim layer pointing the gun).
 
 During the window the downed player can't be hurt; the window alone decides. The killer's teammates can't finish them off, so the killer's way out is to break line of sight.
@@ -38,16 +40,21 @@ Roblox has no world time scale, so every character carries a `TimeScale` attribu
 
 Two things slow characters, and the lowest scale wins:
 - **Last Stand bubbles:** everyone within 80 studs of the downed player, at 0.3.
-- **Player-triggered bullet time** (`BulletTimeRules`), on **X** (middle mouse button, gamepad Select):
-  - It spends every full level of the meter. There are three levels in a full meter, worth 5 s in all, so one level lasts 1.67 s.
+- **Player-triggered bullet time** (`BulletTimeRules`): since 2026-11-21 the **Bullet Time skill**, the default skill of every loadout, fired with the skill key **X** (middle mouse button, gamepad Select) like any other skill (`SkillService`):
+  - It fires at as many levels as there are full segments, as far as the player's level allows (level 2 opens at level 6, level 3 at 12), and spends that many over its time: **2.5 / 4 / 6 s** (`SkillConfig`; the plan's numbers, decided 2026-11-21). Until then it spent every full level, 1.67 s each, 5 s in all.
   - Everyone the activator can see is slowed to 0.3 until the time runs out or the sight breaks. "See" means on the activator's screen, with a clear ray from their eye to the target's head, chest or hips; walls block it, glass and other characters don't. It's checked 10 times a second.
   - A slowed player whose own active level is lower than the activator's also turns their aim at 0.35 speed, until they activate a level at least as high.
   - The activator is slowed too, to 0.6 (`BulletTimeRules.ACTIVATOR_SCALE`): less than everyone they slow, as Max Payne 3 slows the user less than their victims. Someone else's bullet time seeing them slows them to 0.3. In a Last Stand they keep full speed, even while their own bullet time runs. (Until 2026-11-10 the activator kept full speed.)
+  - **The Stopwatch item** (since 2026-11-21): another player's Bullet Time slows neither its wearer nor their aim. A Last Stand's slow motion still slows them (my call: the item counters the skill).
 
-Gravity isn't slowed, so jumps and falls run at normal speed. Studio test hook: a `DebugBulletTime` attribute set to true on any character activates its bullet time (with `Adrenaline` 1 and, for a dummy, an `Aim` attribute pointing at the target).
+Gravity isn't slowed, so jumps and falls run at normal speed. Studio test hook: a `DebugBulletTime` attribute set to true on any character fires Bullet Time at its full segments, owned or not (with `Adrenaline` and, for a dummy, an `Aim` attribute pointing at the target); since 2026-11-21 `SkillService` answers it, and it spends the meter like the real thing.
 
 ## Adrenaline
-The slim white bar beside the HUD figure is the adrenaline meter (0 to 1). Every point of damage dealt adds 0.004 and every kill adds 0.25. Bullet time spends it, and a survived Last Stand empties it.
+Since 2026-11-21 (Phase E) the meter, still the `Adrenaline` attribute (0 to 1), is **three segments** of a third each (`AdrenalineRules`), drawn as three blocks beside the HUD figure (a full one white, the one filling grey). Every point of health a hit really takes adds 0.004 (after armour and boosts; never more than the limb had, and nothing from a body in a Last Stand or a limb already at nothing: `LimbService.damage` returns what it took, since the review of 2026-11-21) and every kill adds 0.25. The loadout's skill spends it: it fires at as many levels as there are full segments (as far as the player's level allows) and spends that many. A survived Last Stand empties it.
+- **A death keeps the full segments** for the player's next life (Max Payne 3's rule); the one filling is lost (`AdrenalineService`). A death in or after the start of a Last Stand keeps nothing, since the stand takes the whole meter. Leaving to the main menu (the character is removed, not killed) doesn't keep them. Nothing resets the meter between matches: a living player carries theirs into the next, so the segments a death kept carry over too.
+- A skill still running when its user dies ends; what it hadn't spent of its cost stays in the meter, whose full segments the death keeps.
+- A skill still running when its user goes down into a Last Stand runs on to its time, and costs nothing more: the stand takes the whole meter, the part the skill hadn't spent with it. (Before the review's fix it went on charging after a survived stand, so it was paid for twice.)
+- **The part a running skill has yet to spend is claimed** (decided 2026-11-22): it is still in the meter, but it doesn't count towards the one full segment a Last Stand needs (`AdrenalineService.claim` and `free`). A skill fired with every full segment leaves no Last Stand while it runs, unless the player earns a full segment more; one fired with segments to spare leaves those for a Last Stand. Tested: Hot Lead fired at 0.5 (a third claimed, 0.17 free), then a killing blow: dead at once, and the next life began with the one full segment the death kept; fired at 0.9 (0.57 free): a Last Stand. The HUD doesn't show which segments are claimed.
 
 ## Tested (2026-10-31)
 - Torso at 30; the gunman's hit put it in the red. Last Stand started within 0.2 s. During the fall the camera pointed 0.7° off the gunman, and the gunman was slowed to 0.3.

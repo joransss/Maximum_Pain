@@ -1,4 +1,40 @@
 {
+  "UI_Crate_Cartel": {
+    "file": "UI_Crate_Cartel.png",
+    "width": 1024,
+    "height": 640,
+    "sha256": "94bfc42523416bfeaac574faa7649108e374a005d89cc14d9ed5b94b10aab1f7"
+  },
+  "UI_Crate_Cartel_Open": {
+    "file": "UI_Crate_Cartel_Open.png",
+    "width": 1024,
+    "height": 640,
+    "sha256": "dcdc0d8e40ab194b173b5649e93addafe1d14b80c642266ab803327ed7afaad1"
+  },
+  "UI_Crate_Gunsmith": {
+    "file": "UI_Crate_Gunsmith.png",
+    "width": 1024,
+    "height": 640,
+    "sha256": "11466a4e36b07c1f45e583ac241f2a74e660f3c6868d77d88b5e45d62fb0abd7"
+  },
+  "UI_Crate_Gunsmith_Open": {
+    "file": "UI_Crate_Gunsmith_Open.png",
+    "width": 1024,
+    "height": 640,
+    "sha256": "a20a1cccc20f7b97151f15fc9444fb1813181234676f0f83659203d79ac1182c"
+  },
+  "UI_Crate_Street": {
+    "file": "UI_Crate_Street.png",
+    "width": 1024,
+    "height": 640,
+    "sha256": "d3c5cdf14f5d5e09479c71c06926a115372cb14a088cdb3ac53cc4012c6c9bfa"
+  },
+  "UI_Crate_Street_Open": {
+    "file": "UI_Crate_Street_Open.png",
+    "width": 1024,
+    "height": 640,
+    "sha256": "98ad48199264950fd143340d1c84375521e42feb35142cb6b5fd94fefeeda060"
+  },
   "UI_Logo_Compact": {
     "file": "UI_Logo_Compact.png",
     "width": 628,

@@ -3,6 +3,416 @@
 Every change to the game, newest first. Each entry says what changed, the decisions behind it, what was tested, and what was left out.
 System details: [[Architecture]] · [[Movement State Machine]] · [[Loadout and Dual Wielding]] · [[Cover System]] · [[Shoot-Dodge]] · [[Last Stand and Bullet Time]] · [[Animation Hooks]] · [[Test Arena]] · [[Weapons and Recoil]] · [[Limb Health]] · [[HUD Layout]]
 
+## 2026-11-23: Phase F of the menu plan: the skin shop, 54 skins and three crates
+On this PC (Studio signed in as 83tg), with Claude Code driving Studio and Blender. JordanSaa asked for Phase F (steps 13 and 14 of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]]), of high quality and with no mistakes; built 2026-11-22 and 23, nothing past it.
+- 3 scripts added (`ShopConfig`, `ShopService`, `ShopScreen`) and 7 changed (`ProfileSchema`, `LoadoutService`, `CharacterServer`, `GameServer`, `MenuController`, `MenuKit`, `UiAssets`) in the Team Create place; 4 remotes added (`BuySkin`, `OpenCrate`, `EquipSkin`, `ShopEvent`); `ReplicatedStorage.Assets.Skins` (the 22 finishes) and `ReplicatedStorage.Assets.UI.GunModels` (the 13 guns, textured, for the shop's 3D views) added. In the repo: `Assets/Blender/Skins/skin_lib.py` (new) and the crates in `Assets/Blender/UI/ui_lib.py`, with their images and ids. No clip changed.
+- **What players will notice:** SHOP in the main menu is open. It sells two skins a day and one a week for Cash, and three crates at $2,500 that each give a skin the player doesn't own yet, with that player's odds shown first. A skin is a finish for one gun (blued steel, desert paint, chrome, black and gold...), shown on a slowly turning 3D gun; the one equipped for a gun is on it from the next spawn, and stays on it when it is dropped and picked up by someone else. Looks only: no stat reads a skin.
+
+**Decided with JordanSaa** (asked and answered 2026-11-22; all in the plan's section 0, Phase F questions)
+- **Skins are finishes for now:** every gun is coloured from one 4 × 4 palette texture, so a skin colours its 16 squares again (colour, metal, shine), some with a second finish on the moving parts and magazine. No patterns until guns have real UVs.
+- **54 skins in three lines of 18, a crate each:** GUNSMITH (factory and gunsmith finishes), STREET (paint jobs) and CARTEL (plating); per crate 7 common, 5 uncommon, 3 rare, 2 very rare and 1 exceptional.
+- **Sold two ways:** 2 skins a day (new at 00:00 UTC) and 1 featured a week, the same in every server; every skin also comes from its crate, which never gives one the player owns.
+- **Prices:** a crate $2,500; a skin bought directly by its rarity: $1,500 / $3,000 / $6,000 / $10,000 / $20,000.
+- **Where Roblox restricts random items** (`PolicyService`): crates open in a shown order instead, the next skin named before buying.
+
+**My calls, not asked**
+- The storefront: the featured skin is rare or better, the daily two common to rare, the three always of different guns, picked from the date with a fixed hash (`ShopConfig.stock`), so it can't drift between servers or engine versions. A purchase sent just before the turnover still goes through in the 30 s after it.
+- A crate bought with Cash opens at once (`OpenCrate`); crates held (the profile's `Crates`) are for rewards later, and nothing hands them out yet. An open uses a crate held before any Cash.
+- Until `PolicyService` answers for a player (three tries, 5 s apart), and for good if it never does or its answer lacks the field, their crates open in order: the safe side.
+- A skin goes on from the next spawn, as a loadout does, and equipping is free. A gun keeps its skin wherever it goes; the test arena's rack guns wear none.
+- The opening: the crate shakes until the server answers (then 0.55 s more), opens in a flash of the skin's rarity colour (0.45 s), and the skin rises (0.5 s): about 1.5 s, under the plan's 3 s. SKIP shows it at once, reduce motion skips it, and nothing spins past other skins, so there is no near miss to see. Made from the closed and open crate pictures, so the plan's sprite sheet isn't needed.
+- Odds shown exactly to the hundredth when they are exact (10.00%), else rounded to four places below their first digit (66.667%, 0.33333%) with Roblox's rounding note.
+- A skin's name is its gun's short name and its finish's (AK-47 IVORY & GOLD).
+- The economy dashboard takes at most 100 SKUs an experience, so a skin bought logs its rarity as the SKU (skin_rare) and the skin in a custom field; a crate logs its id.
+
+**New: the catalogue and the rules both sides share** (`ShopConfig`, ReplicatedStorage.Modules)
+- Five rarities, each a colour (section 2's: grey, teal, steel blue, violet, amber; never red), 1 to 5 pips, a direct price and a weight in a crate (100 / 40 / 25 / 11 / 3: a full crate gives 70 / 20 / 7.5 / 2.2 / 0.3%, section 10's example exactly).
+- 22 finishes and 54 skins (ids `skin_<gun>_<finish>`, which never change once owned); TWO-TONE and BLACK & GOLD wear one finish on the frame and another on the moving parts and magazine. Three crates of 18 in their shown order, every gun in every crate.
+- `odds(crate, owned)`: the skins the player lacks, each its weight over the weight left. `roll` picks with the same numbers (a whole-number ticket), `nextInOrder` takes the first lacking in the shown order (commons first), `progress` and `isComplete` count. One module for the server's roll and the screen's odds, so they can't differ.
+- `stock(now)` and `onSale` (above); `dress(model, gun, skin)` puts each finish's `SurfaceAppearance` on the parts by their names (Handle: the frame; Slide, Bolt, Pump, Cylinder, Hammer, Barrels: the moving parts; Magazine), leaves shells as they are and sets the gun's `Skin` attribute; `wearing` keeps only owned skins that fit.
+- Checks itself as it loads: every id and reference, the odds and the roll over every crate as it fills, names and prices; in Studio also a year of storefronts.
+
+**New: the shop on the server** (`ShopService`)
+- `BuySkin` (a skin on sale now, not owned, the Cash), `OpenCrate` (a crate not complete, a crate held or its price; since the review also the mode the screen showed), `EquipSkin` (an owned skin for that gun, or nothing): every argument type- and length-checked, everything decided from the player's own profile. Buying and opening share one rate (2 at once, then one each 0.5 s); equipping has its own (3, then one each 0.25 s).
+- The Cash and the skin change together in one profile update, checked again inside it; a crate's skin is picked inside the update that pays for it, so a crate can't give a duplicate or give without being paid.
+- Each purchase, opening and refund prints a line (the player's id, what, the skin, the Cash left) and logs a Cash event with `AnalyticsService`.
+- The owner is sent their shop ("State": skins owned and equipped, crates held, whether crates open in order, the storefront) on every change, at each daily turnover and when their screen asks; "Bought", "Opened", "Equipped", "Refunded" and "Refused" answer requests.
+- Crates held for a complete crate are refunded their price, as it completes or as the profile loads.
+
+**The screens** (`ShopScreen`; `MenuController`, `MenuKit`)
+- **SHOP**, laid out as the mockup: the Cash and the cosmetic-only note top left with the time to the next daily skins, the two TODAY cards and the tall FEATURED card (the gun in its finish in 3D, the rarity's chip and pips, the price or OWNED / EQUIPPED), and the three crate cards (picture, price or crates held or COMPLETE, progress). The list on the left has the same things as rows, then YOUR SKINS; hovering or clicking a card is its row.
+- **A skin:** the gun turning slowly in its finish on a grey plate, its rarity, its gun and crate, whether it is on sale; BUY while it is, EQUIP or TAKE OFF once owned, and a row to its crate.
+- **A crate:** its picture (COMPLETE across it when done), its finishes, a progress bar, and the odds by rarity (skins left, each one's chance, the rarity's total); OPEN and ODDS. **ODDS:** each rarity's line of odds over the skins it covers, the owned ones apart; in order, ORDER lists every skin numbered with the next marked.
+- **The opening** (above), then EQUIP, OPEN ANOTHER or DONE; drawn from the crate as it was, so nothing gives the skin away early.
+- **YOUR SKINS:** each gun with what it wears and how many of its skins are owned; then STANDARD and its skins.
+- Refusals show in red under the list; purchases, equips (APPLIES ON NEXT SPAWN while in the fight), refunds and skins out of a crate in white, and ones that come while the menu is closed show one by one as soon as it opens again.
+
+**Skins on guns** (`ProfileSchema`, `LoadoutService`, `CharacterServer`)
+- The profile gained `Skins` (`Owned`, `Equipped` per gun) and `Crates` (held, 1 to 999 per crate), checked by `validate`; older saves load with none.
+- Every spawn dresses the guns in the owner's equipped skins (`ShopService.wearing`, `LoadoutService.makeGun`).
+
+**The art**
+- **Finishes:** `Assets/Blender/Skins/skin_lib.py` works out each finish's colour, metalness and roughness maps square by square (which square colours what was found with two probe palettes on all 13 guns) and keeps a record of the uploads (`pending`, `record`); 66 maps, 54 distinct images, uploaded by 83tg; one `SurfaceAppearance` per finish in `ReplicatedStorage.Assets.Skins`.
+- **Crates:** `ui_lib.py crates` builds `UI_Crates.blend` and renders six 1024 × 640 pictures: a wooden ammunition crate (GUNSMITH), a police evidence box (STREET) and a black hard case (CARTEL), each closed and open; uploaded by 83tg and in `UiAssets` ([[Blender and Asset Pipeline#UI art for the menus]]).
+- **The 3D views** dress `ReplicatedStorage.Assets.UI.GunModels`, a textured copy of each kit gun.
+
+**The review** (the `roblox-dev:roblox-reviewer` agent over 13 scripts: the three new ones, every changed one but `UiAssets`, and `ProfileService`, `ArmoryService`, `UiStyle` and `WeaponConfig` for context)
+- No client can get Cash, a skin or a crate it shouldn't, pay less or twice, buy a skin that isn't on sale, open a complete crate, equip a skin it doesn't own or that doesn't fit, or make the server error or wait inside a profile update. The odds and the roll match exactly, a duplicate can't happen, and the new profile fields, the refunds, the storefront's turnover and the screens' connections were sound.
+- It found three medium and nine low problems, and six design questions. All twelve are fixed below and tested.
+- **A second pass over the fixes** (the same agent, the changed scripts) found all twelve correct, no new security or data problem, and two small new ones in the screen (13 and 14 below), fixed and tested.
+
+**Fixed**
+1. **The opening could give the skin away early** (medium). The reveal draws the crate as it was before the skin, but the server's new "State" (with the skin owned) could arrive before "Opened", so during the shake the crate could already count the skin (NONE LEFT for the one exceptional, COMPLETE for the last skin, NEXT naming the skin after it). The crate's "before" now always leaves the skin out.
+2. **OPEN ANOTHER said "picked by the odds" where crates open in order** (medium), and quoted Cash when a crate held would be used. OPEN and OPEN ANOTHER now share one hint: COMPLETE, else the next skin by name where crates open in order, else a crate held, else the odds and the Cash.
+3. **The catalogue's self-check held up every player's join** (medium): a year of storefronts, about 5,000 of them, worked out as the module loaded, 0.9 s on this PC before the menu could show. The year's check now runs in Studio only, each skin id's hash is worked out once, and the storefront is kept per day (it only changes with the day); the catalogue now loads in 33 ms in the server's VM in Studio and less live. The storefront is the same as before (2026-11-22's checked).
+4. **A crate could open differently from what its screen said** (low): a player whose first "State" said in order (no answer from `PolicyService` yet) could press OPEN on "THE NEXT SKIN IN ITS ORDER: M9 PARKERIZED" just as the answer came, and get a random skin. The screen now sends the way it showed the crate; if that no longer holds the server refuses ("Changed": THIS CRATE NOW OPENS DIFFERENTLY FOR YOU) and sends the shop again. And an answer missing its field now counts as restricted, not as free.
+5. **A result arriving with the menu closed was lost** (low): a crate opened just before dying (the menu closes) gave its skin but never said which. Such notices are now kept and shown when the menu is next open (13).
+6. **A 3D view that failed once stayed wrong** (low): had a gun's model or a finish not been there when a card was first drawn, the card stayed blank or in the kit's colours all session. A view now keeps its gun only once it is drawn whole, and `ShopConfig.dress` says whether every finish was found.
+7. **The turning gun snapped back** (low) whenever the screen redrew (hovering, an answer from the server). It now turns on through redraws.
+8. **The odds read as covering owned skins** (low): ODDS FOR EACH SKIN BELOW: 11.111% sat over names some of which were owned (a 0% chance). Owned skins now follow apart, under OWNED: NOT IN THE ODDS.
+9. **The odds list had 24 rows** (low): a bigger crate would have lost skins off it. Rows are now made as needed.
+10. **BUY could stay at BUYING** (low) if the server dropped the request for coming too fast. It now gives up after 6 s, says NO ANSWER, and BUY works again.
+11. **BACK after clicking a card went to the wrong row** (low): the click skipped the menu's record of the row chosen. Cards now choose their row the way a click on the row does (`Nav.choose`).
+12. **Refunds weren't on the economy dashboard** (low): each crate refunded now logs a Cash source.
+13. **Notices kept while the menu was closed overwrote each other** (low, from the second pass): a crate's last skin and the refund it brought arrive together, and only the refund was kept, so the player still never learned the skin. They are now kept in order and shown one by one (3 s apart) as soon as the menu is open again, on whatever screen it opens at (fix 5 first showed them only once the shop was opened, which a player going straight to LOADOUT might never do).
+14. **The odds could run over the prompts on short screens** (low, from the second pass): with the owned skins apart (fix 8) a crate's odds list grows to 22 rows, and on 1366 × 768 and smaller its panel ran over SELECT and BACK. The shop's panel now shrinks to the screen's height as well as its width.
+
+**Design questions from the review** (left for later)
+- A crate handed out free by a future reward is refunded the full $2,500 once its crate is complete: a Cash source. When rewards come: give only crates of incomplete crates, or refund less?
+- Anyone can work out a year of storefronts from the public module and the date. Intended: it's what makes every server agree.
+- A mistake in the catalogue stops the game as it loads (as `WeaponConfig`'s do), and the module is required by the guns' setup and the menu: every catalogue change needs a Studio play test before publishing.
+- Prestige keeps cosmetics (section 0): when it is built it must keep `Skins` and `Crates`, not rebuild the profile from `ProfileSchema.new()`.
+- `dress` assumes the kit's MeshParts have no `SurfaceAppearance` of their own and that every part is named by its role: checked, none has one, and only the shotguns' Shell and Shells fall outside the roles, on purpose.
+- `ShopService` waits for its remotes as it loads and `CharacterServer` requires it, so a missing remote would hold up every character's setup. The four remotes are in the place.
+
+**Found and fixed in the checks** (not from the review)
+- While building (2026-11-22): long crate descriptions ran under the panel on the context line (crates got a short tagline); crates held were refunded only as a profile loaded (now also the moment their crate completes, with a notice); an "Opened" arriving with the menu closed pushed the opening onto the closed menu's screens (guarded).
+- The crate pictures, looked at up close (2026-11-23): the wooden crate's stencil stood 3.6 cm off the boards and cast a shadow, and its boards showed their grain edge-on as even stripes, like corrugated card (each board now gets its grain along its own length); its rope handles and the case's handle floated off the surface with open tube ends (the ropes now go into the end boards, the handle sits in two gold mounts, and tube ends are closed); the evidence box's split seal sat by the flaps' hinges instead of on their cut edges.
+- The economy dashboard takes at most 100 SKUs an experience; 54 skins as SKUs would have used most of them. Skins now log their rarity as the SKU and the skin in a custom field.
+
+**Tested** (Studio play mode, 83tg's avatar, one player; Cash set with `mp.profile`)
+| Test | Result |
+|---|---|
+| Self-checks | `ShopConfig` (the catalogue, odds and rolls over every crate as it fills, a year of storefronts) and `ProfileSchema` (the new fields, old saves) pass on load |
+| A new player's odds | 70 / 20 / 7.5 / 2.2 / 0.3%, the plan's example exactly |
+| 200,000 rolls in the game's VM | 70.188 / 19.831 / 7.484 / 2.193 / 0.303%; with half a crate owned, every skin within 1.66 standard errors of its odds and no owned skin rolled |
+| `BuySkin` the day's M4 BURNT BRONZE with $200,000 | $194,000 (its $6,000); then refused: Owned, NotForSale (a skin not on sale), Unknown, BadData |
+| `OpenCrate` GUNSMITH 17 times (its 18th skin already bought) | 17 different skins, none owned before; $194,000 → $151,500 (17 × $2,500); the next two refused, Complete |
+| `EquipSkin` | AK-47 STAINLESS on; then refused: WrongGun, NotOwned, Unknown (a skin, then a gun), BadData; the M9 TWO-TONE; the Uzi's skin on and off |
+| A spawn | The AK-47 in stainless, the M9 two-tone (frame and magazine midnight, slide stainless), the Uzi in the kit's look |
+| Two STREET crates held, 17 of its 18 skins owned, $0 | The open used a crate held (paid 0) and gave the last, AK-47 ARCTIC; the other crate refunded ($2,500, "Refunded"); STREET COMPLETE and a further open refused |
+| Cash and rate | Three skins too dear: Cash each time; a fourth request at once: TooFast |
+| The AK-47 ARCTIC dropped and picked up | Still arctic: each dressed part's SkinFinish and the `Skin` attribute |
+| Equipping mid-match | DESERT ON YOUR UZI. APPLIES ON NEXT SPAWN |
+| The policy | The first "State" said in order (no answer yet); the next, once `PolicyService` answered, not |
+| The screens | The storefront, a skin, BUY, EQUIP, a crate and its odds, the opening, ODDS with the rounding note (66.667%, 11.111%), YOUR SKINS and the Uzi's skins; in order (NEXT: M9 PARKERIZED, the ORDER list); hovering and clicking cards |
+| After the review: `OpenCrate` with the screen's mode | Shown in order while the server rolled: refused, Changed, and the shop sent again; "yes" for the mode: BadData; the same mode: opened; in order (the Studio hook): M9 PARKERIZED, then GLOCK 18 SNIPER GREY; no mode: opened |
+| A purchase and a refund on the dashboard | FAL OD GREEN for $1,500 and one Cash sink; a STREET crate held gave AK-47 ARCTIC (paid 0) and the other was refunded with a Cash source |
+| The catalogue's load | 33 ms in the server's VM, the year's check included (Studio); about 0.9 s before |
+| The crate pictures | On the cards and the crate screens; all six drawn in the game; a new session's storefront loads them with no errors |
+| ODDS with four GUNSMITH commons owned | COMMON  ODDS FOR EACH SKIN BELOW: 16.667% over the three left, then OWNED: NOT IN THE ODDS and the four |
+| In order, after the fix | OPEN: THE NEXT SKIN IN ITS ORDER: UZI OD GREEN; after the opening, OPEN ANOTHER: ... M500 PARKERIZED |
+| The opening during the shake | The crate as it was: 4 OF 18 SKINS OWNED, NEXT: UZI OD GREEN |
+| Clicking the CARTEL card, the mouse moved away, BACK | The highlight back on CARTEL CRATE |
+| A crate opened with the menu closed | OUT OF THE CRATE: GLOCK 18 COPPER under the list when the shop was next shown (fix 5, before the second pass) |
+| After the second pass: a STREET crate held opened with the menu closed (its last skin, so a refund too), then M | On the main menu at once: OUT OF THE CRATE: AK-47 ARCTIC; 3 s later $2,500 BACK FOR CRATES OF A CRATE YOU COMPLETED; then nothing |
+| The longest odds list (22 rows) in Studio's 1325 × 753 window | The panel at 0.88 of its size, its backing 9 px clear of the prompts (it would have run 60 px over them); the odds right (COMMON 19.194% each, 57.582%) |
+| The turning gun across a redraw | No jump between frames |
+| Output log | Clean apart from the DataStore line, and Roblox's "asset content representation is being generated" while it processed the new crate pictures on their first showing (gone in the next session) |
+
+**Not done**
+- Two players: another player seeing a skinned gun, dropped and picked up, and the shop's state staying each player's own. In the two-client test with the rest.
+- The new profile fields saved to the real DataStore (Studio's API access is off, so profiles stay in memory).
+- Pattern, Signature and Mastery skins, Wear, Matched Pairs and Body Count ([[Gun Skin Ideas]]): they need guns with real UVs, or challenges.
+- Nothing hands out crates yet (rewards will), so the held crates and their refunds were tested by setting the profile.
+- Metal finishes look flatter in the shop's 3D views than on the guns in the world (a ViewportFrame has no reflections). The first visit to the shop shows the finishes and pictures loading for a moment.
+- The rarity colours in the colourblind modes (section 11 isn't built), and the shop on 21:9, 4:3 and a phone.
+- Studio's Script Analysis (type warnings) wasn't run, as before.
+- Nothing is committed: these notes, `skin_lib.py`, `ui_lib.py` and the new images and ids are in the working copy only.
+
+## 2026-11-22: A Last Stand counts only the adrenaline a running skill hasn't claimed
+On this PC (Studio signed in as 83tg), with Claude Code driving Studio. JordanSaa settled the question the Phase E review left (the entry below): the part of the meter a running skill has yet to spend no longer opens a Last Stand ("free ones only").
+- 4 scripts changed (`AdrenalineService`, `SkillService`, `LastStandService`, and `LastStandRules`' comment). No remote or clip changed.
+- **What players will notice:** a skill fired with every full segment leaves no Last Stand while it runs, unless the player earns a full segment more; one fired with segments to spare leaves those for a Last Stand. Before, the segments a skill had yet to spend paid for a Last Stand as well.
+- **How:** a timed skill spends its cost over its time, so the meter still holds what it hasn't spent. `SkillService` now tells `AdrenalineService` how much that is as the skill runs (`claim`: its cost at the start, less what it has spent at each step, nothing once it ends or its character goes), and `LastStandService` counts the meter less it (`free`). A stand that does open still takes the whole meter and settles the running skill, as the review's fix 3 made it. A death without a stand keeps the full segments of the whole meter, as before.
+
+**Tested** (Studio play mode, 83tg's avatar, one player; a level-1 profile, so Hot Lead fires at level 1 and claims a third)
+| Test | Result |
+|---|---|
+| No skill running, a meter of 0.4, a killing blow | A Last Stand (free 0.4) |
+| Hot Lead fired at 0.5, a killing blow a second later | Meter 0.484, free 0.167: dead at once, no Last Stand; the next life began with 0.333, the one full segment the death kept |
+| Hot Lead fired at 0.9, a killing blow a second later | Meter 0.883, free 0.567: a Last Stand. Survived (the gunman killed): the meter emptied, Hot Lead ran on, nothing left claimed (the meter put at 0.5: free 0.5) |
+| Output log | Clean apart from the DataStore line |
+
+**Not done**
+- The HUD doesn't show which segments a running skill has claimed: they look full until spent.
+- Two players: a real Last Stand refused while a skill claims the meter (the gunman's blow stood in). In the two-client test with the rest of Phase E.
+- Nothing is committed: these notes.
+
+## 2026-11-21: Phase E of the menu plan: adrenaline segments, seven skills, eleven items and the status effects behind them
+On this PC (Studio signed in as 83tg), with Claude Code driving Studio. JordanSaa asked for Phase E (steps 11 and 12 of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]]), every step "of high quality"; nothing past it was built.
+- 7 scripts added (`AdrenalineRules`, `SkillConfig`, `ItemConfig`, `StatusEffects`, `AdrenalineService`, `SkillService`, `SkillController`) and 22 changed in the Team Create place, `LoadoutScreen` rewritten (the Phase D one kept in `ServerStorage.PhaseDBackups`); 3 remotes added (`SkillRequest`, `SkillEvent`, `BuySkill`) and `BulletTimeRequest` removed. No clip changed.
+- **What players will notice:** the adrenaline bar is three segments, and bullet time's key (X) now fires the loadout's skill: Bullet Time unless another of the seven is picked, at as many levels as there are full segments, as far as the player's level allows. Its name and level sit under the HUD's figure; as it fires, a banner with a bar, a line of narration and a white flash, and a line in everyone's kill feed. A death keeps the full segments. Loadouts also carry a Head, a Chest and a Gear item: armour that cuts damage from in front (less from behind), more painkillers or spare magazines, quicker healing, reloads and draws, a counter to Bullet Time, a Last Stand without adrenaline. Items and skills unlock by level, some cost Cash, the presets carry theirs, and the level-up moment lists what the new levels opened. Armour weighs, so a loadout can be Heavy now.
+
+**Decided with JordanSaa** (asked and answered 2026-11-21; all in the plan's section 0, Phase E questions)
+- **Skill levels do more for their user alone** (the game has no teams yet): Bullet Time 2.5 / 4 / 6 s (it was 5 s for a full meter); Hot Lead armour-piercing for 20 s; Second Wind heals every limb by half its maximum / to full / to full and gives a painkiller back; Gut Feeling marks every other player through walls for 6 / 10 / 15 s; Heavy Hand +50% damage for 6 s / +100% for 6 s / +100% for 10 s; Bulletproof damage taken −40% / −55% / −70% for 10 s, no sprinting; Open Tab no ammo used for 10 / 20 s. Hot Lead's levels 2 and 3 (a heavy machine gun, a .50 pistol, a grenade launcher) and Open Tab's level 3 (fire rounds) need things the game doesn't have, so those skills stop at 1 and 2 for now. Unlocks and prices are the plan's table: Bullet Time (levels 1, 6, 12), Hot Lead (1, 3, 5) and Second Wind (1, 4, 7) free; Gut Feeling (2, 5, 8) $500; Heavy Hand (4, 10, 16) and Bulletproof (6, 11, 17) $1,000; Open Tab (30, 38, 43) $3,000.
+- **The Pacemaker is a Last Stand without adrenaline** (every Last Stand here already slows everyone near, which was Max Payne 3's Pacemaker).
+- **The Pill Case gives 5 painkillers a life**; everyone else keeps 3.
+- **Items as proposed:** Light Vest (Chest, 1: torso −15% from in front) and Ammo Pouch (Gear, 1: two spare magazines a gun, no ammo used in a Last Stand) free from level 1; Stitches (healing starts 25% sooner) free from 3; Riot Helmet (Head, 1: head −50%) 4, $1,000; Bandages (healing 50% faster) 6, $700; Pill Case 10, $1,500; Quick Draw (reloads and draws in 75% of the time) 18, $3,000; Plate Carrier (Chest, 2: −25% in front, −10% behind) 20, $3,500; Stopwatch (others' Bullet Time doesn't slow you or your aim) 26, $3,000; Pacemaker 30, $3,000; Heavy Plates (Chest, 4: −33% in front, −25% behind) 36, $4,000. Other gear weighs nothing. Presets: RIFLEMAN the Light Vest and Hot Lead, SCOUT Bullet Time only (Gut Feeling opens at level 2), BREACHER the Ammo Pouch and Second Wind, MARKSMAN Stitches and Hot Lead. Throwables stay greyed. Every loadout has a skill, Bullet Time by default.
+- My calls, not asked: the skill key is bullet time's (X, the middle mouse button, gamepad Select; Q is the shoulder swap); Hot Lead pierces armour items but not Bulletproof; the Stopwatch counters the Bullet Time skill, not a Last Stand's slow motion; no skill in the defenseless wakeup after a Last Stand; Second Wind is refused when nothing is hurt and no painkiller would come back; a death mid-skill keeps the full segments of what it hadn't spent; the narration lines are our own.
+
+**New: adrenaline in three segments** (`AdrenalineRules`, shared; `AdrenalineService`, server; `Hud`)
+- Still the `Adrenaline` attribute, 0 to 1, now read as three segments of a third. The gains are as before (0.004 a point of damage, 0.25 a kill), but the damage is now the health a hit really took, after armour and boosts (the review's fix 1), and every gain and spend goes through `AdrenalineService`.
+- **A death keeps the full segments** for the next life (Max Payne 3's rule) and loses the one filling; from the start of a Last Stand it keeps nothing, since the stand takes the whole meter (a survived one still empties it). Leaving to the menu keeps nothing.
+- A Last Stand needs one full segment, as before, or the Pacemaker.
+- The HUD draws three blocks beside the figure: a full segment white, the one filling grey (a death loses it).
+
+**New: status effects** (`StatusEffects`, server)
+- One place every system asks what a character's items and running skill do. A loadout's items are one source for the whole life, a running skill another that ends with its time; multipliers multiply, on-off effects combine, spare magazines take the most, painkillers add. A Bulletproof user's `NoSprint` is copied to an attribute for the client.
+- **Damage** (`damageScale`): the attacker's boost (Heavy Hand) × the victim's damage taken (Bulletproof) × their armour: the helmet on the head, chest armour on the torso by the side the shot came in (the way it travelled through the torso part it hit; a shot from the side counts as the front). Hot Lead ignores armour items, not Bulletproof. Players' shots and the test arena's gunman both go through it.
+
+**New: the skills** (`SkillConfig`, shared; `SkillService`, server; `SkillController`, client)
+- `SkillConfig` holds the seven skills, each level's numbers, unlocks, prices and narration line; the screens' words are worked out from the numbers (`describe`), and a level the game can't do yet reads NOT IN THE GAME YET and is never offered. Its self-check uses made-up skills, so tuning never stops the game.
+- **The key sends `SkillRequest` with nothing in it.** The server checks the user is alive and able (not in a Last Stand or the wakeup after one), that nothing of theirs is running, that the skill is still theirs and open at their level (from the profile, every time) and how many full segments there are; it fires at the most both allow and spends that many, a timed skill over its time and an instant one at once. Requests closer than 0.25 s are dropped. The owner hears "Used" (the skill, level and time) or why not on `SkillEvent`; everyone's kill feed gets NAME  USED HEAVY HAND  LV 2.
+- **Bullet Time is now this skill** (`BulletTimeService.activate`, with the level's time); the meter and the key moved out of `BulletTimeService`. Its Studio hook (`DebugBulletTime`) is answered by `SkillService` and spends the meter.
+- Second Wind heals through `LimbService` (and gives back painkillers, never past the life's start); Hot Lead, Heavy Hand, Bulletproof and Open Tab are a status effect for their time; Gut Feeling is drawn by its user's client, which marks every other character (players and the arena's dummies) with a small red diamond over the head, seen through walls.
+- **On the HUD** (`Hud`, `SkillController`, `KillFeed`, `Keybinds`): the keybind list names the skill on X; a line under the stamina bar shows it with the level it would fire at now (white when it can fire); as it fires, a half-second white wash, the banner at the top (its name and level, a bar running out with its time, its line for 3 s); a refusal flashes why under the reticle (NOT ENOUGH ADRENALINE, SKILL ALREADY RUNNING, NOTHING TO HEAL…), and with no full segment or a skill running the client says so without asking the server.
+
+**New: the items** (`ItemConfig`, shared; `StatusEffects`, `LimbService`, `LoadoutService`, `LastStandService`, `BulletTimeService`, `StanceService`, `WeaponServer`)
+- `ItemConfig` holds the eleven items (slot, weight, unlock, price, effects) and words for each worked out from its numbers. Items go on at spawn (`ItemHead`, `ItemChest`, `ItemGear`) and stay for the whole life.
+- Where each one acts: armour in `damageScale`; the Ammo Pouch's magazines in `LoadoutService` at spawn and its free Last Stand shots in `WeaponServer`; Stitches and Bandages in `LimbService`'s regeneration; the Pill Case in `LimbService`'s painkillers; Quick Draw in `LoadoutService`'s reload and switch times; the Stopwatch in `BulletTimeService`; the Pacemaker in `LastStandRules.eligible`.
+- **Their weight counts** (`ItemConfig.carried`): the heaviest loadout is 23 and Heavy (18) is reachable, for example the AK-47, M9 and Uzi with the Riot Helmet and Heavy Plates.
+
+**Loadouts, purchases and the profile** (`LoadoutRules`, shared; `ProfileSchema`, `ArmoryService`, `CharacterServer`)
+- A saved loadout also holds `Head`, `Chest`, `Gear` and `Skill` (old saves get none and Bullet Time), and `Unlocks` gained `Items` and `Skills` beside `Guns`. Gun, item, skill and preset ids share one length (40) and must never clash (checked).
+- `SetLoadout` checks a whole loadout (`checkLoadout`: only the seven fields, each a thing of the right kind for its slot that the player may use, at least one gun); every spawn checks it again (`resolveKit`): an item no longer allowed is left off, a skill becomes Bullet Time.
+- `BuyItem` now buys items as well as guns, and `BuySkill` skills, on the same checks (level reached, has a price, not owned, the Cash), checked again inside the one profile update that takes the Cash and gives the thing; both share the purchase rate (2 at once, then one each 0.5 s), print a line and log a Cash sink.
+- A spawn sets up, in order: the kit, the stance, the items, the limbs (painkillers), the adrenaline, the guns (magazines), the skill.
+
+**The screens** (`LoadoutScreen` rewritten; `MatchEndScreen`)
+- A saved loadout's screen has HEAD, CHEST, GEAR and SKILL rows under the guns (the throwable still greyed, NOT IN THE GAME YET). Each item slot has a list, NONE first, and SKILL a list of the seven, in the order they unlock. A row shows IN USE, or its weight (a skill: the highest level the player's level allows, LV 2), or the level it opens at or its price; a locked row is grey but can be highlighted; one with a price opens BUY.
+- The panel shows an item's description, what it does and its weight, with the loadout's weight with it; a skill's three levels (LV 2  LEVEL 6, then OPEN, BUY TO USE or NOT IN THE GAME YET; white only once the player can fire it) and its price; a loadout's items and skill, and anything the player can't carry in red with what spawns instead (SPAWNS WITHOUT IT, SPAWNS WITH BULLET TIME). RESET puts back the M9, Uzi, AK-47 and Bullet Time, with no items.
+- The level-up moment has an UNLOCKED row: the first four of the guns, items, skill levels and loadout slots the new levels opened, then +N MORE (`LoadoutRules.unlocksBetween`).
+
+**The review** (the `roblox-dev:roblox-reviewer` agent over 30 scripts: every new and changed one but `ClientMain`, whose one new line starts `SkillController`, plus `ProfileService` and `WeaponConfig` for context)
+- No client can give itself Cash, a gun, an item or a skill, pay less, buy twice or leave a purchase half done: `BuyItem`, `BuySkill`, `SetLoadout` and `SkillRequest` check everything they're sent, a purchase is checked again inside the one profile update that takes the Cash, and every spawn and every skill read the profile again. Profiles, saves and leaks were sound.
+- It found eight problems (two high, one medium, five low) and three design questions. All eight are fixed below and the fixes tested. Two of them couldn't happen in the place as it is (5 and 8), and one only once the arena is published (2).
+
+**Fixed**
+1. **The meter filled from damage that never landed** (high). Adrenaline counted every point of damage a shot asked for. Shooting a body lying in a Last Stand, which takes no damage, filled a meter in a few seconds; a limb already at nothing (a limb in the red doesn't heal) could be shot for ever; an overkill counted in full (an M107 headshot, 0.76 of the meter whatever the head had left). `LimbService.damage` now returns the health it really took (nothing when it ignores a hit, never more than the limb had), and `WeaponServer` counts that, or the health a humanoid without limbs really lost.
+2. **The test arena would give guns away on a live server** (high if it is published, and it is the game's only map): its gun table holds every gun, the M107 and M4 included, free to anyone at any level, and its dummies, back every 5 s, fill meters. Its script now runs in Studio only, so a live server gets the map alone (`LIVE` at the top of `TestArena` turns it back on).
+3. **A running skill was paid for twice after a Last Stand** (medium). A survived stand empties the meter, the skill's unspent part with it, and the skill then went on charging its schedule out of adrenaline earned afterwards: Bulletproof at three segments, downed half a second in and up at 3 s, cost about 1.7 of the meter instead of 1. A Last Stand now settles a running skill: it runs on to its time and charges nothing more.
+4. **One field the player had lost blocked every edit of a saved loadout** (low). The screen sent the stored loadout with the change, and the server, checking every field, refused it whole (NOT OPEN AT YOUR LEVEL YET) if anything in it was no longer the player's: a level lost to a prestige, a retuned unlock, an item taken out of the game. The equip after a purchase failed the same way. The screen now sends the change on top of what the loadout spawns with (anything lost already swapped or left off, as the panel shows in red), and the server is as strict as before. The panels weigh a change the same way, so the preview matches the save (CUSTOM 2 at level 1 read 18 → 13 for the M500; it is 13 → 8).
+5. **Items could be skipped at a spawn** (low, and it didn't happen here: every spawn had its items). `StatusEffects.setup` made nothing for a character not yet in the workspace, and CharacterAdded can come before it is (with immediate signals). Such a character is now set up all the same.
+6. **Bullet Time could look busy just after it ended** (low). The skill and the slow-down ended on separate 0.1 s timers, so a press between the two was refused, SKILL ALREADY RUNNING (nothing charged). The skill now ends its Bullet Time itself (`BulletTimeService.deactivate`).
+7. **Every effect query made a list** (low): about 40 small tables a shotgun blast, and one a frame for each sprinting character. The queries now walk the sources in place.
+8. **The skill key while dead** (low; a guess, and it can't happen here). Without the menu's code the reviewer couldn't tell whether the skill key swallowed gamepad Select, the death screen's button. It doesn't: the menu binds Select above every game key. The skill key now lets every key through while its user is dead all the same.
+
+**Design questions from the review** (left as they are)
+- The part of the meter a running skill hasn't spent yet still opened a Last Stand, and the stand then took it while the skill ran on (fix 3). Should only the segments a running skill hasn't claimed count? Decided and built 2026-11-22: yes (the entry above).
+- Heavy Hand's boosted damage refilled the meter that paid for it. Since fix 1 a hit counts only the health it took, so a boost speeds a kill but makes no more meter than the victim had.
+- Nothing resets the meter at a new match (matches don't respawn anyone), so the living keep theirs and the dead the segments their death kept. Left as it is.
+
+**Found and fixed in the checks** (not from the review)
+- Setting up a character's skill again while one ran (only test scripts do) left the running skill's attributes behind and its cost unspent; `SkillService.setup` now ends it first.
+- A skill's level the player hadn't reached, or hadn't bought, had its words in white like one they could fire; they're grey now, like its name.
+- The player's own Bullet Time said BULLET TIME twice (its banner, and the slowed-time label over it). The label now stays hidden while the banner is their own Bullet Time, and sits under the banner during any other skill.
+
+**Tested** (Studio play mode, 83tg's avatar, one player)
+| Test | Result |
+|---|---|
+| Self-checks | `AdrenalineRules`, `SkillConfig`, `ItemConfig`, `LoadoutRules` (ids unique, presets free at their levels, items and skills bought and resolved, the unlock list), `VitalsRules` (the regeneration changes), `LastStandRules` and `ProfileSchema` (the new fields, old saves) pass on load |
+| A new player's spawn | Bullet Time, no items, M9, Uzi, AK-47: 13, Medium; 3 painkillers; one spare magazine each (15 + 15, 32 + 32, 30 + 30) |
+| The screens: LOADOUT, RIFLEMAN, a saved loadout's edit screen, a skill's panel | Items NONE, BULLET TIME LV 1, the throwable greyed, 13 Medium; RIFLEMAN with the Light Vest and Hot Lead, 14; the HEAD, CHEST, GEAR and SKILL rows; the three levels of a skill |
+| Level 20, $10,000: Gut Feeling bought through the screens, then the Riot Helmet, then the free Ammo Pouch picked | $9,500 after the skill, which went straight into the slot; the helmet's panel read $1,000 TO BUY, 50% LESS DAMAGE TO THE HEAD, 13 → 14; the Gear list: NONE in use, the free gear with its weight, the gear for sale with its price, the Stopwatch and Pacemaker grey with their levels; CUSTOM 1 with the Riot Helmet, Ammo Pouch and Gut Feeling, 15 |
+| Spawning with it | Gut Feeling, the Riot Helmet and the Ammo Pouch: 15, Medium; two spare magazines each (15 + 30, 32 + 64, 30 + 60). X reads GUT FEELING in the keybind list; with half a meter, GUT FEELING LV 1 under the figure, one segment white and the next grey |
+| Gut Feeling with a full meter | Level 3: the banner, its line, the meter running out, USED GUT FEELING LV 3 in the kill feed. A red marker over each of the arena's four characters, always on top, at their heads' places on screen (Studio's screenshots don't draw billboards, so checked by their properties and screen positions) |
+| 26 requests straight to `BuySkill` and `BuyItem`, 0.6 s apart, at levels 1 and 50 | 14 refused, each with the right reason (Locked, Cash, BadData, Unknown, Free, Owned); 4 skills and 8 items bought: $30,000 → $4,800, exactly their prices |
+| 7 bad loadouts sent to `SetLoadout` | An item or skill in the wrong slot (WrongSlot, 3), a throwable field (BadData), no gun (Empty), an unknown skill (Unknown), a number for an item (BadData); the good one saved |
+| CUSTOM 2 (AK-47, M9, Uzi, Riot Helmet, Heavy Plates, Pill Case, Heavy Hand) at level 50 | 5 painkillers; 18, **Heavy**, the first loadout that reaches it; one spare magazine each |
+| Heavy Hand with two segments and a tenth | Level 2 for 6 s; the meter fell evenly from 0.77 to 0.10 over the 6 s (two segments exactly) and the skill ended |
+| The M9 (22 a hit) from 12 studs in front of a dummy with the Riot Helmet and Plate Carrier | Torso 16.50 (×0.75), a headshot 22 (44 × 0.5); under Heavy Hand level 1, torso 24.75 and a bare arm 33 |
+| Hot Lead | Level 1 for 20 s: the torso took 22 and the head 44 through the same armour |
+| From behind | 19.80 on the upper and the lower back (×0.9) |
+| The armour sums in the game's VM (20 checks) | All pass: no armour, each armour item, front, back, a sideways shot, Hot Lead through items but not Bulletproof, Bulletproof with plates (×0.45), Heavy Hand after the cuts, a timed effect running out, `NoSprint` set and cleared |
+| The gunman (18 a hit) against Heavy Plates from in front | 12.06 a hit (×0.67), 7 hits |
+| Bulletproof at three segments | Level 3 for 10 s: 3.618 a hit (18 × 0.67 × 0.3); a sprint refused (NoSprint) during it; `NoSprint` gone after it |
+| Healing after a 30 hit to a leg (70 → 40), Heavy | No gear: began 5.1 s after the hit (Heavy's 5 s), 2 a second (3% of 70), 48.2 at 9 s; Stitches: began 3.9 s after (3.75 and a 0.25 s tick), 50.7; Bandages: began 5.0 s after, 3.1 a second (×1.5), 53.1 |
+| Quick Draw | The M9's reload 1.200 s (1.6 without) and the AK-47's draw 0.412 s (0.55 without); the reload still moved the rounds |
+| Deaths: meter 0.9, no painkiller (so no Last Stand) | The next life began with 0.667: two segments kept |
+| Meter 0.9, a Last Stand, not survived | The next life began with nothing |
+| No adrenaline: without the Pacemaker; with it | Dead at once; a Last Stand all the same, and nothing kept |
+| The Ammo Pouch in a Last Stand | 4 shots at the gunman, the M9 still 15 |
+| Open Tab at full | Level 2 for 20 s: three shots used no rounds (a shot before it used one) |
+| Second Wind at one segment | Leg 33.8 → 69.9, an arm in the red 10 → 40.5, torso 69.6 → 100 (half of each maximum, and regeneration); the meter 0.38 → 0.05 at once |
+| Second Wind at three | Leg 30 → 70, torso 40 → 100, painkillers 3 → 4, the meter emptied; asked again with no segment: NoAdrenaline |
+| Second Wind with nothing hurt (one segment, a painkiller short) | Refused (Unhurt), nothing spent |
+| A dummy's Bullet Time at full (the hook), without and with the Stopwatch | Level 3 for 6 s, its meter emptied by the end; without: my time 0.3 and aim penalty 0.35; with: neither |
+| My Bullet Time at one segment, then two | 2.5 s, me at 0.6, one segment spent; 4 s, the dummy in view at 0.3, two spent |
+| The level-up moment (a made-up match end, level 3 → 12) | LEVEL 12 - GUNHAND, then UNLOCKED: RIOT HELMET, HEAVY HAND LV 1, SECOND WIND LV 2, GLOCK 18, +13 MORE (17 in all) |
+| CUSTOM 2 at level 1 | Its three items in red, SPAWNS WITHOUT IT, and Heavy Hand SPAWNS WITH BULLET TIME; 13, Medium; APPLIES ON NEXT SPAWN. The next life: Bullet Time, no items, 3 painkillers |
+| X at level 1 with a full meter | Bullet Time level 1, two segments left; the banner, its bar and line, no second BULLET TIME label; NOBODY [JORDAN] USED BULLET TIME LV 1 in the kill feed |
+| After the review: self-checks | All pass on load, the new one with them (a saved loadout taken as it spawns can always be saved again) |
+| The M9 at a dummy's leg already at nothing (the hit confirmed), then a whole leg, then an arm with 10 left | The meter +0, +0.088 (22 × 0.004), +0.040 (10 × 0.004); each would have been +0.088 before |
+| Hot Lead at half a meter; 2 s in, a killing blow (meter 0.47, 3 painkillers); the gunman killed during the stand | The stand survived, the meter emptied, Hot Lead still running; the meter then put at 0.5 stayed at 0.5 for 4 s while Hot Lead ran on (before the fix it would have gone on falling) |
+| Bullet Time at one segment; again, with the skill set up afresh half a second in | The skill and the slow-down ended in the same frame (2.583 s); the fresh setup ended the slow-down at once (time scale 1) |
+| Effects on a model set up before it is in the workspace, then put in it, then destroyed (15 checks in the game's VM) | All pass: its armour and painkillers count, it outlasts the sweeps once in, timed effects and `NoSprint` come and go, the queries agree, its record goes with it |
+| RIFLEMAN spawned | The Light Vest, Hot Lead, 14 |
+| CUSTOM 2 at level 1 (its Riot Helmet, Heavy Plates, Pill Case and Heavy Hand no longer open), its Primary set to the M500 through the screens | The panel read 13 → 8, MEDIUM → LIGHT; saved as M500, M9, Uzi, no items, Bullet Time: 8, Light. The old screen's request (the stored loadout with the M500) refused, Locked; the guns alone saved |
+| Gamepad Select alive, the meter empty | NOT ENOUGH ADRENALINE: Select reaches the skill key |
+| Dead, X, then gamepad Select | LOADOUT over the kill cam on Select; no error |
+| Output log | Clean apart from the DataStore line, the purchase lines and the test tools' own |
+
+**Not done**
+- Two players: skills, armour and the Stopwatch between real players, Gut Feeling's markers on a real player, the kill feed's skill lines, Bullet Time slowing another player under lag, and fix 1's Last Stand case (shooting a body in a stand gives no meter; the limb at nothing and the overkill were tested). Added to the two-client test ([[Animation and MP3 Systems - Progress and To Do#3. Play tests]]).
+- Fix 2 wasn't seen on a live server (Studio, a 2-player Studio test included, always runs the arena). Fix 5's new path was tried on a made-up model only: this place's spawns already set characters up in the workspace.
+- How the markers look: Studio's screenshots don't draw billboards.
+- Skills were fired with X and straight through `SkillRequest`, never with gamepad Select (it reached the skill key, with an empty meter) or the middle mouse button (not tried). There are no touch controls.
+- The screens were checked only in Studio's window (1325 × 753), not at 1920 × 1080 or 1024 × 768 as in Phase D.
+- Skill and item icons (Blender art); the throwable slot (grenades); the skills and items that need team modes, a minimap, looting, explosions, sounds, respawn hooks or attachments (plan step 19); sounds; balance from real play.
+- Saving the new profile fields against the real DataStore (Studio's API access is still off).
+- Studio's Script Analysis (type warnings) wasn't run over the new and changed scripts.
+- The place isn't published (Team Create keeps the changes). Nothing is committed: these notes.
+
+## 2026-11-20: Phase D of the menu plan: stamina, health regeneration, weight classes, the loadout screen and gun unlocks
+On this PC (Studio signed in as 83tg), with Claude Code driving Studio, started 2026-11-19 by the session that wrote up Phase C. JordanSaa asked for Phase D (steps 9 and 10 of [[Menus, Loadout, Progression and Shop - To Do#Suggested build order]]), "of high quality"; nothing past it was built.
+- 3 scripts added (`VitalsRules`, `ArmoryService`, `LoadoutScreen`) and 18 changed in the Team Create place; 5 remotes added (`SelectLoadout`, `SetLoadout`, `RenameLoadout`, `BuyItem`, `LoadoutEvent`). No clip changed.
+- **What players will notice:** they spawn with the loadout they pick in the main menu (LOADOUT): one of four presets or five loadouts of their own, the last two from levels 10 and 25. Guns unlock by level and some cost Cash. Sprinting runs out of breath. A wound out of the red heals by itself a few seconds after the last hit; one in the red still needs a painkiller. How heavy the guns carried are (LIGHT, MEDIUM or HEAVY LOADOUT, under the HUD's figure) sets how fast both happen and how quickly aiming zooms in, and dropping or picking up a gun changes it. Dying offers CHANGE LOADOUT [M], and the respawn waits while the list is open.
+
+**Decided with JordanSaa** (asked 2026-11-19 through the session that started this one, answered 2026-11-19 and 20; all in the plan's section 0)
+- Gun unlock levels and prices, as proposed: M9, Uzi, AK-47, S&W 500 and M500 free from level 1, the FAL free from 3, then the Glock 18 (level 5, $500), MP5 (8, $1,000), Desert Eagle (12, $1,500), sawn-off (16, $2,000), SPAS-15 (22, $2,500), M107 (28, $3,500) and M4 (34, $3,000). Every gun a preset carries is free.
+- Health regeneration **only above the red** (not my proposal, which healed red limbs too): after the class's delay (Light 3 s, Medium 4 s, Heavy 5 s) a limb heals 5% / 4% / 3% of its maximum a second up to full; a limb in the red stays injured until a painkiller lifts it out.
+- Stamina: Medium sprints 6 s from full (Light 7.8, Heavy 4.2); it fills in 4 s from 1 s after the sprint; once dry, a sprint can start again at a quarter.
+- **The class follows the guns carried right now** (not my proposal, which fixed it at spawn): picked up, dropped or lost, the weight and class change at once; the stamina keeps the share left; regeneration and aiming use the class of the moment; the HUD names it.
+- The plan's class thresholds stay (Light up to 10, Medium 11 to 17, Heavy from 18). Guns alone reach 17 at most (the M107 and two Desert Eagles), so Heavy arrives with Phase E's items.
+- The death screen offers CHANGE LOADOUT and the respawn waits while the list is open, up to 15 s after the death; on a gamepad, **Select** (bullet time's button, useless while dead).
+- The body-in-a-ring diagram and the posed character wait for Blender art; the throwable, Head, Chest, Gear and Skill slots show greyed until Phase E; presets carry only their guns until then.
+- My calls, not objected to: new players' CUSTOM 1 to 5 hold the old default spawn (M9, Uzi, AK-47) and CUSTOM 1 is selected; a loadout needs at least one gun; copying a preset keeps the saved loadout's name; names are up to 20 characters.
+
+**New: gun weight and ratings, worked out from the stats** (`WeaponMath`, `WeaponConfig`, shared)
+- `WeaponMath.ratings` (the loadout screen's five bars), `dps`, `power` and `weight`: the plan's formulas exactly; with today's numbers every gun weighs what the plan's table says (sawn-off 1, M9, S&W 500, Uzi and Glock 2, Desert Eagle 3, M500 4, SPAS-15 5, MP5 6, FAL 8, AK-47 and M4 9, M107 11). A gun the formula gets wrong can take a `WeightOverride` in `WeaponConfig` (none does).
+- `WeaponConfig` also holds each gun's description line and its unlock (`Unlocks`: level and price), and checks both.
+
+**New: saved loadouts, unlocks and the armory** (`LoadoutRules`, shared; `ArmoryService`, `ProfileSchema`, server)
+- The profile has three new fields: `Loadouts` (five, each a name and a gun per slot), `SelectedLoadout` (1 to 5, or a preset's id) and `Unlocks.Guns` (the guns bought). Old saves get the defaults; gun and preset ids aren't checked against the game when a profile loads, so a gun taken out of the game can't stop anyone loading.
+- `LoadoutRules` holds the rules the screen and the server share: the slots that open at levels 10 and 25, the four presets (RIFLEMAN, SCOUT, BREACHER, MARKSMAN from level 3, their guns only for now), which guns a player may carry (level reached, bought if it has a price) and buy, a loadout checked whole as a client sends it (`checkGuns`: only the three slots, each a gun that fits it and is allowed, at least one) and again at every spawn (`resolve`: a gun no longer allowed is swapped for the default loadout's gun in that slot), weight and class, and names (tidied: no control or hidden characters, single spaces, 20 characters).
+- `ArmoryService` answers four requests, each checked against the player's own profile and rate-limited (a short burst, then TOO FAST; fix 5 below): `SelectLoadout`, `SetLoadout` (also copying a preset and resetting), `RenameLoadout` (filtered with `TextService` for its owner, the only one who sees it; the old name stays if filtering fails) and `BuyItem` (a gun with a price at its level, not owned, with the Cash: the Cash taken and the gun given in one profile update, checked again inside it). It sends the owner their armory (`LoadoutEvent`) whenever it changes.
+- **Every spawn takes the selected loadout** (`ArmoryService.spawnLoadout`, called by `CharacterServer`), checked again whole; the first one-handed gun spawns in hand. Players used to spawn with the M9, Uzi and AK-47 whatever happened.
+
+**New: the loadout screens** (`LoadoutScreen`; `MenuKit`, `MenuController` changed)
+- LOADOUT in the main menu: the four presets, a gap, then the five saved loadouts (the locked ones grey, with LEVEL 10 / LEVEL 25); a preset can be selected or copied into a saved loadout; a saved loadout can be selected, its three slots changed, renamed (a text box that stops at 20 characters) and reset (after a confirm).
+- A slot's list holds EMPTY and every gun that fits it, in the order they unlock, with its weight, level or price. A locked gun is grey but can be highlighted, so its stats can be read; choosing a gun with a price opens BUY.
+- A panel on the right, on a dark plate (Max Payne 3's loadout panel), shows the highlighted row: a loadout's three guns (one it may no longer carry in red, SPAWNS WITH THE M9), the five slots still to come in grey, and its weight bar (Light and Heavy marked) with its class and what the class does; or a gun's 3D view (the HUD's icon model, one at a time), its description, its five ratings as bars against the gun in that slot now (the gain white with +, the loss red with −), its numbers (fire mode, fire rate, magazine, reload, draw, headshot, damage a second, hands), its weight, its lock or price, and the loadout's weight and class with it (13 → 15).
+- APPLIES ON NEXT SPAWN shows in the panel, and NEXT SPAWN: … on the main menu's LOADOUT row, while the next spawn would bring other guns than this life carries.
+- `MenuKit`: rows can be `dim` (grey, still chosen), the page tells the screen what is highlighted, notices can be white (something done) as well as red (a refusal), and the `Screen`, `Entry` and `Nav` types are shared. `MenuController` gives each screen a `Nav` and calls its `shown` and `highlight` hooks.
+- Checked on screen at 1920 × 1080, 1024 × 768 (the panel fits beside the list) and Studio's own small window, in the plan's style (Oswald, white, black and grey, hard edges, the white bar).
+
+**New: stamina and health regeneration** (`VitalsRules`, shared; `StanceService`, `LimbService`, `LoadoutService`, `CharacterController`, `CameraController`, `Hud`)
+- **Stamina:** the server counts it (`StanceService`), ends a sprint that runs dry (Forced, "Tired") and refuses one before a quarter (Rejected, "Tired"); the client predicts the same count so the stop is instant, takes the server's when it is clearly lower, and Shift must be pressed again after running dry. A slim bar under the HUD's figure shows it while it isn't full (grey once dry).
+- **Regeneration** (`LimbService`, every 0.25 s): after the class's quiet spell, limbs out of the red heal to full; never in a Last Stand or dead; bullet time slows it. The test arena's dummies heal too.
+- **The weight class** is worked out by `LoadoutService` from the guns carried now (`LoadoutWeight`, `WeightClass`), again whenever one is picked up, dropped or lost; stamina keeps its share; the HUD names the class under the figure (LIGHT LOADOUT…), white for a moment when it changes.
+- **Aiming in** is the class's share of the usual time: the camera's zoom and the sniper scope's push, and the server's 0.15 s aim settle (Light ×0.85, Heavy ×1.2). Walk speed and dive distance are the same for every class.
+
+**New: change loadout on the death screen** (`KillCamController`, `MenuController`, `SpawnService`, `MenuRules`, `Keybinds`)
+- The kill cam shows CHANGE LOADOUT [M] bottom right (SELECT after a gamepad). It opens the menu straight at LOADOUT over the kill cam and asks the server to hold the respawn (`MenuRequest` "Hold"); closing the menu (M, Select, BACK) releases it ("Release", never throttled: it only brings the player back sooner), and `MenuRules.HOLD_LIMIT` (15 s after the death) ends any hold. The respawn closes the menu.
+- On a gamepad Select opens it only while dead (`Keybinds.ChangeLoadout`); alive, Select is still bullet time.
+
+**The review** (the `roblox-dev:roblox-reviewer` agent over 21 scripts: every new and changed one, the armory's remotes first)
+- No client can give itself Cash, guns, levels or a locked loadout, or spend Cash it doesn't have: every argument is checked, every request runs against the server's own copy of the profile, a purchase is checked again inside the one profile update that takes the Cash and gives the gun, and only the filtered name is kept. Regeneration, stamina and the class read only what the server set.
+- It found ten problems (one high, one medium that depends on a place setting, eight low), all fixed below and tested. It then checked the fixes (2026-11-20): nine right, one still beatable, and a few things the fixes uncovered, fixed on 2026-11-21 (**The second check**, below).
+
+**Fixed**
+1. **Walking could stand in for a sprint** (high). The server only drained stamina in its Sprinting stance, and its speed check let every stance move at 1.35 times its speed plus 6 studs a second: a client that set its own walk speed to 26 outran a sprint for ever, could aim and fire while doing it (a sprint can't), and ignored limping. Now (`StanceService.checkSpeed`) each stance is held to its own speed with the legs' state (limping 11, crawling 4, as the client sets it), a sprint's speed only while sprinting (and a second after the server ends one; second check, 1), a vault's while vaulting. A bank of distance fills at 1.1 times that, holds a second of it (of walking at least) plus 4 studs for late position updates and a client a moment ahead of the server, and once overdrawn puts the character back where it last moved legally. A self-check keeps walking short of a sprint. Server code that teleports a character (none in the game yet; test scripts do) must call `StanceService.moved(character)` first, or the move is undone.
+2. **Per-character tables could leak** (medium, if old characters weren't destroyed). Here they are: Roblox now destroys a character when the player respawns (tested; the place setting the reviewer named no longer exists in Studio), and the stance table stayed at one record. Backstops anyway: `StanceService` drops a record whose character is gone, `LoadoutService` clears a leaving player's, and the menu lets go of the last character's connections.
+3. **Broken text in a name** (low, and not possible here). The reviewer expected Luau's `utf8` to let UTF-16 surrogates through; in Studio it refuses them, anything past U+10FFFF and overlong bytes (`utf8.len` gives nil and `JSONEncode` refuses them), so names and saves already reject them. Names now also drop noncharacters (U+FDD0 to U+FDEF, U+FFFE, U+FFFF), the armory is sent after a spawn rather than during it, so a failure there can't stop the spawn, and sending checks its encoding.
+4. **A balance change would have stopped the game** (low): the self-checks pinned the plan's weights, prices and levels, so tuning a gun would have broken every script that needs `LoadoutRules`. The rules are now checked with guns picked from `WeaponConfig`, and the plan's weights only warn ("AR_A_AK47 weighs 10; the menu plan worked out 9"); `VitalsRules` checks read its own numbers.
+5. **Requests past the rate were dropped without a word** (low): a reset right after a rename kept the old name, and two saves bunched together by lag lost the second. Each kind of request now has a burst (3 selections or saves, then one each 0.25 s; 2 purchases, then one each 0.5 s; a name of the player's own every 2 s, while putting the default name back counts as a save), and past it the screen says TOO FAST. TRY AGAIN IN A MOMENT.
+6. **A refused sprint emptied the predicted stamina** (low): only a forced stop does now. A refusal (the server's count a moment behind) waits just under a quarter, and the sprint starts then if Shift is still held.
+7. **Hold shared PLAY and LEAVE's half-second gap** (low), so M, M, M on the death screen could lose the hold. It isn't throttled now: it holds only until 15 s after the death, and only the sender.
+8. **Limits that had to agree weren't tied together** (low): gun and preset ids now share one length (`LoadoutRules.ID_LENGTH`, 40, checked against every id), and a profile whose saved loadouts don't fit (a longer name, a bad slot, more loadouts than this version has) is mended when it loads instead of refused, so changing the number of loadouts or the name length needs no profile version.
+9. **Purchases left no record** (low): each now prints a line (the player's id, the gun, the price, the Cash left) and logs a Cash sink to Roblox's economy dashboard (`AnalyticsService`).
+10. **Every attribute change redrew the HUD's figure** (low; the server sets `Aim` up to 30 times a second): the figure, and the server's and the menu's hit tracking, now react only to what they show (limb health, painkillers, adrenaline, the class).
+- Not in its files, and left as a question: Roblox's Reset Character is on, so a player can die on purpose and change loadout on the death screen (in the plan's section 9).
+
+**The second check** (the reviewer over the fixes' diff, 2026-11-20; fixed and tested 2026-11-21)
+1. **Sprint speed could still be had for free** (high): the second after any sprint allowed a sprint's speed, so a client asking to sprint and to stop in the same frame, every 0.9 s, never spent stamina and could run at 24 for ever. The grace now follows only a sprint the server ended itself (Tired, a hit); a stop the client asks for needs none, since it slowed as it asked.
+2. **A new character could teleport anywhere** (high; older than Phase D): the speed check trusted every position for 2 s after a spawn. It now starts at the spawn point, so a jump right after spawning is held to the usual allowance.
+3. **Bullet time could pull back a player on a slow connection** (medium): when the scale fell, the allowance fell at once, while the player runs on at full speed until they hear. The old scale now counts for a second after it falls.
+4. **Two walk speeds** (low): the check now reads the client's (`LimbRules.WALK_SPEED`), and a self-check warns if `StanceRules`' copy differs; the walking-below-a-sprint check warns rather than stops, as finding 4 asks.
+5. **Aiming's slower walk and a landed dive weren't held by the server** (low): aiming now limits walking to 70% on the server too (the client already slowed), and lying after a dive allows the dive's speed only for the second of its slide, not up to 8 s.
+6. **A rename could win over a reset** (low): RESET just after renaming, while the name was still being filtered, kept the filtered name. The latest rename of a loadout now wins, and putting the default name back is never refused as Busy.
+7. **Odd keys in a stored loadout list** (low, theoretical): `reconcile` turns them back into a list rather than leaving a profile that can't be saved.
+- Small: going back to a screen where nothing was chosen opens on its first row (`start`).
+- Left for a later anti-cheat pass: a blink of up to the allowance (about 20 studs) is still possible in one step, through a wall too (it needs a wall check on each step), and height isn't checked.
+
+**Found and fixed in the last checks** (not from the review)
+- A locked preset's panel showed its guns as swapped for the default (MARKSMAN at level 1: the FAL in red, SPAWNS WITH THE AK-47, 11, Medium), though they open with it. A locked loadout now shows as it will be when it opens (FAL, 10, Light) with a red OPENS AT LEVEL 3 tile.
+- Going back always put the bar at the top, and a gun list opened on EMPTY, so Enter by habit emptied the slot. BACK now returns to the row chosen there (`MenuKit` keeps a row by id; a screen can name its first row), LOADOUT opens on the selected loadout (the death screen too), a gun list on the gun in use, and RESET's confirm lists CANCEL first, as LEAVE MATCH lists STAY.
+- A pull-back fired once while the test harness walked the character after a dive and wasn't seen again in five tries; likely the server's own get-up after 8 s on the floor leaving the server a moment behind. The bank now holds at least a second of walking in every stance, and the warning says where it happened and how far the last step went.
+
+**Tested** (Studio play mode, 83tg's avatar, one player)
+| Test | Result |
+|---|---|
+| Self-checks | `WeaponConfig`, `WeaponMath` (the plan's weights), `LoadoutRules` (presets free at their levels, saving, spawning, buying, weights, names), `VitalsRules` (sprint lengths, the refill, the quarter rule, no healing in the red or within the delay), `ProfileSchema` (the new fields, old saves, bad values) and `MenuRules` pass on load |
+| A new player's CUSTOM 1, PLAY | M9 in hand, Uzi holstered, AK-47 carried: 13, Medium |
+| SCOUT selected in the menu, PLAY | The Uzi alone, in hand: 2, Light; the main menu's LOADOUT row reads SCOUT |
+| Sprint, Light, Shift held 11 s | Sprinted 7.8 s (client and server within 0.02 all the way) and stopped at empty on both; filling began 1 s later and took 4 s; Shift still held didn't start it again |
+| Sprint, Medium, the AK-47 dropped 3.1 s in (dual wielding, 4) | Drained a sixth a second to 0.50, then from that share at Light's rate (1/7.8 a second); dry at 7.1 s, the sprint ended (Tired); filling began 1 s later and was full 4 s after. The HUD read LIGHT LOADOUT, white, as the AK-47 left |
+| The AK-47 picked up again (F) | 13, Medium, the HUD's line white for a moment |
+| Holding the AK-47, the right arm hit into the red | The AK-47 dropped (one arm): 4, Light |
+| Right leg hit to 10 of 70 (in the red), Medium | Not healed in 10 s, still limping; a painkiller lifted it to 52 (walking) and it healed about 2.8 a second (4% of 70) to 70 within 7 s |
+| Aim settle (server), each class | Light 0.135 s, Medium 0.151 s, Heavy 0.184 s (0.15 × 0.85 / 1 / 1.2, plus a frame) |
+| Aim zoom (camera), each class | Exactly 14.12, 12.00 and 10.00 a second (12 ÷ the class's aim time) |
+| Level 12, $5,000: the Desert Eagle bought through the menu | $3,500 left, owned, put straight in CUSTOM 1's Secondary; the panel showed 13 → 14 before buying |
+| CUSTOM 1 selected mid-match | SELECTED, and APPLIES ON NEXT SPAWN in the panel |
+| Rename: 37 characters typed, with M, W, S and Backspace among them | The box stopped at 20; M, W and S typed instead of closing or moving the menu; Backspace deleted instead of going back; saved with its three spaces made one (Studio's filter ran without error) |
+| 20 bad requests sent straight to the remotes | Each refused with the right reason (Locked, WrongSlot, NotOwned, Empty, BadData, Unknown, Free, Owned, Cash…); a real Glock 18 purchase went through ($3,500 → $3,000) |
+| The Desert Eagle taken off the profile, then a respawn | The M9 in its place (13, Medium); the panel showed the Desert Eagle in red, SPAWNS WITH THE M9 |
+| Two Desert Eagles and the AK-47 saved, PLAY | One in hand, one holstered, the AK-47 carried: 15, Medium. Dual wielded (4): the shots alternated hands, a reload filled both (7 + 5 each), and with the AK-47 dropped, 6, Light |
+| Death, M during the kill cam, SCOUT picked, the menu closed at 8 s | Hold at 1.1 s, Release at 8.3 s, respawned at 8.6 s with the Uzi |
+| Death, M, the menu left open | Respawned at 15.4 s (the limit); the menu closed by itself |
+| Death, a gamepad's Select, then Select again | LOADOUT over the kill cam; Hold at 1.3 s, Release at 13.7 s (the tools' delay), respawned 0.4 s later |
+| Select alive, adrenaline full | Bullet time, as before |
+| Death without the menu | Respawned at 3.3 s, as before |
+| The screens at 1920 × 1080, 1024 × 768 and in Studio's window (1325 × 793) | The list, the panel and the gun picker fit side by side and read cleanly; nothing clipped. The Test Arena's floating signs show through the panel's plate (it is 60% opaque) |
+| The mouse through LOADOUT | Hovering moves the bar and the panel; clicks open a loadout, a slot and its guns, and set one (CUSTOM 2's Primary to the M500: 8, Light) |
+| After the review: self-checks | All pass on load; with the AK-47's damage at 40 (in a copy), every module still loads and two warnings explain the new weights |
+| Walking, sprinting, limping, crouching, a dive, a vault, a running jump over the low wall, sliding along high cover, bullet time, getting up after 8 s on the floor | No pull-back and no warning; the bank never fell below 11 studs |
+| A client setting its own walk speed to 26, no sprint | Ran 2.6 s, then was put back 7 times in 9 s: 17.6 studs a second on average (walking's 16 × 1.1), a warning every 5 s |
+| The same at 16 while limping | Put back at its 12 studs a second |
+| Respawning twice | One record left in the stance table |
+| A 50-stud `PivotTo` from the server, then another after `StanceService.moved` | The first put back at once (the warning: "50.0 studs in the last step"); the second stayed |
+| After the second check (2026-11-21): a client pushed to 24–26 studs a second while asking to sprint and to stop every 0.9 s | Put back 7 times in 9 s: 16.7 studs a second on average. (Forcing a humanoid's walk speed from a client script no longer speeds it up in this Studio, so the cheating tests now push the root) |
+| Releasing Shift mid-sprint; then running dry | No pull-back; the bank never fell below 18.6 |
+| Walking aimed; then aimed but pushed to 17 | No pull-back at 11.2; the push put back to its 12.3 studs a second |
+| A client jumping 60 studs 0.3 s after respawning | Held to the usual allowance: 16.5 studs kept, the rest put back |
+| A name and the default name sent in one frame | The default name kept, the filtered one dropped, no Busy |
+| Studio's "Bad Connection (3G)" network (150 to 180 ms each way, jitter, 0.5% loss): walking, sprinting, stopping, crouching, a dive, sprinting into bullet time | No pull-back; the bank never fell below 13. The network settings were put back to none |
+| BACK after the change | LOADOUT on CUSTOM 1, then the main menu on LOADOUT, as before |
+| 5 saves at once; two names 0.5 s apart; a reset just after a name | The fourth save refused, TOO FAST; the second name refused; the reset's guns and name both applied |
+| The server refusing a sprint, then forcing a stop | Predicted stamina to 0.24, then to 0 |
+| Hold, Release, Hold 0.1 s apart while dead | Still dead at 6 s; back at the 15 s limit |
+| A purchase | The line in the output, and Roblox's economy event |
+| Limb hits, a painkiller, the AK-47 dropped | The figure, the painkiller count (3 → 2) and LIGHT LOADOUT follow; UNDER FIRE over the menu and LEAVE refused after a hit, as before |
+| BACK and the first rows | LOADOUT opened on CUSTOM 1 (selected), the Primary list on the AK-47 (in use; Enter changed nothing and went back to PRIMARY), BACK to CUSTOM 1, then to LOADOUT; RESET's confirm on CANCEL, and CANCEL back to RESET |
+| A locked preset and a locked slot | MARKSMAN: the FAL and S&W 500, 10, Light, OPENS AT LEVEL 3; CUSTOM 4: OPENS AT LEVEL 10 |
+| Again after all the changes: the Desert Eagle bought through the screens (level 12) | The Secondary list opened on the M9 (in use); BUY, then back on SECONDARY with BOUGHT THE DESERT EAGLE in white and the panel showing it OWNED, 14 |
+| Then death, M, BACK | LOADOUT on CUSTOM 1 (selected), the respawn held; BACK closed it and the new life came with the Desert Eagle in hand: 14, Medium |
+| Output log | Clean apart from the DataStore line |
+
+**Not done**
+- Heavy can't be reached yet (guns alone weigh 17 at most): its aiming was measured with the class set by hand, and its stamina and healing only in `VitalsRules`' self-checks.
+- Two players: seeing someone else's guns and class change, a purchase or a rename while others play, the death screen's hold in a busy match. Added to the two-client test ([[Animation and MP3 Systems - Progress and To Do#3. Play tests]]).
+- The text filter only ran in Studio, which hands the text back unchanged; what a live server's filter does to a name wasn't seen. Renaming with a gamepad (the on-screen keyboard) wasn't tried.
+- Saving the new profile fields against the real DataStore (Studio's API access is still off).
+- The death screen's offer isn't shown on touch (the menus have no touch controls yet). No sounds: running out of breath, buying.
+- The offer's SELECT label (shown after a gamepad was used last) wasn't seen on screen: the Studio MCP's gamepad buttons count as keyboard input, so Select was tested working but the label stayed M. The menu's own prompts name the gamepad's buttons as before (RESPAWN [B] on the death screen, which B does).
+- The body-in-a-ring diagram, the posed character and the weapon icons (Blender art), and the Phase E slots (above).
+- The speed check doesn't look at height or walls: climbing, flying or teleporting upwards, and a blink of up to its allowance (about 20 studs) in one step, through a wall too, are for a later anti-cheat pass. Bullet time slowing another player (to 0.3) under lag wasn't tried (one player; the activator's own 0.6 was). Roblox's Reset Character is still on (above).
+- `LoadoutService`'s clean-up when a player leaves couldn't be run alone in Studio (stopping the test ends everything); it was checked by reading.
+- Studio's Script Analysis (type warnings) wasn't run over the new and changed scripts.
+- The place isn't published (Team Create keeps the changes). Nothing is committed: these notes.
+
 ## 2026-11-19: The reviewer's check over the economy code, its nine fixes, and Phase C checked against the plan
 On this PC (Studio signed in as 83tg), with Claude Code driving Studio. JordanSaa asked for the `roblox-dev:roblox-reviewer` check over the progression code, then to fix everything it found and begin Phase C.
 - 9 game scripts changed in the Team Create place (none added), and the two Studio tools (`ProfileCheats`, `TestHarness`) with their repo copies. No clip changed.

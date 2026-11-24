@@ -53,6 +53,12 @@ Examples on the Steam Market: [AK-47 Case Hardened](https://steamcommunity.com/m
 - Check `PolicyService:GetPolicyInfoForPlayerAsync` → `ArePaidRandomItemsRestricted`; where it's true the player can't open paid random items and can't trade what they got. Offer a direct-purchase shop instead. ✅
 Source: [Roblox — Paid random items policy](https://create.roblox.com/docs/production/monetization/paid-random-items)
 
+## Built: the shop's first skins (2026-11-22)
+Phase F of [[Menus, Loadout, Progression and Shop - To Do]] built the **Finish** layer below, and nothing past it yet. Every gun in the place is coloured from one 4 × 4 palette texture (16 colour squares; the M107 has its own copy), and its UVs only point at those squares, so a skin can only re-colour the squares: there is no room on these meshes for a pattern, a sticker, blood or engraving. Each finish is a palette of its own with metal and shine per square (a `SurfaceAppearance` with colour, metalness and roughness maps, made by `Assets/Blender/Skins/skin_lib.py`), and a gun's moving parts (slide, bolt, pump, cylinder, hammer, barrels) and magazine can wear a second finish (TWO-TONE, BLACK & GOLD). Shells never change.
+- **22 finishes:** parkerized, sniper grey, OD green, flat dark earth, burnt bronze, blued steel, stainless, nickel, royal blue (the Gunsmith line); urban, midnight, desert, woodland, rust, arctic (Street); copper, champagne, chrome, rose gold, ivory and gold (Cartel); black chrome and gold only as the two halves of BLACK & GOLD (gold alone stays a mastery finish).
+- **54 skins** (`ShopConfig`): three lines of 18, one crate each, every gun in every crate, each skin one gun in one finish with its own rarity (7 common, 5 uncommon, 3 rare, 2 very rare, 1 exceptional per crate). The exceptionals: S&W 500 ROYAL BLUE, AK-47 ARCTIC, AK-47 IVORY & GOLD.
+- Still ideas, waiting for guns with real UVs (their source): Pattern and Signature skins (Colour Case, Pattern-Welded, Engraved, the Street prints, the Crime Scene line, Croc Grip), Wear, pattern seeds, Body Count, Matched Pairs, charms, and the Mastery ladder (it needs challenges).
+
 ## Skin system for Maximum Pain
 Four layers, from cheapest to build to most expensive:
 

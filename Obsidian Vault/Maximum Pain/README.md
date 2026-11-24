@@ -18,7 +18,7 @@ The project restarted from scratch on 2026-10-30. Notes on the systems built sin
 - [[Test Arena]]: the test area, its dummies, and what was tested.
 - [[Changelog]]: every change to the game, newest first.
 - [[Animation and MP3 Systems - Progress and To Do]]: current work log and the detailed to-do list to continue from.
-- [[Menus, Loadout, Progression and Shop - To Do]]: plan (Phase A built 2026-11-14: the slot rename, the saved server profile, the match manager; Phase B built 2026-11-18: the main menu over the live match, the menu kit, the first Blender UI art; Phase C's code is in the place but not yet written up; the rest not built yet) for the main menu and its Max Payne 3 look, Blender-made UI art, loadouts, items, skills (Bursts), levels/titles/cash, the Roblox-compliant skin shop, server-side economy, and settings.
+- [[Menus, Loadout, Progression and Shop - To Do]]: plan (Phase A built 2026-11-14: the slot rename, the saved server profile, the match manager; Phase B built 2026-11-18: the main menu over the live match, the menu kit, the first Blender UI art; Phase C, progression, written up 2026-11-19; Phase D, loadouts, 2026-11-20; Phase E, skills and items, 2026-11-21; Phase F, the skin shop and crates, 2026-11-22 and 23; Phase G not built yet) for the main menu and its Max Payne 3 look, Blender-made UI art, loadouts, items, skills (Bursts), levels/titles/cash, the Roblox-compliant skin shop, server-side economy, and settings.
 
 ## Max Payne 3 (primary reference)
 - [[Max Payne 3 Mechanics Reference]] — every mechanic found: single player and multiplayer.

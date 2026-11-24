@@ -36,7 +36,7 @@ Leg and arm statuses combine (the HUD shows, for example, "LIMPING / ONE ARM").
 ## Painkillers
 - **H** (gamepad D-pad up) takes one.
 - Each painkiller restores 60% of every limb's maximum, capped at full. That always lifts a limb out of the red, so it clears every status.
-- Players start each life with 3. The count shows in a white square on the HUD figure's back (see [[HUD Layout]]).
+- Players start each life with 3 (5 with the Pill Case item, since 2026-11-21). The count shows in a white square on the HUD figure's back (see [[HUD Layout]]).
 - 1 s cooldown. A painkiller is refused when nothing is hurt, the player is dead, or the stance doesn't allow it (sprinting is fine; diving, getting up and Last Stand are not).
 - A painkiller is also the price of surviving a Last Stand, and having one is what makes a Last Stand possible.
 
@@ -56,6 +56,15 @@ Added 2026-11-20 with the loadout weight classes (Phase D of [[Menus, Loadout, P
 - Never during a Last Stand or after death. Bullet time slows it, as it slows everything else.
 - Example: a leg on 21 of 70 (just out of the red) on a Medium loadout: nothing for 4 s, then 2.8 a second, full about 18 s later.
 - The test arena's dummies heal too (as Medium), since they have limb health.
+
+## Items and skills
+Since 2026-11-21 (Phase E of [[Menus, Loadout, Progression and Shop - To Do]]). What they do lives in `ItemConfig` and `SkillConfig`; `StatusEffects` (server) holds them on each character, and every hit asks it (`StatusEffects.damageScale`).
+- **Armour** (items, the whole life): the Riot Helmet takes half off every hit to the head; on the torso the Light Vest takes 15% off a hit from in front (nothing from behind), the Plate Carrier 25% in front and 10% behind, Heavy Plates 33% and 25%. In front or behind is the way the bullet travelled through the torso part it hit (its facing); a shot without a direction counts as in front. Arms and legs have none.
+- **Hot Lead** (skill): its rounds ignore the victim's armour items (not Bulletproof).
+- **Bulletproof** (skill): every hit takes 40 / 55 / 70% less for 10 s, on top of armour. **Heavy Hand** (skill): its user's hits do +50% / +100% for 6 s, +100% for 10 s at level 3, after the victim's cuts.
+- **Second Wind** (skill, at once): every limb heals half its maximum (level 1: that lifts any limb out of the red), to full (level 2), or to full with a painkiller back (level 3), never past the painkillers the life started with. Refused when nothing is hurt and no painkiller would come back.
+- **Pill Case**: 2 more painkillers each life (5 in all). **Stitches**: the wait before healing is 25% shorter. **Bandages**: healing is 50% faster. Both stack with the weight class.
+- The test arena's gunman's hits go through the same rules.
 
 ## Hooks the other systems read
 The server keeps these attributes on each character:
